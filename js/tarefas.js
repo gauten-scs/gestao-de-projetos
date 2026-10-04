@@ -113,14 +113,24 @@ $("#nova-tarefa").addEventListener("click", () => abrirTarefa(null));
 $("#t-concluir").addEventListener("click", async () => {
   const t = estado.tarefas.find((x) => x.id === estado.editando.id);
   if (!t) return;
-  $("#dlg-tarefa").close();
+  fecharTarefa();
   await concluir(t.id, !t.concluida_em);
 });
+
+// A janela da tarefa pode abrir por cima da janela do projeto. Ao fechar, a edição do projeto é retomada.
+let projetoPorBaixo = null;
+function fecharTarefa() {
+  if ($("#dlg-tarefa").open) $("#dlg-tarefa").close();
+  if (projetoPorBaixo && $("#dlg-projeto").open) estado.editando = projetoPorBaixo;
+  projetoPorBaixo = null;
+}
+$("#dlg-tarefa").addEventListener("close", fecharTarefa); // cobre o Cancelar, o X e a tecla Esc
 
 export function abrirTarefa(id, colunaId, projetoId) {
   const colunas = colunasDe("tarefas");
   if (!colunas.length) { aviso("Crie ao menos uma coluna no quadro de tarefas, em Configurações."); return; }
   const t = id ? estado.tarefas.find((x) => x.id === id) : null;
+  projetoPorBaixo = $("#dlg-projeto").open && estado.editando?.tipo === "projeto" ? estado.editando : null;
   estado.editando = { tipo: "tarefa", id: t ? t.id : null };
   $("#t-janela").textContent = t ? "Editar tarefa" : "Nova tarefa";
   $("#t-titulo").value = t?.titulo ?? "";
@@ -169,7 +179,7 @@ $("#form-tarefa").addEventListener("submit", async (e) => {
   if (!atual || atual.coluna_id !== dados.coluna_id) dados.ordem = proximaOrdem("tarefas", dados.coluna_id);
   const { error } = id ? await sb.from("tarefas").update(dados).eq("id", id) : await sb.from("tarefas").insert(dados);
   if (error) { aviso("Não foi possível salvar a tarefa: " + traduz(error)); return; }
-  $("#dlg-tarefa").close();
+  fecharTarefa();
   await de.carregar();
   if (!id && dados.responsavel_id !== estado.usuario.id && dados.projeto_id) {
     aviso("Tarefa criada. Ela aparece dentro do projeto e no quadro de " + (nomePerfil(dados.responsavel_id) || "quem é responsável") + ".");
@@ -182,6 +192,6 @@ $("#t-excluir").addEventListener("click", async () => {
   if (!(await confirmar(`Excluir a tarefa "${t.titulo}"? Ela vai para a lixeira, e o administrador pode restaurar.`))) return;
   const { error } = await sb.from("tarefas").update({ arquivado_em: new Date().toISOString() }).eq("id", t.id);
   if (error) { aviso("Não foi possível excluir: " + traduz(error)); return; }
-  $("#dlg-tarefa").close();
+  fecharTarefa();
   await de.carregar();
 });

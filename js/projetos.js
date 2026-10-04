@@ -7,12 +7,15 @@ import { botaoConcluir, abrirTarefa } from "./tarefas.js";
 
 $("#novo-projeto").addEventListener("click", () => abrirProjeto(null));
 
+let projetoAberto = null; // o projeto mostrado na janela, mesmo com a janela da tarefa por cima
+
 export function abrirProjeto(id, colunaId) {
   const colunas = colunasDe("projetos");
   if (!colunas.length) { aviso("Crie ao menos uma coluna no quadro de projetos, em Configurações."); return; }
   const eu = estado.usuario.id;
   const p = id ? estado.projetos.find((x) => x.id === id) : null;
   estado.editando = { tipo: "projeto", id: p ? p.id : null };
+  projetoAberto = estado.editando.id;
   $("#p-janela").textContent = p ? "Editar projeto" : "Novo projeto";
   $("#p-titulo").value = p?.titulo ?? "";
   $("#p-descricao").value = p?.descricao ?? "";
@@ -69,7 +72,7 @@ $("#p-membros-busca").addEventListener("keydown", (e) => { if (e.key === "Enter"
 $("#p-responsavel").addEventListener("change", () => renderMembros(membrosMarcados()));
 
 export function renderTarefasDoProjeto() {
-  const id = estado.editando?.tipo === "projeto" ? estado.editando.id : null;
+  const id = $("#dlg-projeto").open || estado.editando?.tipo === "projeto" ? projetoAberto : null;
   const lista = $("#p-lista");
   lista.replaceChildren();
   if (!id) return;
@@ -83,16 +86,14 @@ export function renderTarefasDoProjeto() {
     const situacao = t.concluida_em ? "Concluída" : (atrasado(t) ? "Atrasada, " : "") + (t.prazo ? dataCurta(t.prazo) : col?.nome ?? "");
     lista.append(el("li", { class: t.concluida_em ? "feita" : "" },
       botaoConcluir(t),
-      el("button", { type: "button", onclick: () => { $("#dlg-projeto").close(); abrirTarefa(t.id); } },
+      el("button", { type: "button", onclick: () => abrirTarefa(t.id) },
         el("span", { class: "titulo-tarefa", text: t.titulo }),
         el("span", { class: "situacao", text: [resp, situacao].filter(Boolean).join(", ") }))));
   }
 }
 
 $("#p-adicionar").addEventListener("click", () => {
-  const projetoId = estado.editando.id;
-  $("#dlg-projeto").close();
-  abrirTarefa(null, null, projetoId);
+  abrirTarefa(null, null, projetoAberto);
 });
 
 $("#form-projeto").addEventListener("submit", async (e) => {

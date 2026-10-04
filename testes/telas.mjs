@@ -86,9 +86,17 @@ confere("busca em Concluídas responde", /Nenhuma tarefa concluída/.test(await 
 await pg.click("[data-visao='projetos']"); await pg.getByText("Projeto Exemplo").first().click();
 confere("janela do projeto mostra equipe e histórico", /Bruno Silva/.test(await txt("#p-membros-resumo")) && /Criado por Ana Teste/.test(await txt("#p-historico")));
 await pg.locator("#p-lista li button:not(.marcar)").first().click();
-confere("tarefa dentro do projeto abre a janela da tarefa", await pg.locator("#dlg-tarefa").evaluate((d) => d.open) && !(await pg.locator("#dlg-projeto").evaluate((d) => d.open)));
+confere("tarefa dentro do projeto abre por cima, sem fechar o projeto", await pg.locator("#dlg-tarefa").evaluate((d) => d.open) && await pg.locator("#dlg-projeto").evaluate((d) => d.open));
 await fechaJanelas(); await pg.getByText("Projeto Exemplo").first().click(); await pg.click("#p-adicionar");
 confere("Adicionar tarefa no projeto já vem com o projeto", (await pg.inputValue("#t-projeto")) === "p1");
+await pg.locator("#dlg-tarefa [data-fechar]").last().click();
+confere("cancelar a tarefa volta para o projeto aberto", !(await pg.locator("#dlg-tarefa").evaluate((d) => d.open)) && await pg.locator("#dlg-projeto").evaluate((d) => d.open));
+await pg.fill("#p-descricao", "Texto ainda não salvo"); await pg.click("#p-adicionar");
+n3 = (await grav()).length; await pg.fill("#t-titulo", "Tarefa pelo projeto"); await pg.fill("#t-prazo", "2030-06-10"); await pg.locator("#form-tarefa [type='submit']").click(); await pg.waitForTimeout(200);
+confere("salvar a tarefa grava no projeto e volta para ele", (await grav()).slice(n3).some((x) => x[0] === "tarefas" && x[1] === "insert" && x[2].projeto_id === "p1") && !(await pg.locator("#dlg-tarefa").evaluate((d) => d.open)) && await pg.locator("#dlg-projeto").evaluate((d) => d.open));
+confere("a descrição digitada no projeto não se perde", (await pg.inputValue("#p-descricao")) === "Texto ainda não salvo");
+n3 = (await grav()).length; await pg.locator("#form-projeto [type='submit']").click(); await pg.waitForTimeout(200);
+confere("depois da tarefa, salvar o projeto grava a descrição", (await grav()).slice(n3).some((x) => x[0] === "projetos" && x[1] === "update" && x[2].descricao === "Texto ainda não salvo"));
 await fechaJanelas(); await pg.getByText("Projeto Exemplo").first().click();
 n3 = (await grav()).length; await pg.fill("#p-titulo", "Projeto editado"); await pg.locator("#form-projeto [type='submit']").click(); await pg.waitForTimeout(200);
 confere("salvar projeto grava o título novo", (await grav()).slice(n3).some((x) => x[0] === "projetos" && x[1] === "update" && x[2].titulo === "Projeto editado"));
