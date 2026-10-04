@@ -1,11 +1,8 @@
 // O quadro Kanban: colunas, cartões, arrastar (mouse e toque) e gravação da posição.
 import { sb } from "./supabase.js";
+import { de } from "./ligacoes.js";
 import { $, PRIORIDADES, el, porOrdem, dataBR, dataCurta, ICONES, icone, plural, aviso, traduz } from "./util.js";
 import { estado, colunasDe, avatar, atrasado, noQuadro, colunaConcluida, passaFiltro, pessoasDoProjeto } from "./estado.js";
-
-// Funções de outras partes do site que o quadro precisa chamar. Chegam pelo app.js.
-const de = {};
-export function ligarQuadro(funcoes) { Object.assign(de, funcoes); }
 
 export function renderQuadro(quadro) {
   const raiz = $("#quadro-" + quadro);

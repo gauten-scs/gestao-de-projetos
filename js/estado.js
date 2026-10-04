@@ -65,3 +65,13 @@ export function pessoasDoProjeto(projetoId) {
   if (p?.responsavel_id) ids.add(p.responsavel_id);
   return [...ids];
 }
+
+// Em uma lista de colunas, quem não é responsável não pode escolher uma coluna concluída.
+export function travarConclusao(select, pode, atual) {
+  for (const o of select.options) o.disabled = !pode && o.value !== atual && colunaConcluida(o.value) !== colunaConcluida(atual);
+}
+
+export function opcoesPessoas(ids, atual) {
+  return estado.perfis.filter((p) => (p.ativo && (!ids || ids.includes(p.id))) || p.id === atual)
+    .map((p) => ({ v: p.id, t: p.nome || p.email }));
+}

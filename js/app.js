@@ -2,14 +2,17 @@
 // Site estático (GitHub Pages) + Supabase (login, banco de dados e tempo real).
 
 import { sb } from "./supabase.js";
-import { $, PRIORIDADES, el, dois, hoje, dataBR, dataCurta, ICONES, dataHora, plural, mostrar, aviso, mensagem, traduz, preencherSelect, confirmar } from "./util.js";
-import { estado, colunasDe, nomePerfil, souAdmin, proximaOrdem, avatar, atrasado, historico, noMeuQuadro, colunaConcluida, passaFiltro, pessoasDoProjeto } from "./estado.js";
-import { ligarQuadro, renderQuadro } from "./quadro.js";
+import { ligar } from "./ligacoes.js";
+import { $, el, dois, dataHora, plural, mostrar, aviso, mensagem, traduz, confirmar } from "./util.js";
+import { estado, colunasDe, nomePerfil, souAdmin, avatar, atrasado, noMeuQuadro } from "./estado.js";
+import { renderQuadro } from "./quadro.js";
+import { renderFiltros, botaoConcluir, renderTarefas, abrirTarefa } from "./tarefas.js";
+import { abrirProjeto, renderTarefasDoProjeto } from "./projetos.js";
 
 (() => {
   "use strict";
 
-  ligarQuadro({ abrirProjeto, abrirTarefa, botaoConcluir, renderizar, carregar });
+  ligar({ abrirProjeto, abrirTarefa, botaoConcluir, renderizar, carregar });
 
   // ---------- Entrada ----------
   async function iniciar() {
@@ -148,22 +151,7 @@ import { ligarQuadro, renderQuadro } from "./quadro.js";
     if ($("#dlg-projeto").open) renderTarefasDoProjeto();
   }
 
-  // ---------- Quadros ----------
-  function renderFiltros() {
-    preencherSelect($("#filtro-projeto"), [
-      { v: "todos", t: "Todos" }, { v: "avulsas", t: "Somente avulsas" },
-      ...estado.projetos.slice().sort((a, b) => a.titulo.localeCompare(b.titulo)).map((p) => ({ v: p.id, t: p.titulo })),
-    ], estado.filtroProjeto);
-    estado.filtroProjeto = $("#filtro-projeto").value;
-  }
-  $("#filtro-projeto").addEventListener("change", (e) => { estado.filtroProjeto = e.target.value; renderizar(); });
-
-  // Em uma lista de colunas, quem não é responsável não pode escolher uma coluna concluída.
-  function travarConclusao(select, pode, atual) {
-    for (const o of select.options) o.disabled = !pode && o.value !== atual && colunaConcluida(o.value) !== colunaConcluida(atual);
-  }
-
-
+  // ---------- Resumos do menu ----------
   function renderResumos() {
     const pAtrasados = estado.projetos.filter(atrasado).length;
     $("#resumo-projetos").replaceChildren(plural(estado.projetos.length, "projeto", "projetos"),
@@ -172,102 +160,6 @@ import { ligarQuadro, renderQuadro } from "./quadro.js";
     const tAtrasadas = abertas.filter(atrasado).length;
     $("#resumo-tarefas").replaceChildren(plural(abertas.length, "tarefa aberta", "tarefas abertas"),
       ...(tAtrasadas ? [", ", el("strong", { text: plural(tAtrasadas, "atrasada", "atrasadas") })] : []));
-  }
-
-  // ---------- Tarefas: quadro, lista por data e concluídas ----------
-  function botaoConcluir(t) {
-    const pode = t.responsavel_id === estado.usuario.id;
-    const b = el("button", { class: "marcar" + (t.concluida_em ? " feita" : ""), type: "button", disabled: !pode,
-      title: !pode ? "Só o responsável conclui a tarefa" : t.concluida_em ? "Reabrir tarefa" : "Marcar como concluída",
-      "aria-label": (t.concluida_em ? "Reabrir a tarefa " : "Marcar como concluída a tarefa ") + t.titulo });
-    b.innerHTML = ICONES.feito;
-    b.addEventListener("click", (e) => { e.stopPropagation(); concluir(t.id, !t.concluida_em); });
-    b.addEventListener("keydown", (e) => e.stopPropagation());
-    return b;
-  }
-
-  async function concluir(id, sim) {
-    const { error } = await sb.from("tarefas").update({ concluida_em: sim ? new Date().toISOString() : null }).eq("id", id);
-    if (error) { aviso("Não foi possível alterar a tarefa: " + traduz(error)); return; }
-    aviso(sim ? "Tarefa concluída." : "Tarefa reaberta.");
-    await carregar();
-  }
-
-  for (const b of document.querySelectorAll("[data-modo]")) {
-    b.addEventListener("click", () => { estado.modoTarefas = b.dataset.modo; renderizar(); });
-  }
-  $("#busca-concluidas").addEventListener("input", (e) => { estado.busca = e.target.value; renderConcluidas(); });
-  $("#periodo-concluidas").addEventListener("change", (e) => { estado.periodo = e.target.value; renderConcluidas(); });
-
-  function renderTarefas() {
-    const modo = estado.modoTarefas;
-    for (const b of document.querySelectorAll("[data-modo]")) b.setAttribute("aria-selected", String(b.dataset.modo === modo));
-    $("#quadro-tarefas").hidden = modo !== "quadro";
-    $("#lista-tarefas").hidden = modo !== "lista";
-    $("#concluidas-tarefas").hidden = modo !== "concluidas";
-    if (modo === "quadro") renderQuadro("tarefas");
-    if (modo === "lista") renderLista();
-    if (modo === "concluidas") renderConcluidas();
-  }
-
-  function chipsDaTarefa(t) {
-    const chips = el("div", { class: "chips" });
-    chips.append(el("span", { class: "chip " + t.prioridade, text: "Prioridade " + PRIORIDADES[t.prioridade] }));
-    if (t.prazo) {
-      const chip = el("span", { class: "chip" + (atrasado(t) ? " atrasado" : ""), title: "Prazo: " + dataBR(t.prazo) });
-      chip.innerHTML = ICONES.data;
-      chip.append(dataCurta(t.prazo));
-      chips.append(chip);
-    }
-    if (t.responsavel_id) chips.append(avatar(t.responsavel_id));
-    return chips;
-  }
-  function origemDaTarefa(t) {
-    return estado.projetos.find((p) => p.id === t.projeto_id)?.titulo ?? "Tarefa avulsa";
-  }
-
-  function renderLista() {
-    const raiz = $("#lista-tarefas");
-    const dia = hoje();
-    const tarefas = estado.tarefas.filter((t) => passaFiltro(t) && !t.concluida_em)
-      .sort((a, b) => (a.prazo || "9999") < (b.prazo || "9999") ? -1 : (a.prazo || "9999") > (b.prazo || "9999") ? 1 : a.titulo.localeCompare(b.titulo));
-    const grupos = [
-      { nome: "Atrasadas", classe: "atrasadas", itens: tarefas.filter((t) => t.prazo && t.prazo < dia) },
-      { nome: "Para hoje", classe: "", itens: tarefas.filter((t) => t.prazo === dia) },
-      { nome: "Próximas", classe: "", itens: tarefas.filter((t) => !t.prazo || t.prazo > dia) },
-    ];
-    raiz.replaceChildren();
-    if (!tarefas.length) { raiz.append(el("p", { class: "apoio", text: "Nenhuma tarefa aberta. Crie uma em \"Nova tarefa\"." })); return; }
-    for (const g of grupos) {
-      if (!g.itens.length) continue;
-      raiz.append(el("section", { class: "grupo-datas " + g.classe },
-        el("h2", {}, g.nome, el("span", { class: "contagem", text: String(g.itens.length) })),
-        ...g.itens.map((t) => el("div", { class: "linha-tarefa" },
-          botaoConcluir(t),
-          el("button", { class: "abrir", type: "button", onclick: () => abrirTarefa(t.id) },
-            el("span", { class: "nome", text: t.titulo }), el("span", { class: "origem", text: origemDaTarefa(t) })),
-          chipsDaTarefa(t)))));
-    }
-  }
-
-  function renderConcluidas() {
-    const tabela = $("#tabela-concluidas");
-    const termo = estado.busca.trim().toLowerCase();
-    const desde = estado.periodo === "todos" ? "" : new Date(Date.now() - Number(estado.periodo) * 86400000).toISOString();
-    const tarefas = estado.tarefas.filter((t) => passaFiltro(t) && t.concluida_em
-        && (!termo || (t.titulo + " " + t.descricao).toLowerCase().includes(termo))
-        && (!desde || t.concluida_em >= desde))
-      .sort((a, b) => (a.concluida_em < b.concluida_em ? 1 : -1));
-    tabela.replaceChildren(el("tr", {}, ...["", "Tarefa", "Projeto", "Concluída em", "Responsável"].map((t) => el("th", { text: t, scope: "col" }))));
-    for (const t of tarefas) {
-      tabela.append(el("tr", {},
-        el("td", {}, botaoConcluir(t)),
-        el("td", {}, el("button", { class: "abrir-texto", type: "button", text: t.titulo, onclick: () => abrirTarefa(t.id) })),
-        el("td", { text: origemDaTarefa(t) }),
-        el("td", { text: dataHora(t.concluida_em) }),
-        el("td", { class: "pessoa" }, t.responsavel_id ? avatar(t.responsavel_id) : null, nomePerfil(t.responsavel_id))));
-    }
-    if (!tarefas.length) tabela.append(el("tr", {}, el("td", { colSpan: 5, class: "apoio", text: termo || desde || estado.filtroProjeto !== "todos" ? "Nenhuma tarefa concluída com esses filtros." : "Nenhuma tarefa concluída ainda." })));
   }
 
   // ---------- Lixeira de cada pessoa ----------
@@ -286,232 +178,6 @@ import { ligarQuadro, renderQuadro } from "./quadro.js";
     }
     if (!estado.minhaLixeira.length) tabela.append(el("tr", {}, el("td", { colSpan: 5, class: "apoio", text: "A sua lixeira está vazia." })));
   }
-
-  // ---------- Projeto ----------
-  $("#novo-projeto").addEventListener("click", () => abrirProjeto(null));
-
-  function opcoesPessoas(ids, atual) {
-    return estado.perfis.filter((p) => (p.ativo && (!ids || ids.includes(p.id))) || p.id === atual)
-      .map((p) => ({ v: p.id, t: p.nome || p.email }));
-  }
-
-  function abrirProjeto(id, colunaId) {
-    const colunas = colunasDe("projetos");
-    if (!colunas.length) { aviso("Crie ao menos uma coluna no quadro de projetos, em Configurações."); return; }
-    const eu = estado.usuario.id;
-    const p = id ? estado.projetos.find((x) => x.id === id) : null;
-    estado.editando = { tipo: "projeto", id: p ? p.id : null };
-    $("#p-janela").textContent = p ? "Editar projeto" : "Novo projeto";
-    $("#p-titulo").value = p?.titulo ?? "";
-    $("#p-descricao").value = p?.descricao ?? "";
-    preencherSelect($("#p-coluna"), colunas.map((c) => ({ v: c.id, t: c.nome })), p?.coluna_id ?? colunaId ?? colunas[0].id);
-    $("#p-prioridade").value = p?.prioridade ?? "media";
-    $("#p-prazo").value = p?.prazo ?? "";
-    preencherSelect($("#p-responsavel"), opcoesPessoas(null, p?.responsavel_id), p?.responsavel_id ?? eu);
-    // Só o responsável troca o responsável; a equipe é definida por ele (ou por quem criou o projeto).
-    $("#p-responsavel").disabled = !!p && !!p.responsavel_id && p.responsavel_id !== eu;
-    estado.editando.gerencia = !p || p.responsavel_id === eu || p.criado_por === eu;
-    renderMembros(p ? estado.membros.filter((m) => m.projeto_id === p.id).map((m) => m.usuario_id) : []);
-    $("#p-historico").textContent = p ? historico(p) : "";
-    $("#p-historico").hidden = !p;
-    $("#p-tarefas").hidden = !p;
-    $("#p-excluir").hidden = !p || p.responsavel_id !== eu; // só o responsável exclui
-    travarConclusao($("#p-coluna"), !p || p.responsavel_id === eu, p?.coluna_id);
-    renderTarefasDoProjeto();
-    $("#dlg-projeto").showModal();
-  }
-
-  function renderMembros(marcados) {
-    const responsavel = $("#p-responsavel").value;
-    const pode = estado.editando.gerencia;
-    const caixa = $("#p-membros");
-    caixa.replaceChildren();
-    for (const p of estado.perfis.filter((x) => x.ativo || marcados.includes(x.id))) {
-      const fixo = p.id === responsavel;
-      const campo = el("input", { type: "checkbox", value: p.id, checked: fixo || marcados.includes(p.id), disabled: fixo || !pode });
-      campo.addEventListener("change", resumoMembros);
-      caixa.append(el("label", { class: fixo ? "fixo" : "" }, campo, (p.nome || p.email) + (fixo ? " (responsável)" : "")));
-    }
-    $("#p-seletor").open = false;
-    $("#p-membros-busca").value = "";
-    $("#p-membros-nota").textContent = pode
-      ? "Só o responsável e as pessoas selecionadas enxergam o projeto e as tarefas dele."
-      : "Só o responsável pelo projeto altera quem pode ver.";
-    resumoMembros();
-  }
-  function membrosMarcados() {
-    const responsavel = $("#p-responsavel").value;
-    return [...document.querySelectorAll("#p-membros input:checked")].map((c) => c.value).filter((v) => v !== responsavel);
-  }
-  function resumoMembros() {
-    const nomes = membrosMarcados().map(nomePerfil);
-    $("#p-membros-resumo").textContent = !nomes.length ? "Só o responsável"
-      : nomes.length <= 2 ? nomes.join(" e ")
-      : `${nomes[0]}, ${nomes[1]} e mais ${nomes.length - 2}`;
-  }
-  $("#p-membros-busca").addEventListener("input", (e) => {
-    const termo = e.target.value.trim().toLowerCase();
-    for (const linha of document.querySelectorAll("#p-membros label")) linha.hidden = !!termo && !linha.textContent.toLowerCase().includes(termo);
-  });
-  $("#p-membros-busca").addEventListener("keydown", (e) => { if (e.key === "Enter") e.preventDefault(); });
-  $("#p-responsavel").addEventListener("change", () => renderMembros(membrosMarcados()));
-
-  function renderTarefasDoProjeto() {
-    const id = estado.editando?.tipo === "projeto" ? estado.editando.id : null;
-    const lista = $("#p-lista");
-    lista.replaceChildren();
-    if (!id) return;
-    // Abertas primeiro, por data; concluídas no fim da fila, tachadas.
-    const chave = (t) => (t.concluida_em ? "1" : "0") + (t.prazo || "9999") + t.criado_em;
-    const tarefas = estado.tarefas.filter((t) => t.projeto_id === id).sort((a, b) => (chave(a) < chave(b) ? -1 : 1));
-    if (!tarefas.length) { lista.append(el("li", { class: "vazio", text: "Este projeto ainda não tem tarefas." })); return; }
-    for (const t of tarefas) {
-      const col = estado.colunas.find((c) => c.id === t.coluna_id);
-      const resp = nomePerfil(t.responsavel_id);
-      const situacao = t.concluida_em ? "Concluída" : (atrasado(t) ? "Atrasada, " : "") + (t.prazo ? dataCurta(t.prazo) : col?.nome ?? "");
-      lista.append(el("li", { class: t.concluida_em ? "feita" : "" },
-        botaoConcluir(t),
-        el("button", { type: "button", onclick: () => { $("#dlg-projeto").close(); abrirTarefa(t.id); } },
-          el("span", { class: "titulo-tarefa", text: t.titulo }),
-          el("span", { class: "situacao", text: [resp, situacao].filter(Boolean).join(", ") }))));
-    }
-  }
-
-  $("#p-adicionar").addEventListener("click", () => {
-    const projetoId = estado.editando.id;
-    $("#dlg-projeto").close();
-    abrirTarefa(null, null, projetoId);
-  });
-
-  $("#form-projeto").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const id = estado.editando.id;
-    const atual = id ? estado.projetos.find((x) => x.id === id) : null;
-    const dados = {
-      titulo: $("#p-titulo").value.trim(), descricao: $("#p-descricao").value.trim(),
-      coluna_id: $("#p-coluna").value, prioridade: $("#p-prioridade").value,
-      prazo: $("#p-prazo").value || null, responsavel_id: $("#p-responsavel").value,
-    };
-    if (!dados.titulo || !dados.responsavel_id) return;
-    if (!atual || atual.coluna_id !== dados.coluna_id) dados.ordem = proximaOrdem("projetos", dados.coluna_id);
-    const projetoId = id ?? crypto.randomUUID();
-    const marcados = membrosMarcados();
-    const antes = id ? estado.membros.filter((m) => m.projeto_id === id).map((m) => m.usuario_id) : [];
-    const incluir = marcados.filter((u) => !antes.includes(u));
-    const retirar = antes.filter((u) => !marcados.includes(u));
-
-    if (!id) {
-      const { error } = await sb.from("projetos").insert({ id: projetoId, ...dados });
-      if (error) { aviso("Não foi possível salvar o projeto: " + traduz(error)); return; }
-    }
-    if (estado.editando.gerencia) {
-      if (incluir.length) {
-        const { error } = await sb.from("projeto_membros").insert(incluir.map((u) => ({ projeto_id: projetoId, usuario_id: u })));
-        if (error) { aviso("Não foi possível salvar quem pode ver o projeto: " + traduz(error)); await carregar(); return; }
-      }
-      if (retirar.length) {
-        const { error } = await sb.from("projeto_membros").delete().eq("projeto_id", projetoId).in("usuario_id", retirar);
-        if (error) { aviso("Não foi possível salvar quem pode ver o projeto: " + traduz(error)); await carregar(); return; }
-      }
-    }
-    if (id) {
-      if ($("#p-responsavel").disabled) delete dados.responsavel_id;
-      const { error } = await sb.from("projetos").update(dados).eq("id", id);
-      if (error) { aviso("Não foi possível salvar o projeto: " + traduz(error)); await carregar(); return; }
-    }
-    $("#dlg-projeto").close();
-    await carregar();
-  });
-
-  $("#p-excluir").addEventListener("click", async () => {
-    const p = estado.projetos.find((x) => x.id === estado.editando.id);
-    if (!p) return;
-    const n = estado.tarefas.filter((t) => t.projeto_id === p.id).length;
-    const extra = n === 1 ? " A tarefa dele sai do quadro junto." : n > 1 ? ` As ${n} tarefas dele saem do quadro junto.` : "";
-    if (!(await confirmar(`Excluir o projeto "${p.titulo}"?${extra} Ele vai para a lixeira, e o administrador pode restaurar.`))) return;
-    const { error } = await sb.from("projetos").update({ arquivado_em: new Date().toISOString() }).eq("id", p.id);
-    if (error) { aviso("Não foi possível excluir: " + traduz(error)); return; }
-    $("#dlg-projeto").close();
-    await carregar();
-  });
-
-  // ---------- Tarefa ----------
-  $("#nova-tarefa").addEventListener("click", () => abrirTarefa(null));
-  $("#t-concluir").addEventListener("click", async () => {
-    const t = estado.tarefas.find((x) => x.id === estado.editando.id);
-    if (!t) return;
-    $("#dlg-tarefa").close();
-    await concluir(t.id, !t.concluida_em);
-  });
-
-  function abrirTarefa(id, colunaId, projetoId) {
-    const colunas = colunasDe("tarefas");
-    if (!colunas.length) { aviso("Crie ao menos uma coluna no quadro de tarefas, em Configurações."); return; }
-    const t = id ? estado.tarefas.find((x) => x.id === id) : null;
-    estado.editando = { tipo: "tarefa", id: t ? t.id : null };
-    $("#t-janela").textContent = t ? "Editar tarefa" : "Nova tarefa";
-    $("#t-titulo").value = t?.titulo ?? "";
-    $("#t-descricao").value = t?.descricao ?? "";
-    const filtro = estado.filtroProjeto;
-    const projetoPadrao = projetoId ?? (filtro !== "todos" && filtro !== "avulsas" ? filtro : "");
-    preencherSelect($("#t-projeto"), [{ v: "", t: "Tarefa avulsa (sem projeto)" },
-      ...estado.projetos.slice().sort((a, b) => a.titulo.localeCompare(b.titulo)).map((p) => ({ v: p.id, t: p.titulo }))],
-      t ? (t.projeto_id ?? "") : projetoPadrao);
-    preencherSelect($("#t-coluna"), colunas.map((c) => ({ v: c.id, t: c.nome })), t?.coluna_id ?? colunaId ?? colunas[0].id);
-    $("#t-prioridade").value = t?.prioridade ?? "media";
-    $("#t-prazo").value = t?.prazo ?? "";
-    pessoasDaTarefa(t ? t.responsavel_id : estado.usuario.id);
-    $("#t-historico").textContent = t ? historico(t) : "";
-    $("#t-historico").hidden = !t;
-    $("#t-excluir").hidden = !t || t.responsavel_id !== estado.usuario.id; // só o responsável exclui
-    $("#t-concluir").hidden = !t || t.responsavel_id !== estado.usuario.id; // só o responsável conclui
-    travarConclusao($("#t-coluna"), t ? t.responsavel_id === estado.usuario.id : true, t?.coluna_id);
-    $("#t-concluir").textContent = t?.concluida_em ? "Reabrir tarefa" : "Marcar como concluída";
-    $("#dlg-tarefa").showModal();
-  }
-
-  // O responsável de uma tarefa de projeto precisa ter acesso ao projeto.
-  function pessoasDaTarefa(atual) {
-    const projetoId = $("#t-projeto").value;
-    const ids = projetoId ? pessoasDoProjeto(projetoId) : null;
-    const opcoes = opcoesPessoas(ids, ids ? null : atual);
-    preencherSelect($("#t-responsavel"), opcoes, opcoes.some((o) => o.v === atual) ? atual : (opcoes.some((o) => o.v === estado.usuario.id) ? estado.usuario.id : ""));
-    $("#t-visivel").textContent = projetoId
-      ? "Todos que têm acesso ao projeto veem esta tarefa dentro dele. No quadro de tarefas ela aparece só para o responsável."
-      : "Tarefa avulsa: só você e o responsável enxergam.";
-  }
-  $("#t-projeto").addEventListener("change", () => pessoasDaTarefa($("#t-responsavel").value));
-
-  $("#form-tarefa").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const id = estado.editando.id;
-    const atual = id ? estado.tarefas.find((x) => x.id === id) : null;
-    const dados = {
-      titulo: $("#t-titulo").value.trim(), descricao: $("#t-descricao").value.trim(),
-      projeto_id: $("#t-projeto").value || null, coluna_id: $("#t-coluna").value,
-      prioridade: $("#t-prioridade").value, prazo: $("#t-prazo").value || null,
-      responsavel_id: $("#t-responsavel").value || null,
-    };
-    if (!dados.titulo || !dados.prazo || !dados.responsavel_id) return;
-    if (!atual || atual.coluna_id !== dados.coluna_id) dados.ordem = proximaOrdem("tarefas", dados.coluna_id);
-    const { error } = id ? await sb.from("tarefas").update(dados).eq("id", id) : await sb.from("tarefas").insert(dados);
-    if (error) { aviso("Não foi possível salvar a tarefa: " + traduz(error)); return; }
-    $("#dlg-tarefa").close();
-    await carregar();
-    if (!id && dados.responsavel_id !== estado.usuario.id && dados.projeto_id) {
-      aviso("Tarefa criada. Ela aparece dentro do projeto e no quadro de " + (nomePerfil(dados.responsavel_id) || "quem é responsável") + ".");
-    }
-  });
-
-  $("#t-excluir").addEventListener("click", async () => {
-    const t = estado.tarefas.find((x) => x.id === estado.editando.id);
-    if (!t) return;
-    if (!(await confirmar(`Excluir a tarefa "${t.titulo}"? Ela vai para a lixeira, e o administrador pode restaurar.`))) return;
-    const { error } = await sb.from("tarefas").update({ arquivado_em: new Date().toISOString() }).eq("id", t.id);
-    if (error) { aviso("Não foi possível excluir: " + traduz(error)); return; }
-    $("#dlg-tarefa").close();
-    await carregar();
-  });
 
   // ---------- Configurações (somente admin) ----------
   function renderConfig() {
