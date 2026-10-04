@@ -5,14 +5,17 @@ Esta pasta guarda os testes que conferem se as regras de acesso do banco continu
 ## Arquivos
 
 - `regras_de_acesso.sql`: 57 verificações sobre acesso por convite, perfis, colunas, projetos, tarefas de projeto, tarefas avulsas, conclusão, histórico e lixeira.
+- `exclusao_definitiva_e_limpeza.sql`: 19 verificações sobre a exclusão definitiva pelo administrador ("Excluir de vez") e a limpeza diária da lixeira, que apaga o que está lá há mais de 30 dias.
 
 ## Como rodar
 
 1. No Supabase, abrir o projeto `gestao-de-projetos` e clicar em "SQL Editor".
-2. Colar o conteúdo inteiro do arquivo e clicar em "Run".
+2. Colar o conteúdo inteiro de um dos arquivos e clicar em "Run". Um arquivo de cada vez.
 3. Ler a mensagem que aparece. Ela vem como erro, de propósito, e começa com `RESULTADO`.
 
-Resultado esperado: `RESULTADO: 57 verificações, 0 falhas.`
+Resultados esperados: `RESULTADO: 57 verificações, 0 falhas.` no primeiro arquivo e `RESULTADO: 19 verificações, 0 falhas.` no segundo.
+
+O segundo arquivo apaga linhas durante o teste. O Supabase pode pedir confirmação antes de rodar ("destructive operation"): pode confirmar, porque tudo é desfeito no fim.
 
 ## Por que termina em erro
 
@@ -22,8 +25,12 @@ Não há banco de teste. O teste roda no banco real, cria usuários e dados fict
 
 Depois de qualquer mudança em `supabase/migrations` (regras de acesso, gatilhos ou funções) e antes de publicar uma versão nova do site.
 
-## O que ainda não está coberto
+## Função de convites: conferência manual
 
-- Exclusão definitiva pelo administrador.
-- Limpeza diária da lixeira (`limpa-lixeira`).
-- A função de convites (`supabase/functions/convites`).
+A função de convites (`supabase/functions/convites`) não pode ser testada por SQL. Conferir no site, depois de qualquer alteração nela:
+
+1. Entrar com a conta de admin, abrir Configurações e clicar em "Gerar novo link" de um usuário. Deve aparecer o link.
+2. Ainda como admin, clicar em "Convidar usuário", preencher um nome e um e-mail de teste e gerar o convite. Deve aparecer o link, e a pessoa deve surgir na lista de usuários.
+3. Entrar com uma conta comum. O menu Configurações não deve aparecer.
+
+A função só responde ao endereço do site (`https://gauten-scs.github.io`). Se o site mudar de endereço, trocar a constante `ORIGEM_DO_SITE` no arquivo da função e publicar a função de novo, senão os convites param de funcionar.

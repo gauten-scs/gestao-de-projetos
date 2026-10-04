@@ -5,8 +5,13 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
+// Só o site aceita a resposta desta função. Se o endereço do site mudar (domínio próprio, por exemplo),
+// trocar aqui e publicar a função de novo, senão os convites param de funcionar.
+const ORIGEM_DO_SITE = "https://gauten-scs.github.io";
+
 const cors = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": ORIGEM_DO_SITE,
+  "Vary": "Origin",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
