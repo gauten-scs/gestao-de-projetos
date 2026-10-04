@@ -2,11 +2,14 @@
 // Site estático (GitHub Pages) + Supabase (login, banco de dados e tempo real).
 
 import { sb } from "./supabase.js";
-import { $, PRIORIDADES, el, porOrdem, dois, hoje, dataBR, dataCurta, ICONES, icone, dataHora, plural, mostrar, aviso, mensagem, traduz, preencherSelect, confirmar } from "./util.js";
-import { estado, colunasDe, nomePerfil, souAdmin, proximaOrdem, avatar, atrasado, historico } from "./estado.js";
+import { $, PRIORIDADES, el, dois, hoje, dataBR, dataCurta, ICONES, dataHora, plural, mostrar, aviso, mensagem, traduz, preencherSelect, confirmar } from "./util.js";
+import { estado, colunasDe, nomePerfil, souAdmin, proximaOrdem, avatar, atrasado, historico, noMeuQuadro, colunaConcluida, passaFiltro, pessoasDoProjeto } from "./estado.js";
+import { ligarQuadro, renderQuadro } from "./quadro.js";
 
 (() => {
   "use strict";
+
+  ligarQuadro({ abrirProjeto, abrirTarefa, botaoConcluir, renderizar, carregar });
 
   // ---------- Entrada ----------
   async function iniciar() {
@@ -155,39 +158,11 @@ import { estado, colunasDe, nomePerfil, souAdmin, proximaOrdem, avatar, atrasado
   }
   $("#filtro-projeto").addEventListener("change", (e) => { estado.filtroProjeto = e.target.value; renderizar(); });
 
-  // No quadro de tarefas cada pessoa vê só as tarefas em que é responsável,
-  // mais as avulsas que ela mesma criou (mesmo delegadas a outra pessoa).
-  function noMeuQuadro(t) {
-    const eu = estado.usuario.id;
-    return t.responsavel_id === eu || (!t.projeto_id && t.criado_por === eu);
-  }
-
-  // Tarefa concluída fica 7 dias na coluna concluída do quadro; depois, só na aba Concluídas.
-  const DIAS_NO_QUADRO = 7;
-  function noQuadro(t) {
-    return !t.concluida_em || t.concluida_em > new Date(Date.now() - DIAS_NO_QUADRO * 86400000).toISOString();
-  }
-  function colunaConcluida(id) { return !!estado.colunas.find((c) => c.id === id)?.concluida; }
   // Em uma lista de colunas, quem não é responsável não pode escolher uma coluna concluída.
   function travarConclusao(select, pode, atual) {
     for (const o of select.options) o.disabled = !pode && o.value !== atual && colunaConcluida(o.value) !== colunaConcluida(atual);
   }
 
-  function passaFiltro(t) {
-    const fp = estado.filtroProjeto;
-    if (!noMeuQuadro(t)) return false;
-    if (fp === "avulsas" && t.projeto_id) return false;
-    if (fp !== "todos" && fp !== "avulsas" && t.projeto_id !== fp) return false;
-    return true;
-  }
-
-  // Quem enxerga um projeto: o responsável e os usuários selecionados.
-  function pessoasDoProjeto(projetoId) {
-    const p = estado.projetos.find((x) => x.id === projetoId);
-    const ids = new Set(estado.membros.filter((m) => m.projeto_id === projetoId).map((m) => m.usuario_id));
-    if (p?.responsavel_id) ids.add(p.responsavel_id);
-    return [...ids];
-  }
 
   function renderResumos() {
     const pAtrasados = estado.projetos.filter(atrasado).length;
@@ -310,207 +285,6 @@ import { estado, colunasDe, nomePerfil, souAdmin, proximaOrdem, avatar, atrasado
           el("button", { class: "btn secundario mini", type: "button", text: "Restaurar", onclick: () => restaurar(i) })))));
     }
     if (!estado.minhaLixeira.length) tabela.append(el("tr", {}, el("td", { colSpan: 5, class: "apoio", text: "A sua lixeira está vazia." })));
-  }
-
-  function renderQuadro(quadro) {
-    const raiz = $("#quadro-" + quadro);
-    const colunas = colunasDe(quadro);
-    raiz.replaceChildren();
-    if (!colunas.length) {
-      raiz.append(el("p", { class: "apoio", text: "Este quadro ainda não tem colunas. O administrador pode criar colunas em Configurações." }));
-      return;
-    }
-    for (const col of colunas) {
-      let itens = estado[quadro].filter((i) => i.coluna_id === col.id).sort(porOrdem);
-      if (quadro === "tarefas") itens = itens.filter((t) => passaFiltro(t) && noQuadro(t));
-      const lista = el("div", { class: "coluna-lista" });
-      lista.dataset.coluna = col.id;
-      for (const item of itens) lista.append(cartao(quadro, item, col));
-      if (!itens.length) lista.append(el("p", { class: "vazio", text: quadro === "projetos" ? "Nenhum projeto aqui." : "Nenhuma tarefa aqui." }));
-
-      lista.addEventListener("dragover", (e) => {
-        if (estado.arrastando?.quadro !== quadro) return;
-        e.preventDefault();
-        lista.classList.add("sobre");
-      });
-      lista.addEventListener("dragleave", (e) => { if (!lista.contains(e.relatedTarget)) lista.classList.remove("sobre"); });
-      lista.addEventListener("drop", (e) => {
-        if (estado.arrastando?.quadro !== quadro) return;
-        e.preventDefault();
-        lista.classList.remove("sobre");
-        const antes = [...lista.querySelectorAll(".cartao:not(.arrastando)")].find((c) => {
-          const r = c.getBoundingClientRect();
-          return e.clientY < r.top + r.height / 2;
-        });
-        mover(quadro, estado.arrastando.id, col.id, antes ? antes.dataset.id : null);
-      });
-
-      raiz.append(el("section", { class: "coluna" + (col.concluida ? " concluida" : "") },
-        el("header", { class: "coluna-topo" },
-          col.concluida ? icone("feito") : null,
-          el("h2", { text: col.nome }),
-          el("span", { class: "contagem", text: String(itens.length), title: "Cartões nesta coluna" })),
-        lista,
-        el("button", {
-          class: "coluna-novo", type: "button",
-          onclick: () => (quadro === "projetos" ? abrirProjeto(null, col.id) : abrirTarefa(null, col.id)),
-        }, icone("mais"), quadro === "projetos" ? "Adicionar projeto" : "Adicionar tarefa")));
-    }
-  }
-
-  function cartao(quadro, item, col) {
-    const abrir = () => (quadro === "projetos" ? abrirProjeto(item.id) : abrirTarefa(item.id));
-    const c = el("article", { class: "cartao" + (item.concluida_em ? " feita" : ""), draggable: true, tabIndex: 0, role: "button", onclick: abrir });
-    c.dataset.id = item.id;
-    c.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrir(); } });
-
-    if (quadro === "tarefas") {
-      const projeto = estado.projetos.find((p) => p.id === item.projeto_id);
-      c.append(el("span", { class: "origem" + (projeto ? "" : " avulsa"), text: projeto ? projeto.titulo : "Tarefa avulsa" }));
-    }
-    if (quadro === "tarefas") {
-      c.append(el("div", { class: "topo-tarefa" }, botaoConcluir(item), el("span", { class: "nome", text: item.titulo })));
-    } else {
-      c.append(el("span", { class: "nome", text: item.titulo }));
-    }
-
-    const chips = el("div", { class: "chips" });
-    chips.append(el("span", { class: "chip " + item.prioridade, text: "Prioridade " + PRIORIDADES[item.prioridade] }));
-    if (quadro === "projetos") {
-      const equipe = pessoasDoProjeto(item.id).length;
-      if (equipe > 1) chips.append(el("span", { class: "chip", text: plural(equipe, "pessoa", "pessoas"), title: "Pessoas que podem ver este projeto" }));
-    }
-    if (item.prazo) {
-      const fora = atrasado(item);
-      const chip = el("span", { class: "chip" + (fora ? " atrasado" : ""), title: "Prazo: " + dataBR(item.prazo) });
-      chip.innerHTML = ICONES.data;
-      chip.append((fora ? "Atrasado, " : "") + dataCurta(item.prazo));
-      chips.append(chip);
-    }
-    c.append(chips);
-
-    const rodape = el("div", { class: "rodape" });
-    if (quadro === "projetos") {
-      const tarefas = estado.tarefas.filter((t) => t.projeto_id === item.id);
-      if (tarefas.length) {
-        const feitas = tarefas.filter((t) => t.concluida_em).length;
-        const barra = el("i"); barra.style.width = Math.round((feitas / tarefas.length) * 100) + "%";
-        rodape.append(el("span", { class: "progresso", title: `${feitas} de ${tarefas.length} tarefas concluídas` },
-          el("span", { class: "barra" }, barra), `${feitas} de ${tarefas.length}`));
-      }
-    }
-    if (item.responsavel_id) (rodape.childNodes.length ? rodape : chips).append(avatar(item.responsavel_id));
-    if (rodape.childNodes.length) c.append(rodape);
-
-    toqueArrastar(c, quadro, item);
-    c.addEventListener("dragstart", (e) => {
-      estado.arrastando = { quadro, id: item.id };
-      e.dataTransfer.effectAllowed = "move";
-      e.dataTransfer.setData("text/plain", item.id);
-      c.classList.add("arrastando");
-    });
-    c.addEventListener("dragend", () => {
-      c.classList.remove("arrastando");
-      estado.arrastando = null;
-      for (const l of document.querySelectorAll(".coluna-lista.sobre")) l.classList.remove("sobre");
-      if (estado.pendente) { estado.pendente = false; renderizar(); }
-    });
-    return c;
-  }
-
-  // Arrastar com o dedo (celular e tablet): segurar o cartão por um instante e então arrastar.
-  function toqueArrastar(c, quadro, item) {
-    let relogio = null, fantasma = null, inicio = null, ativo = false, alvo = null, desvio = { x: 0, y: 0 };
-    const posicionar = (x, y) => { fantasma.style.left = x - desvio.x + "px"; fantasma.style.top = y - desvio.y + "px"; };
-    const limparAlvos = () => { for (const l of document.querySelectorAll(".coluna-lista.sobre")) l.classList.remove("sobre"); };
-
-    c.addEventListener("touchstart", (e) => {
-      if (e.touches.length !== 1) return;
-      inicio = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-      relogio = setTimeout(() => {
-        const r = c.getBoundingClientRect();
-        desvio = { x: inicio.x - r.left, y: inicio.y - r.top };
-        fantasma = c.cloneNode(true);
-        fantasma.classList.add("fantasma");
-        fantasma.style.width = r.width + "px";
-        document.body.append(fantasma);
-        posicionar(inicio.x, inicio.y);
-        c.classList.add("arrastando");
-        estado.arrastando = { quadro, id: item.id };
-        ativo = true;
-        if (navigator.vibrate) navigator.vibrate(25);
-      }, 350);
-    }, { passive: true });
-
-    c.addEventListener("touchmove", (e) => {
-      const t = e.touches[0];
-      if (!ativo) {
-        if (inicio && Math.hypot(t.clientX - inicio.x, t.clientY - inicio.y) > 8) clearTimeout(relogio);
-        return;
-      }
-      e.preventDefault();
-      posicionar(t.clientX, t.clientY);
-      limparAlvos();
-      alvo = document.elementFromPoint(t.clientX, t.clientY)?.closest(".coluna")?.querySelector(".coluna-lista") ?? null;
-      if (alvo) alvo.classList.add("sobre");
-      const q = c.closest(".quadro");
-      if (q) {
-        const r = q.getBoundingClientRect();
-        if (t.clientX > r.right - 48) q.scrollLeft += 8; else if (t.clientX < r.left + 48) q.scrollLeft -= 8;
-      }
-    }, { passive: false });
-
-    const fim = (e) => {
-      clearTimeout(relogio);
-      if (!ativo) return;
-      ativo = false;
-      if (e.cancelable) e.preventDefault(); // evita abrir o cartão ao soltar
-      const y = e.changedTouches[0].clientY;
-      const lista = alvo; alvo = null;
-      fantasma.remove(); fantasma = null;
-      limparAlvos();
-      if (lista && e.type === "touchend") {
-        const antes = [...lista.querySelectorAll(".cartao:not(.arrastando)")].find((k) => {
-          const r = k.getBoundingClientRect();
-          return y < r.top + r.height / 2;
-        });
-        mover(quadro, item.id, lista.dataset.coluna, antes ? antes.dataset.id : null);
-      } else {
-        c.classList.remove("arrastando");
-        estado.arrastando = null;
-        if (estado.pendente) { estado.pendente = false; renderizar(); }
-      }
-    };
-    c.addEventListener("touchend", fim);
-    c.addEventListener("touchcancel", fim);
-    c.addEventListener("contextmenu", (e) => { if (ativo || relogio) e.preventDefault(); });
-  }
-
-  async function mover(quadro, id, colunaId, antesId) {
-    const item = estado[quadro].find((i) => i.id === id);
-    if (!item) return;
-    const mudaConclusao = colunaConcluida(colunaId) !== colunaConcluida(item.coluna_id);
-    if (mudaConclusao && item.responsavel_id !== estado.usuario.id) {
-      estado.arrastando = null; estado.pendente = false;
-      renderizar();
-      aviso(quadro === "tarefas" ? "Só o responsável pode concluir ou reabrir a tarefa." : "Só o responsável pode concluir ou reabrir o projeto.");
-      return;
-    }
-    const destino = estado[quadro].filter((i) => i.coluna_id === colunaId && i.id !== id).sort(porOrdem);
-    let posicao = antesId ? destino.findIndex((i) => i.id === antesId) : destino.length;
-    if (posicao < 0) posicao = destino.length;
-    destino.splice(posicao, 0, item);
-    const mudancas = [];
-    destino.forEach((i, n) => {
-      if (i.ordem !== n + 1 || i.coluna_id !== colunaId) { i.ordem = n + 1; i.coluna_id = colunaId; mudancas.push(i); }
-    });
-    estado.arrastando = null; estado.pendente = false;
-    renderizar();
-    const respostas = await Promise.all(mudancas.map((i) =>
-      sb.from(quadro).update({ coluna_id: i.coluna_id, ordem: i.ordem }).eq("id", i.id)));
-    const falha = respostas.find((r) => r.error);
-    if (falha) { aviso("Não foi possível mover o cartão: " + traduz(falha.error)); await carregar(); }
-    else if (mudaConclusao) await carregar();
   }
 
   // ---------- Projeto ----------

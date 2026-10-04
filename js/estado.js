@@ -35,7 +35,33 @@ export function historico(item) {
   }
   return texto;
 }
-export function opcoesResponsavel(atual) {
-  return [{ v: "", t: "Sem responsável" }].concat(
-    estado.perfis.filter((p) => p.ativo || p.id === atual).map((p) => ({ v: p.id, t: p.nome || p.email })));
+
+// No quadro de tarefas cada pessoa vê só as tarefas em que é responsável,
+// mais as avulsas que ela mesma criou (mesmo delegadas a outra pessoa).
+export function noMeuQuadro(t) {
+  const eu = estado.usuario.id;
+  return t.responsavel_id === eu || (!t.projeto_id && t.criado_por === eu);
+}
+
+// Tarefa concluída fica 7 dias na coluna concluída do quadro; depois, só na aba Concluídas.
+export const DIAS_NO_QUADRO = 7;
+export function noQuadro(t) {
+  return !t.concluida_em || t.concluida_em > new Date(Date.now() - DIAS_NO_QUADRO * 86400000).toISOString();
+}
+export function colunaConcluida(id) { return !!estado.colunas.find((c) => c.id === id)?.concluida; }
+
+export function passaFiltro(t) {
+  const fp = estado.filtroProjeto;
+  if (!noMeuQuadro(t)) return false;
+  if (fp === "avulsas" && t.projeto_id) return false;
+  if (fp !== "todos" && fp !== "avulsas" && t.projeto_id !== fp) return false;
+  return true;
+}
+
+// Quem enxerga um projeto: o responsável e os usuários selecionados.
+export function pessoasDoProjeto(projetoId) {
+  const p = estado.projetos.find((x) => x.id === projetoId);
+  const ids = new Set(estado.membros.filter((m) => m.projeto_id === projetoId).map((m) => m.usuario_id));
+  if (p?.responsavel_id) ids.add(p.responsavel_id);
+  return [...ids];
 }
