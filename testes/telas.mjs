@@ -89,10 +89,17 @@ const alturaAntes = await pg.locator("#form-projeto").evaluate((f) => f.getBound
 await pg.click("#p-membros-resumo");
 confere("lista de quem pode ver abre por cima, sem empurrar o conteúdo", await pg.locator("#p-seletor").evaluate((d) => d.open) && await pg.locator("#p-membros").isVisible() && Math.abs((await pg.locator("#p-membros-nota").evaluate((n) => n.getBoundingClientRect().top - n.closest("form").getBoundingClientRect().top)) - topoAntes) < 1 && Math.abs((await pg.locator("#form-projeto").evaluate((f) => f.getBoundingClientRect().height)) - alturaAntes) < 1);
 confere("lista de pessoas tem altura limitada e rola", await pg.locator("#p-membros").evaluate((l) => getComputedStyle(l).overflowY === "auto" && l.getBoundingClientRect().height <= 180));
+const ordem = () => pg.locator("#p-membros label").allInnerTexts().then((l) => l.map((x) => x.trim()).join(" | "));
+confere("selecionados no topo da lista, depois do responsável", (await ordem()) === "Ana Teste (responsável) | Bruno Silva | Abel Costa");
 confere("a pessoa da equipe vem marcada na lista", await pg.locator("#p-membros label", { hasText: "Bruno Silva" }).locator("input").isChecked());
 await pg.locator("#p-membros label", { hasText: "Bruno Silva" }).locator("input").uncheck();
 confere("marcar ou desmarcar não muda o texto do campo", (await txt("#p-membros-resumo")) === "Clique para escolher");
 await pg.locator("#p-membros label", { hasText: "Bruno Silva" }).locator("input").check();
+await pg.locator("#p-membros label", { hasText: "Abel Costa" }).locator("input").check(); await pg.locator("#p-membros label", { hasText: "Bruno Silva" }).locator("input").uncheck();
+confere("a lista não muda de ordem enquanto a pessoa marca", (await ordem()) === "Ana Teste (responsável) | Bruno Silva | Abel Costa");
+await pg.click("#p-membros-resumo"); await pg.click("#p-membros-resumo"); await pg.waitForTimeout(150);
+confere("ao abrir de novo, os selecionados sobem para o topo", (await ordem()) === "Ana Teste (responsável) | Abel Costa | Bruno Silva");
+await pg.locator("#p-membros label", { hasText: "Abel Costa" }).locator("input").uncheck(); await pg.locator("#p-membros label", { hasText: "Bruno Silva" }).locator("input").check();
 await pg.keyboard.press("Escape");
 confere("Esc fecha só a lista, não a janela do projeto", !(await pg.locator("#p-seletor").evaluate((d) => d.open)) && await pg.locator("#dlg-projeto").evaluate((d) => d.open));
 await pg.click("#p-membros-resumo"); await pg.click("#p-titulo");

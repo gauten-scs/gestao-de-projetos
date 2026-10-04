@@ -46,6 +46,7 @@ export function renderMembros(marcados) {
     const campo = el("input", { type: "checkbox", value: p.id, checked: fixo || marcados.includes(p.id), disabled: fixo || !pode });
     caixa.append(el("label", { class: fixo ? "fixo" : "" }, campo, (p.nome || p.email) + (fixo ? " (responsável)" : "")));
   }
+  ordenarMembros();
   $("#p-seletor").open = false;
   $("#p-membros-busca").value = "";
   $("#p-membros-nota").textContent = pode
@@ -57,6 +58,16 @@ export function membrosMarcados() {
   const responsavel = $("#p-responsavel").value;
   return [...document.querySelectorAll("#p-membros input:checked")].map((c) => c.value).filter((v) => v !== responsavel);
 }
+// Responsável primeiro, depois quem está selecionado, depois os demais; em ordem alfabética dentro de cada grupo.
+// Só reordena ao montar e ao abrir a lista, para as linhas não pularem enquanto a pessoa marca.
+function ordenarMembros() {
+  const grupo = (l) => (l.classList.contains("fixo") ? 0 : l.querySelector("input").checked ? 1 : 2);
+  const linhas = [...document.querySelectorAll("#p-membros label")];
+  linhas.sort((a, b) => grupo(a) - grupo(b) || a.textContent.localeCompare(b.textContent, "pt-BR"));
+  $("#p-membros").append(...linhas);
+  $("#p-membros").scrollTop = 0;
+}
+$("#p-seletor").addEventListener("toggle", () => { if ($("#p-seletor").open) ordenarMembros(); });
 // O campo mostra sempre o mesmo convite; quem está marcado aparece na lista, ao abrir.
 export function resumoMembros() {
   $("#p-membros-resumo").textContent = estado.editando?.gerencia === false ? "Clique para ver" : "Clique para escolher";
