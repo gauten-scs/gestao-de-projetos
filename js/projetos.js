@@ -44,7 +44,6 @@ export function renderMembros(marcados) {
   for (const p of estado.perfis.filter((x) => x.ativo || marcados.includes(x.id))) {
     const fixo = p.id === responsavel;
     const campo = el("input", { type: "checkbox", value: p.id, checked: fixo || marcados.includes(p.id), disabled: fixo || !pode });
-    campo.addEventListener("change", resumoMembros);
     caixa.append(el("label", { class: fixo ? "fixo" : "" }, campo, (p.nome || p.email) + (fixo ? " (responsável)" : "")));
   }
   $("#p-seletor").open = false;
@@ -58,12 +57,18 @@ export function membrosMarcados() {
   const responsavel = $("#p-responsavel").value;
   return [...document.querySelectorAll("#p-membros input:checked")].map((c) => c.value).filter((v) => v !== responsavel);
 }
+// O campo mostra sempre o mesmo convite; quem está marcado aparece na lista, ao abrir.
 export function resumoMembros() {
-  const nomes = membrosMarcados().map(nomePerfil);
-  $("#p-membros-resumo").textContent = !nomes.length ? "Só o responsável"
-    : nomes.length <= 2 ? nomes.join(" e ")
-    : `${nomes[0]}, ${nomes[1]} e mais ${nomes.length - 2}`;
+  $("#p-membros-resumo").textContent = estado.editando?.gerencia === false ? "Clique para ver" : "Clique para escolher";
 }
+// A lista abre por cima do conteúdo; fecha ao clicar fora dela ou com a tecla Esc (sem fechar a janela do projeto).
+$("#dlg-projeto").addEventListener("click", (e) => { if (!e.target.closest("#p-seletor")) $("#p-seletor").open = false; });
+$("#p-seletor").addEventListener("keydown", (e) => {
+  if (e.key !== "Escape" || !$("#p-seletor").open) return;
+  e.preventDefault();
+  $("#p-seletor").open = false;
+  $("#p-membros-resumo").focus();
+});
 $("#p-membros-busca").addEventListener("input", (e) => {
   const termo = e.target.value.trim().toLowerCase();
   for (const linha of document.querySelectorAll("#p-membros label")) linha.hidden = !!termo && !linha.textContent.toLowerCase().includes(termo);

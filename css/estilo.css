@@ -112,8 +112,8 @@ input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--verde-fo
 .seletor summary::-webkit-details-marker { display: none; }
 .seletor summary::after { content: ""; position: absolute; right: 14px; top: 50%; width: 7px; height: 7px; border-right: 2px solid var(--suave); border-bottom: 2px solid var(--suave); transform: translateY(-70%) rotate(45deg); }
 .seletor[open] summary { border-color: var(--verde-forte); box-shadow: 0 0 0 3px var(--verde-fundo); }
-.seletor-painel { margin-top: 6px; border: 1px solid var(--fio); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 8px; box-shadow: var(--sombra-2); background: var(--painel); }
-.lista-pessoas { display: flex; flex-direction: column; max-height: 200px; overflow-y: auto; }
+.seletor-painel { position: absolute; z-index: 5; left: 0; right: 0; top: calc(100% + 6px); border: 1px solid var(--fio); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 8px; box-shadow: var(--sombra-2); background: var(--painel); }
+.lista-pessoas { display: flex; flex-direction: column; max-height: 180px; overflow-y: auto; overscroll-behavior: contain; }
 .formulario .lista-pessoas label { flex-direction: row; align-items: center; gap: 10px; font-weight: 400; font-size: 14px; cursor: pointer; padding: 7px 6px; border-radius: 6px; }
 .formulario .lista-pessoas label:hover { background: var(--neutro-fundo); }
 .lista-pessoas label.fixo { color: var(--suave); cursor: default; }
