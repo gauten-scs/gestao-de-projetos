@@ -20,14 +20,15 @@
   };
   window.__gravacoes = [];
   function consulta(tabela) {
-    let linhas = D[tabela] || [], unico = false, op = "select";
+    let linhas = D[tabela] || [], unico = false, op = "select", filtro = null;
     const q = {
-      select: () => q, order: () => q, in: () => q,
-      eq: (c, v) => { if (op === "select") linhas = linhas.filter((l) => l[c] === v); return q; },
+      select: () => q, order: () => q,
+      in: (c, v) => { if (filtro) filtro[c] = v; return q; },
+      eq: (c, v) => { if (op === "select") linhas = linhas.filter((l) => l[c] === v); else if (filtro) filtro[c] = v; return q; },
       maybeSingle: () => { unico = true; return q; },
       update: (d) => { op = "update"; window.__gravacoes.push([tabela, "update", d]); return q; },
       insert: (d) => { op = "insert"; window.__gravacoes.push([tabela, "insert", d]); return q; },
-      delete: () => { op = "delete"; window.__gravacoes.push([tabela, "delete"]); return q; },
+      delete: () => { op = "delete"; filtro = {}; window.__gravacoes.push([tabela, "delete", filtro]); return q; }, // o filtro guarda o que seria apagado
       then: (ok, erro) => Promise.resolve(op === "select" ? { data: unico ? (linhas[0] || null) : linhas, error: null } : { data: null, error: null }).then(ok, erro),
     };
     return q;
