@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gestão de Projetos | Gauten Smart.GOV</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="img/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+
+<div id="tela-carregando" class="carregando">
+  <span class="pulso" aria-hidden="true"></span>
+  <p>Carregando</p>
+</div>
+
+<!-- Entrada -->
+<main id="tela-login" class="entrada" hidden>
+  <aside class="entrada-marca">
+    <img class="logo" src="img/gauten-smartgov-fundo-escuro.png" alt="Gauten Smart.GOV">
+    <div>
+      <h1>Gestão de Projetos</h1>
+      <p>Projetos e tarefas do laboratório de inovação na gestão pública, em um só lugar.</p>
+    </div>
+  </aside>
+  <div class="espinha" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <section class="entrada-form">
+    <div class="entrada-caixa">
+      <h2>Entrar</h2>
+      <p class="apoio">Use o e-mail e a senha do seu convite.</p>
+      <form id="form-login" class="formulario">
+        <label>E-mail
+          <input type="email" id="login-email" autocomplete="username" required>
+        </label>
+        <label>Senha
+          <input type="password" id="login-senha" autocomplete="current-password" required>
+        </label>
+        <p id="login-msg" class="mensagem" role="alert" hidden></p>
+        <button class="btn primario largo" type="submit">Entrar</button>
+      </form>
+      <p class="legenda">O acesso é feito somente por convite. Se você esqueceu a senha, peça um novo link ao administrador.</p>
+    </div>
+  </section>
+</main>
+
+<!-- Criação de senha a partir do link de convite -->
+<main id="tela-senha" class="entrada" hidden>
+  <aside class="entrada-marca">
+    <img class="logo" src="img/gauten-smartgov-fundo-escuro.png" alt="Gauten Smart.GOV">
+    <div>
+      <h1>Gestão de Projetos</h1>
+      <p>Projetos e tarefas do laboratório de inovação na gestão pública, em um só lugar.</p>
+    </div>
+  </aside>
+  <div class="espinha" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <section class="entrada-form">
+    <div class="entrada-caixa">
+      <h2 id="senha-titulo">Crie a sua senha</h2>
+      <p class="apoio">Ela será usada com o seu e-mail para entrar no site.</p>
+      <form id="form-senha" class="formulario">
+        <label>Senha (mínimo de 8 caracteres)
+          <input type="password" id="senha-nova" autocomplete="new-password" minlength="8" required>
+        </label>
+        <label>Repita a senha
+          <input type="password" id="senha-repete" autocomplete="new-password" minlength="8" required>
+        </label>
+        <p id="senha-msg" class="mensagem" role="alert" hidden></p>
+        <button class="btn primario largo" type="submit">Salvar e entrar</button>
+      </form>
+    </div>
+  </section>
+</main>
+
+<main id="tela-sem-acesso" class="carregando" hidden>
+  <div class="entrada-caixa centro">
+    <h2>Sem acesso</h2>
+    <p class="apoio">O seu usuário não tem acesso liberado a este site. Fale com o administrador.</p>
+    <button class="btn secundario" type="button" data-acao="sair">Sair</button>
+  </div>
+</main>
+
+<!-- Aplicação -->
+<div id="app" class="app" hidden>
+  <aside class="lateral">
+    <img class="logo" src="img/gauten-smartgov-fundo-escuro.png" alt="Gauten Smart.GOV">
+    <nav class="menu" aria-label="Principal">
+      <button type="button" data-visao="projetos">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="5" height="16"/><rect x="10" y="4" width="5" height="10"/><rect x="17" y="4" width="4" height="13"/></svg>
+        Projetos
+      </button>
+      <button type="button" data-visao="tarefas">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6l2 2 3-3M4 13l2 2 3-3M4 20l2 2 3-3" transform="translate(0 -2)"/><path d="M13 6h8M13 12h8M13 18h8"/></svg>
+        Tarefas
+      </button>
+      <button type="button" data-visao="lixeira">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg>
+        Lixeira
+      </button>
+      <button type="button" data-visao="config" id="menu-config" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>
+        Configurações
+      </button>
+    </nav>
+    <div class="conta">
+      <button type="button" class="conta-botao" id="btn-conta" title="Minha conta">
+        <span class="avatar" id="conta-avatar"></span>
+        <span class="conta-texto">
+          <span id="conta-nome"></span>
+          <span id="conta-papel"></span>
+        </span>
+      </button>
+      <button type="button" class="sair" data-acao="sair">Sair</button>
+    </div>
+  </aside>
+  <div class="espinha" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+
+  <main class="palco">
+    <section id="visao-projetos" class="visao" hidden>
+      <header class="cabecalho">
+        <div>
+          <h1>Projetos</h1>
+          <p class="resumo" id="resumo-projetos"></p>
+        </div>
+        <button class="btn primario" type="button" id="novo-projeto">Novo projeto</button>
+      </header>
+      <div class="quadro" id="quadro-projetos"></div>
+    </section>
+
+    <section id="visao-tarefas" class="visao" hidden>
+      <header class="cabecalho">
+        <div>
+          <h1>Tarefas</h1>
+          <p class="resumo" id="resumo-tarefas"></p>
+        </div>
+        <div class="filtros">
+          <label>Projeto
+            <select id="filtro-projeto"></select>
+          </label>
+          <button class="btn primario" type="button" id="nova-tarefa">Nova tarefa</button>
+        </div>
+      </header>
+      <div class="abas" role="tablist" aria-label="Formas de ver as tarefas">
+        <button type="button" role="tab" data-modo="quadro">Quadro</button>
+        <button type="button" role="tab" data-modo="lista">Lista por data</button>
+        <button type="button" role="tab" data-modo="concluidas">Concluídas</button>
+      </div>
+      <div class="quadro" id="quadro-tarefas"></div>
+      <div id="lista-tarefas" class="lista-datas" hidden></div>
+      <div id="concluidas-tarefas" hidden>
+        <div class="filtros barra-busca">
+          <label>Buscar
+            <input type="text" id="busca-concluidas" placeholder="Título ou descrição">
+          </label>
+          <label>Concluídas
+            <select id="periodo-concluidas">
+              <option value="todos">Em qualquer data</option>
+              <option value="7">Nos últimos 7 dias</option>
+              <option value="30">Nos últimos 30 dias</option>
+              <option value="365">Nos últimos 12 meses</option>
+            </select>
+          </label>
+        </div>
+        <div class="bloco"><div class="rolagem"><table id="tabela-concluidas"></table></div></div>
+      </div>
+    </section>
+
+    <section id="visao-lixeira" class="visao estreita" hidden>
+      <header class="cabecalho">
+        <div>
+          <h1>Lixeira</h1>
+          <p class="resumo">O que você excluiu fica aqui por 30 dias e pode ser restaurado.</p>
+        </div>
+      </header>
+      <div class="bloco"><div class="rolagem"><table id="tabela-minha-lixeira"></table></div></div>
+    </section>
+
+    <section id="visao-config" class="visao estreita" hidden>
+      <header class="cabecalho">
+        <div>
+          <h1>Configurações</h1>
+          <p class="resumo">Usuários e colunas dos quadros. Visível só para administradores.</p>
+        </div>
+      </header>
+
+      <div class="bloco">
+        <div class="bloco-topo">
+          <div>
+            <h2>Usuários</h2>
+            <p class="apoio">Ninguém se cadastra sozinho. Cada pessoa entra pelo link de convite gerado aqui.</p>
+          </div>
+          <button class="btn primario" type="button" id="convidar">Convidar usuário</button>
+        </div>
+        <div class="rolagem"><table id="tabela-usuarios"></table></div>
+      </div>
+
+      <div class="bloco">
+        <div class="bloco-topo">
+          <h2>Colunas do quadro de projetos</h2>
+          <button class="btn secundario" type="button" data-nova-coluna="projetos">Nova coluna</button>
+        </div>
+        <div class="rolagem"><table id="tabela-colunas-projetos"></table></div>
+      </div>
+
+      <div class="bloco">
+        <div class="bloco-topo">
+          <h2>Colunas do quadro de tarefas</h2>
+          <button class="btn secundario" type="button" data-nova-coluna="tarefas">Nova coluna</button>
+        </div>
+        <div class="rolagem"><table id="tabela-colunas-tarefas"></table></div>
+      </div>
+
+      <div class="bloco">
+        <div class="bloco-topo">
+          <div>
+            <h2>Lixeira</h2>
+            <p class="apoio">Projetos e tarefas de projetos excluídos pelos responsáveis ficam aqui até você restaurar ou excluir de vez. Tarefas avulsas não aparecem.</p>
+          </div>
+        </div>
+        <div class="rolagem"><table id="tabela-lixeira"></table></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Janelas -->
+<dialog id="dlg-projeto">
+  <form class="formulario" id="form-projeto">
+    <header class="janela-topo">
+      <h2 id="p-janela">Projeto</h2>
+      <button class="fechar" type="button" data-fechar aria-label="Fechar"></button>
+    </header>
+    <label>Título
+      <input type="text" id="p-titulo" maxlength="200" required>
+    </label>
+    <label>Descrição
+      <textarea id="p-descricao" rows="3"></textarea>
+    </label>
+    <div class="dupla">
+      <label>Coluna <select id="p-coluna"></select></label>
+      <label>Prioridade
+        <select id="p-prioridade">
+          <option value="baixa">Baixa</option><option value="media">Média</option><option value="alta">Alta</option>
+        </select>
+      </label>
+    </div>
+    <div class="dupla">
+      <label>Prazo <input type="date" id="p-prazo"></label>
+      <label>Responsável <select id="p-responsavel" required></select></label>
+    </div>
+    <div class="campo">
+      <span class="campo-rotulo" id="p-membros-rotulo">Quem pode ver este projeto</span>
+      <details class="seletor" id="p-seletor">
+        <summary id="p-membros-resumo" aria-labelledby="p-membros-rotulo p-membros-resumo"></summary>
+        <div class="seletor-painel">
+          <input type="text" id="p-membros-busca" placeholder="Buscar pessoa" aria-label="Buscar pessoa">
+          <div id="p-membros" class="lista-pessoas"></div>
+        </div>
+      </details>
+      <p class="legenda" id="p-membros-nota"></p>
+    </div>
+    <div id="p-tarefas" class="subbloco" hidden>
+      <h3>Tarefas deste projeto</h3>
+      <ul class="lista-tarefas" id="p-lista"></ul>
+      <button class="btn secundario" type="button" id="p-adicionar">Nova tarefa neste projeto</button>
+    </div>
+    <p class="legenda" id="p-historico" hidden></p>
+    <div class="acoes">
+      <button class="btn primario" type="submit">Salvar</button>
+      <button class="btn secundario" type="button" data-fechar>Cancelar</button>
+      <button class="btn perigo" type="button" id="p-excluir">Excluir projeto</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-tarefa">
+  <form class="formulario" id="form-tarefa">
+    <header class="janela-topo">
+      <h2 id="t-janela">Tarefa</h2>
+      <button class="fechar" type="button" data-fechar aria-label="Fechar"></button>
+    </header>
+    <label>Título
+      <input type="text" id="t-titulo" maxlength="200" required>
+    </label>
+    <label>Descrição
+      <textarea id="t-descricao" rows="3"></textarea>
+    </label>
+    <label>Projeto <select id="t-projeto"></select></label>
+    <div class="dupla">
+      <label>Coluna <select id="t-coluna"></select></label>
+      <label>Prioridade
+        <select id="t-prioridade">
+          <option value="baixa">Baixa</option><option value="media">Média</option><option value="alta">Alta</option>
+        </select>
+      </label>
+    </div>
+    <div class="dupla">
+      <label>Data prevista para finalização <input type="date" id="t-prazo" required></label>
+      <label>Responsável <select id="t-responsavel" required></select></label>
+    </div>
+    <p class="legenda" id="t-historico" hidden></p>
+    <p class="legenda" id="t-visivel"></p>
+    <div class="acoes">
+      <button class="btn primario" type="submit">Salvar</button>
+      <button class="btn secundario" type="button" data-fechar>Cancelar</button>
+      <button class="btn secundario" type="button" id="t-concluir">Marcar como concluída</button>
+      <button class="btn perigo" type="button" id="t-excluir">Excluir tarefa</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-coluna" class="estreita">
+  <form class="formulario" id="form-coluna">
+    <header class="janela-topo">
+      <h2 id="c-janela">Coluna</h2>
+      <button class="fechar" type="button" data-fechar aria-label="Fechar"></button>
+    </header>
+    <label>Nome
+      <input type="text" id="c-nome" maxlength="60" required>
+    </label>
+    <label class="marcar"><input type="checkbox" id="c-concluida"> Os cartões desta coluna contam como concluídos</label>
+    <div class="acoes">
+      <button class="btn primario" type="submit">Salvar</button>
+      <button class="btn secundario" type="button" data-fechar>Cancelar</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-convite">
+  <form class="formulario" id="form-convite">
+    <header class="janela-topo">
+      <h2>Convidar usuário</h2>
+      <button class="fechar" type="button" data-fechar aria-label="Fechar"></button>
+    </header>
+    <div id="convite-dados" class="formulario">
+      <label>Nome
+        <input type="text" id="v-nome" maxlength="120" required>
+      </label>
+      <label>E-mail
+        <input type="email" id="v-email" required>
+      </label>
+      <label>Tipo de usuário
+        <select id="v-papel">
+          <option value="membro">Usuário (faz tudo, menos configurações)</option>
+          <option value="admin">Administrador (inclui configurações)</option>
+        </select>
+      </label>
+    </div>
+    <div id="convite-link" class="formulario" hidden>
+      <p id="convite-texto"></p>
+      <label>Link
+        <input type="text" id="v-link" readonly>
+      </label>
+      <p class="legenda">O link vale por tempo limitado e só pode ser usado uma vez. Se vencer, gere um novo na lista de usuários.</p>
+    </div>
+    <p id="convite-msg" class="mensagem" role="alert" hidden></p>
+    <div class="acoes">
+      <button class="btn primario" type="submit" id="v-gerar">Gerar link de convite</button>
+      <button class="btn primario" type="button" id="v-copiar" hidden>Copiar link</button>
+      <button class="btn secundario" type="button" data-fechar>Fechar</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-conta" class="estreita">
+  <form class="formulario" id="form-conta">
+    <header class="janela-topo">
+      <h2>Minha conta</h2>
+      <button class="fechar" type="button" data-fechar aria-label="Fechar"></button>
+    </header>
+    <label>Nome
+      <input type="text" id="m-nome" maxlength="120" required>
+    </label>
+    <label>Nova senha (deixe em branco para manter a atual)
+      <input type="password" id="m-senha" autocomplete="new-password" minlength="8">
+    </label>
+    <p id="conta-msg" class="mensagem" role="alert" hidden></p>
+    <div class="acoes">
+      <button class="btn primario" type="submit">Salvar</button>
+      <button class="btn secundario" type="button" data-fechar>Cancelar</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-confirma" class="estreita">
+  <div class="formulario">
+    <p id="confirma-texto"></p>
+    <div class="acoes">
+      <button class="btn perigo-cheio" type="button" id="confirma-sim">Excluir</button>
+      <button class="btn secundario" type="button" id="confirma-nao">Cancelar</button>
+    </div>
+  </div>
+</dialog>
+
+<div id="aviso" role="status" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
