@@ -81,11 +81,16 @@ export function renderLista() {
     if (!g.itens.length) continue;
     raiz.append(el("section", { class: "grupo-datas " + g.classe },
       el("h2", {}, g.nome, el("span", { class: "contagem", text: String(g.itens.length) })),
-      ...g.itens.map((t) => el("div", { class: "linha-tarefa" },
-        botaoConcluir(t),
-        el("button", { class: "abrir", type: "button", onclick: () => abrirTarefa(t.id) },
-          el("span", { class: "nome", text: t.titulo }), el("span", { class: "origem", text: origemDaTarefa(t) })),
-        chipsDaTarefa(t)))));
+      ...g.itens.map((t) => {
+        const chips = chipsDaTarefa(t), coluna = estado.colunas.find((c) => c.id === t.coluna_id)?.nome;
+        if (coluna) chips.prepend(el("span", { class: "chip", text: coluna, title: "Coluna no quadro" }));
+        return el("div", { class: "linha-tarefa" },
+          botaoConcluir(t),
+          el("button", { class: "abrir", type: "button", onclick: () => abrirTarefa(t.id) },
+            el("span", { class: "nome", text: t.titulo }),
+            el("span", { class: "origem" + (t.projeto_id ? "" : " avulsa"), text: origemDaTarefa(t) })),
+          chips);
+      })));
   }
 }
 

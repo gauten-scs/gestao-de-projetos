@@ -88,7 +88,7 @@ export function cartao(quadro, item, col) {
       const feitas = tarefas.filter((t) => t.concluida_em).length;
       const barra = el("i"); barra.style.width = Math.round((feitas / tarefas.length) * 100) + "%";
       rodape.append(el("span", { class: "progresso", title: `${feitas} de ${tarefas.length} tarefas concluídas` },
-        el("span", { class: "barra" }, barra), `${feitas} de ${tarefas.length}`));
+        el("span", { class: "barra" }, barra), `${feitas} de ${plural(tarefas.length, "tarefa", "tarefas")}`));
     }
   }
   if (item.responsavel_id) (rodape.childNodes.length ? rodape : chips).append(avatar(item.responsavel_id));

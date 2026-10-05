@@ -23,6 +23,7 @@ confere("avatar com iniciais", (await txt("#conta-avatar")) === "AT");
 confere("menu Configurações visível para admin", await pg.locator("#menu-config").isVisible());
 confere("quadro de projetos mostra o cartão", (await txt("#visao-projetos")).includes("Projeto Exemplo"));
 confere("colunas do quadro", /A FAZER/i.test(await txt("#visao-projetos")) && /CONCLUÍDO/i.test(await txt("#visao-projetos")));
+confere("cartão do projeto mostra o progresso por extenso", (await txt("#quadro-projetos .progresso")).includes("0 de 1 tarefa"));
 confere("resumo de projetos no cabeçalho", (await txt("#resumo-projetos")) === "1 projeto · 1 atrasado");
 await pg.click("[data-visao='tarefas']");
 confere("resumo de tarefas no cabeçalho", (await txt("#resumo-tarefas")) === "2 tarefas abertas · 1 atrasada");
@@ -30,6 +31,8 @@ confere("quadro de tarefas mostra as duas tarefas", (await txt("#visao-tarefas")
 confere("data curta no cartão (1 jan 2020)", /1 jan 2020/.test(await txt("#visao-tarefas")));
 for (const modo of await pg.locator("[data-modo]").all()) { await modo.click(); }
 confere("troca de modos de tarefas sem erro", erros.length === 0);
+await pg.locator("[data-modo='lista']").click();
+confere("lista por data mostra a coluna de cada tarefa", (await pg.locator("#lista-tarefas .linha-tarefa .chip[title='Coluna no quadro']").count()) === 2);
 await pg.locator("[data-modo='quadro']").click();
 await pg.getByText("Tarefa avulsa").first().click();
 confere("abre a janela da tarefa", await pg.locator("#dlg-tarefa").evaluate((d) => d.open));
