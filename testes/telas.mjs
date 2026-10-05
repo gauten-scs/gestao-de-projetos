@@ -192,7 +192,10 @@ await pg.goto("http://localhost:8123/?convite=abc"); await pg.waitForSelector("#
 confere("link de convite abre a tela de criar senha", (await txt("#senha-titulo")) === "Crie a sua senha");
 // Celular: moldura fixa, barra de baixo e painel "Mais"
 await pg.setViewportSize({ width: 390, height: 844 }); await pg.goto("http://localhost:8123/"); await pg.waitForSelector("#app:not([hidden])");
-confere("celular: a página não rola nem para os lados nem para baixo", await pg.evaluate(() => document.documentElement.scrollWidth === innerWidth && document.documentElement.scrollHeight === innerHeight));
+confere("celular: a página não rola para os lados", await pg.evaluate(() => document.documentElement.scrollWidth === innerWidth));
+await pg.click("#menu-mais"); await pg.click("#mais-config"); await pg.evaluate(() => scrollTo(0, 400)); await pg.waitForTimeout(100);
+confere("celular: ao rolar, o cabeçalho continua no topo", (await pg.evaluate(() => scrollY)) > 0 && Math.round((await pg.locator(".lateral .logo").boundingBox()).y) === 0);
+await pg.click(".menu [data-visao='projetos']"); await pg.evaluate(() => scrollTo(0, 0));
 const caixa = await pg.locator(".menu").boundingBox();
 confere("celular: barra de baixo encostada no rodapé, com três itens", Math.round(caixa.y + caixa.height) === 844 && (await pg.locator(".menu button:visible").count()) === 3);
 await pg.click("[data-visao='tarefas']"); await pg.locator("[data-modo='quadro']").click();
