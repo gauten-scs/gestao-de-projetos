@@ -203,6 +203,7 @@ await pg.click("#dlg-mais [data-visao='lixeira']");
 confere("celular: Lixeira pelo painel Mais abre a tela e fecha o painel", await pg.locator("#visao-lixeira").isVisible() && !(await pg.locator("#dlg-mais").evaluate((d) => d.open)));
 await pg.click("#menu-mais"); await pg.click("#mais-conta");
 confere("celular: Minha conta pelo painel Mais", await pg.locator("#dlg-conta").evaluate((d) => d.open) && !(await pg.locator("#dlg-mais").evaluate((d) => d.open)));
+confere("celular: campos com letra de 16 px, para o iPhone não ampliar a tela", await pg.evaluate(() => [...document.querySelectorAll("input:not([type=checkbox]), select, textarea")].every((c) => parseFloat(getComputedStyle(c).fontSize) >= 16)));
 confere("sem #diag, a caixa de diagnóstico não existe", (await pg.locator("#diagnostico").count()) === 0);
 await pg.goto("http://localhost:8123/#diag"); await pg.reload(); await pg.waitForSelector("#diagnostico");
 confere("com #diag, a caixa de diagnóstico mostra as medidas", /janela \(inner\)\s+390 x 844/.test(await txt("#diagnostico")) && /barra de baixo\s+topo/.test(await txt("#diagnostico")));

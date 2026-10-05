@@ -325,6 +325,9 @@ dialog.folha { padding: 0; width: 100%; max-width: 100%; margin: auto 0 0; borde
 
 /* ---------- Telas pequenas ---------- */
 @media (max-width: 820px) {
+  /* Campos com letra de 16 px no celular. Com menos que isso, o iPhone amplia a tela sozinho ao tocar no campo
+     (15 px virava zoom de 1,07) e não desfaz depois: a tela ficava deslocada e o cabeçalho sumia após o login. */
+  input, select, textarea { font-size: 16px !important; }
   /* Moldura de aplicativo: cabeçalho e barra de baixo parados; só o miolo rola, e só na vertical */
   html, body { height: 100%; overscroll-behavior: none; }
   .app { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: 56px 4px minmax(0, 1fr) auto; height: 100vh; height: 100dvh; overflow: hidden; }
