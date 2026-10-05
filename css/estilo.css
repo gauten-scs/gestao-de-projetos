@@ -75,6 +75,9 @@ h1, h2, h3, p, ul { margin: 0; }
 h1, h2, h3 { font-family: var(--display); font-weight: 600; letter-spacing: 0; line-height: 1.1; }
 button, input, select, textarea { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--verde-forte); outline-offset: 2px; }
+/* O contorno de foco é para quem navega pelo teclado. Depois de um toque ou clique (classe posta pelo app.js),
+   botões e cartões não ficam contornados; os campos mantêm o destaque próprio deles. */
+.pelo-toque :focus-visible:not(input, select, textarea) { outline: none; }
 .apoio { color: var(--suave); }
 .legenda { color: var(--suave); font-size: 13px; }
 
@@ -220,7 +223,9 @@ input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--verde-fo
 .conta .avatar { width: 34px; height: 34px; font-size: 13px; }
 
 /* ---------- Quadro Kanban ---------- */
-.quadro { display: flex; gap: 20px; align-items: flex-start; overflow-x: auto; padding-bottom: 12px; flex: 1; }
+/* A folga de 4 px em volta (compensada pela margem negativa) dá espaço ao contorno de foco dos cartões:
+   sem ela, a rolagem lateral do quadro cortava o contorno do lado esquerdo. */
+.quadro { display: flex; gap: 20px; align-items: flex-start; overflow-x: auto; padding: 4px 4px 12px; margin: -4px -4px 0; flex: 1; }
 .coluna { flex: 0 0 304px; display: flex; flex-direction: column; max-height: 100%; }
 .coluna-topo { display: flex; align-items: center; gap: 8px; padding: 0 4px 10px; }
 .coluna-topo h2 { font-size: 14px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--suave); }

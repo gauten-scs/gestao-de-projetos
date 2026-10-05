@@ -170,6 +170,11 @@ $("#menu-mais").addEventListener("click", () => $("#dlg-mais").showModal());
 $("#dlg-mais").addEventListener("click", (e) => { if (e.target === e.currentTarget || e.target.closest("button")) e.currentTarget.close(); });
 $("#mais-conta").addEventListener("click", () => $("#btn-conta").click());
 
+// ---------- Contorno de foco só para quem usa o teclado ----------
+// Um toque ou clique marca a página; a tecla Tab desmarca. O estilo.css esconde o contorno enquanto a marca existir.
+addEventListener("pointerdown", () => document.documentElement.classList.add("pelo-toque"), true);
+addEventListener("keydown", (e) => { if (e.key === "Tab") document.documentElement.classList.remove("pelo-toque"); }, true);
+
 // ---------- Diagnóstico de tela: só com #diag no fim do endereço ----------
 if (location.hash === "#diag") import("./diagnostico.js");
 

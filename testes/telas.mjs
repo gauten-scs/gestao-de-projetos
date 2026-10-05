@@ -63,7 +63,12 @@ confere("botão de concluir no cartão grava a conclusão", (await grav()).slice
 await pg.click("[data-visao='projetos']");
 await pg.locator("#quadro-projetos .cartao").first().focus(); await pg.keyboard.press("Enter");
 confere("Enter no cartão abre o projeto", await pg.locator("#dlg-projeto").evaluate((d) => d.open));
-await pg.locator("#dlg-projeto [data-fechar]").first().click();
+await pg.keyboard.press("Escape"); await pg.waitForTimeout(100);
+const contorno = () => pg.evaluate(() => getComputedStyle(document.querySelector("#quadro-projetos .cartao")).outlineStyle);
+await pg.keyboard.press("Tab"); await pg.keyboard.press("Shift+Tab");
+confere("pelo teclado, o cartão em foco ganha o contorno", await pg.evaluate(() => document.activeElement.classList.contains("cartao")) && (await contorno()) !== "none");
+await pg.locator("#quadro-projetos .cartao").first().click(); await pg.locator("#dlg-projeto [data-fechar]").first().click(); await pg.waitForTimeout(100);
+confere("depois de clicar e fechar, o cartão não fica contornado", (await contorno()) === "none");
 confere("opcoesResponsavel removida", await pg.evaluate(() => import("./js/estado.js").then((m) => !("opcoesResponsavel" in m))));
 // Etapa 3: janelas e listas de projetos e tarefas
 const fechaJanelas = () => pg.evaluate(() => { for (const d of document.querySelectorAll("dialog[open]")) d.close(); });
