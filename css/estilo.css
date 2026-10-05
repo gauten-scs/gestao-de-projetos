@@ -120,6 +120,11 @@ input[type="text"], input[type="email"], input[type="password"], input[type="dat
 }
 input:focus, select:focus, textarea:focus { outline: none; border-color: var(--verde-forte); box-shadow: 0 0 0 3px var(--verde-fundo); }
 textarea { resize: vertical; }
+/* No iPhone o campo de data tem largura própria e ignora o "width: 100%": ficava mais largo que os outros campos.
+   Sem a aparência nativa e com largura mínima zero, ele obedece à coluna como os demais. */
+input[type="date"] { -webkit-appearance: none; appearance: none; display: block; min-width: 0; max-width: 100%; }
+input[type="date"]::-webkit-date-and-time-value { text-align: left; }
+.dupla > * { min-width: 0; }
 input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--verde-forte); }
 .campo { display: flex; flex-direction: column; gap: 6px; }
 .campo-rotulo { font-weight: 600; font-size: 14px; }

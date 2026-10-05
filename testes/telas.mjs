@@ -204,6 +204,9 @@ confere("celular: Lixeira pelo painel Mais abre a tela e fecha o painel", await 
 await pg.click("#menu-mais"); await pg.click("#mais-conta");
 confere("celular: Minha conta pelo painel Mais", await pg.locator("#dlg-conta").evaluate((d) => d.open) && !(await pg.locator("#dlg-mais").evaluate((d) => d.open)));
 confere("celular: campos com letra de 16 px, para o iPhone não ampliar a tela", await pg.evaluate(() => [...document.querySelectorAll("input:not([type=checkbox]), select, textarea")].every((c) => parseFloat(getComputedStyle(c).fontSize) >= 16)));
+await pg.keyboard.press("Escape"); await pg.click(".menu [data-visao='tarefas']"); await pg.locator("[data-modo='lista']").click(); await pg.locator("#lista-tarefas .abrir").first().click();
+confere("celular: o campo de data tem a mesma largura dos outros campos", await pg.evaluate(() => { const l = (id) => Math.round(document.getElementById(id).getBoundingClientRect().width); return l("t-prazo") === l("t-titulo") && l("t-prazo") === l("t-responsavel"); }));
+await pg.locator("#dlg-tarefa [data-fechar]").first().click();
 confere("sem #diag, a caixa de diagnóstico não existe", (await pg.locator("#diagnostico").count()) === 0);
 await pg.goto("http://localhost:8123/#diag"); await pg.reload(); await pg.waitForSelector("#diagnostico");
 confere("com #diag, a caixa de diagnóstico mostra as medidas", /janela \(inner\)\s+390 x 844/.test(await txt("#diagnostico")) && /barra de baixo\s+topo/.test(await txt("#diagnostico")));
