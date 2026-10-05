@@ -18,8 +18,9 @@ export function proximaOrdem(quadro, colunaId) {
 export function avatar(id) {
   const p = estado.perfis.find((x) => x.id === id);
   const nome = p ? (p.nome || p.email) : "?";
-  const partes = nome.trim().split(/\s+/);
-  const letras = (partes[0][0] + (partes.length > 1 ? partes[partes.length - 1][0] : "")).toUpperCase();
+  // Iniciais: primeira e última palavra, ignorando o que não for letra ou número no começo ("(Admin)" vale "Admin")
+  const partes = nome.trim().split(/\s+/).map((x) => x.replace(/^[^\p{L}\p{N}]+/u, "")).filter(Boolean);
+  const letras = partes.length ? (partes[0][0] + (partes.length > 1 ? partes[partes.length - 1][0] : "")).toUpperCase() : "?";
   let soma = 0; for (const c of String(id)) soma += c.charCodeAt(0);
   const cor = ["", " c1", " c2", " c3", " c4"][soma % 5];
   return el("span", { class: "avatar" + cor, text: letras, title: nome });

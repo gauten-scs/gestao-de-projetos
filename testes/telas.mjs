@@ -20,6 +20,7 @@ const txt = async (s) => (await pg.locator(s).innerText());
 confere("entra e mostra o app", await pg.locator("#app").isVisible());
 confere("nome e papel na conta", (await txt("#conta-nome")) === "Ana Teste" && (await txt("#conta-papel")) === "Administrador");
 confere("avatar com iniciais", (await txt("#conta-avatar")) === "AT");
+confere("iniciais ignoram parênteses no nome", (await pg.evaluate(() => import("./js/estado.js").then((m) => { m.estado.perfis.push({ id: "zz", nome: "Gauten (Admin)" }); const t = m.avatar("zz").textContent; m.estado.perfis.pop(); return t; }))) === "GA");
 confere("menu Configurações visível para admin", await pg.locator("#menu-config").isVisible());
 confere("quadro de projetos mostra o cartão", (await txt("#visao-projetos")).includes("Projeto Exemplo"));
 confere("colunas do quadro", /A FAZER/i.test(await txt("#visao-projetos")) && /CONCLUÍDO/i.test(await txt("#visao-projetos")));

@@ -273,7 +273,8 @@ table { border-collapse: collapse; width: 100%; font-size: 14px; }
 th { text-align: left; font-weight: 600; font-size: 13px; color: var(--suave); padding: 8px 12px; border-bottom: 1px solid var(--fio); }
 td { padding: 12px; border-bottom: 1px solid var(--fio); vertical-align: middle; }
 tr:last-child td { border-bottom: 0; }
-td.pessoa { display: flex; align-items: center; gap: 10px; font-weight: 600; white-space: nowrap; }
+td.pessoa { font-weight: 600; white-space: nowrap; }
+td.pessoa .avatar { vertical-align: middle; margin-right: 10px; }
 td select { min-width: 150px; min-height: 36px; padding: 6px 10px; font-size: 14px; }
 td .acoes { margin: 0; flex-wrap: nowrap; gap: 6px; justify-content: flex-end; }
 .selo { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--neutro-fundo); color: var(--neutro-texto); }
