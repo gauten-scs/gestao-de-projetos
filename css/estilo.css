@@ -96,6 +96,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s;
   white-space: nowrap;
 }
+.btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; flex: none; }
 .btn.primario { background: var(--primario); color: var(--primario-texto); }
 .btn.primario:hover { background: var(--primario-sobre); }
 .btn.secundario { background: var(--painel); color: var(--tinta); border-color: var(--contorno); }
@@ -162,39 +163,41 @@ input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--verde-fo
 /* ---------- Estrutura da aplicação ---------- */
 .app { display: flex; height: 100%; }
 .lateral {
-  flex: 0 0 236px; background: var(--barra); color: #fff; padding: 24px 14px 16px;
-  display: flex; flex-direction: column; gap: 32px;
+  flex: 0 0 232px; background: var(--barra); color: #fff; padding: 22px 12px 16px;
+  display: flex; flex-direction: column; gap: 28px;
 }
 .lateral .logo { height: 24px; width: auto; align-self: flex-start; margin-left: 10px; }
 .menu { display: flex; flex-direction: column; gap: 4px; }
 .menu button {
   display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
   background: transparent; color: var(--sobre-barra-suave); border: 0; border-radius: 10px; cursor: pointer;
-  padding: 10px 12px; font-family: var(--texto); font-weight: 600; font-size: 15px;
+  padding: 10px 12px; min-height: 42px; position: relative; font-family: var(--texto); font-weight: 600; font-size: 15px;
   transition: background-color 0.15s, color 0.15s;
 }
 .menu button:hover { color: #fff; background: var(--barra-ativo); }
-.menu button[aria-current="page"] { color: #fff; background: var(--barra-ativo); box-shadow: inset 3px 0 0 var(--verde); }
+.menu button[aria-current="page"] { color: #fff; background: var(--barra-ativo); }
+.menu button[aria-current="page"]::before { content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 2px; background: var(--verde); }
 .menu svg, .icone svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
-.conta { margin-top: auto; display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--barra-linha); padding-top: 14px; }
+.conta { margin-top: auto; display: flex; flex-direction: row; align-items: center; gap: 4px; border-top: 1px solid var(--barra-linha); padding-top: 14px; }
 .conta-botao {
   display: flex; align-items: center; gap: 10px; background: transparent; border: 0; color: #fff; cursor: pointer;
-  padding: 8px; border-radius: 8px; text-align: left; width: 100%;
+  padding: 8px; border-radius: 10px; text-align: left; flex: 1; min-width: 0;
 }
 .conta-botao:hover { background: var(--barra-ativo); }
 .conta-texto { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
 #conta-nome { font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #conta-papel { font-size: 13px; color: var(--sobre-barra-suave); }
-.sair { background: transparent; border: 0; color: var(--sobre-barra-suave); cursor: pointer; text-align: left; padding: 6px 8px; border-radius: 8px; font-size: 13px; font-weight: 600; }
+.sair { background: transparent; border: 0; color: var(--sobre-barra-suave); cursor: pointer; text-align: left; padding: 10px 8px; border-radius: 8px; font-size: 13px; font-weight: 600; flex: none; }
 .sair:hover { color: #fff; }
 
 .palco { flex: 1; min-width: 0; overflow: auto; }
-.visao { padding: 32px 32px 40px; min-height: 100%; display: flex; flex-direction: column; }
+.visao { padding: 28px 32px 40px; min-height: 100%; display: flex; flex-direction: column; }
 .visao.estreita { max-width: 1040px; }
 .cabecalho { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
 .cabecalho h1 { font-size: 38px; }
 .cabecalho h1::after { content: ""; display: block; width: 32px; height: 3px; border-radius: 2px; background: var(--verde); margin-top: 6px; }
-.resumo { color: var(--suave); margin-top: 8px; }
+.resumo { color: var(--suave); margin-top: 8px; font-size: 14px; }
+.resumo b { color: var(--tinta); font-weight: 600; }
 .resumo strong { color: var(--alerta); font-weight: 600; }
 .filtros { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
 .filtros label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; color: var(--suave); }
@@ -315,10 +318,10 @@ dialog[open] { animation: abrir 0.16s ease-out; }
   .lateral .logo { margin: 0; height: 22px; }
   .menu { flex-direction: row; order: 3; width: 100%; overflow-x: auto; }
   .menu button { width: auto; padding: 8px 12px; white-space: nowrap; }
-  .menu button[aria-current="page"] { box-shadow: inset 0 -3px 0 var(--verde); }
-  .conta { margin: 0 0 0 auto; flex-direction: row; align-items: center; border: 0; padding: 0; }
+  .menu button[aria-current="page"]::before { left: 12px; right: 12px; top: auto; bottom: 0; width: auto; height: 3px; }
+  .conta { margin: 0 0 0 auto; border: 0; padding: 0; }
   .conta-texto { display: none; }
-  .conta-botao { width: auto; padding: 4px; }
+  .conta-botao { flex: none; padding: 4px; }
   .app > .espinha { flex-direction: row; width: auto; height: 4px; }
   .palco { overflow: visible; }
   .visao { padding: 20px 16px 32px; }

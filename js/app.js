@@ -4,7 +4,7 @@
 
 import { sb } from "./supabase.js";
 import { ligar } from "./ligacoes.js";
-import { $, el, plural, mostrar, aviso, mensagem, traduz } from "./util.js";
+import { $, el, plural, hoje, mostrar, aviso, mensagem, traduz } from "./util.js";
 import { estado, souAdmin, avatar, atrasado, noMeuQuadro } from "./estado.js";
 import { renderQuadro } from "./quadro.js";
 import { renderFiltros, botaoConcluir, renderTarefas, abrirTarefa } from "./tarefas.js";
@@ -154,12 +154,14 @@ function renderizar() {
 // ---------- Resumos do menu ----------
 function renderResumos() {
   const pAtrasados = estado.projetos.filter(atrasado).length;
-  $("#resumo-projetos").replaceChildren(plural(estado.projetos.length, "projeto", "projetos"),
-    ...(pAtrasados ? [", ", el("strong", { text: plural(pAtrasados, "atrasado", "atrasados") })] : []));
+  const partes = (total, ...resto) => [el("b", { text: total }), ...resto.filter(Boolean).flatMap((p) => [" · ", p])];
+  $("#resumo-projetos").replaceChildren(...partes(plural(estado.projetos.length, "projeto", "projetos"),
+    pAtrasados && el("strong", { text: plural(pAtrasados, "atrasado", "atrasados") })));
   const abertas = estado.tarefas.filter((t) => noMeuQuadro(t) && !t.concluida_em);
   const tAtrasadas = abertas.filter(atrasado).length;
-  $("#resumo-tarefas").replaceChildren(plural(abertas.length, "tarefa aberta", "tarefas abertas"),
-    ...(tAtrasadas ? [", ", el("strong", { text: plural(tAtrasadas, "atrasada", "atrasadas") })] : []));
+  const dia = hoje(), paraHoje = abertas.filter((t) => t.prazo === dia).length;
+  $("#resumo-tarefas").replaceChildren(...partes(plural(abertas.length, "tarefa aberta", "tarefas abertas"),
+    tAtrasadas && el("strong", { text: plural(tAtrasadas, "atrasada", "atrasadas") }), paraHoje && `${paraHoje} para hoje`));
 }
 
 // ---------- Minha conta ----------

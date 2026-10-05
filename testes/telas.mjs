@@ -23,7 +23,9 @@ confere("avatar com iniciais", (await txt("#conta-avatar")) === "AT");
 confere("menu Configurações visível para admin", await pg.locator("#menu-config").isVisible());
 confere("quadro de projetos mostra o cartão", (await txt("#visao-projetos")).includes("Projeto Exemplo"));
 confere("colunas do quadro", /A FAZER/i.test(await txt("#visao-projetos")) && /CONCLUÍDO/i.test(await txt("#visao-projetos")));
+confere("resumo de projetos no cabeçalho", (await txt("#resumo-projetos")) === "1 projeto · 1 atrasado");
 await pg.click("[data-visao='tarefas']");
+confere("resumo de tarefas no cabeçalho", (await txt("#resumo-tarefas")) === "2 tarefas abertas · 1 atrasada");
 confere("quadro de tarefas mostra as duas tarefas", (await txt("#visao-tarefas")).includes("Tarefa atrasada") && (await txt("#visao-tarefas")).includes("Tarefa avulsa"));
 confere("data curta no cartão (1 jan 2020)", /1 jan 2020/.test(await txt("#visao-tarefas")));
 for (const modo of await pg.locator("[data-modo]").all()) { await modo.click(); }
