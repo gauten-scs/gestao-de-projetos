@@ -178,6 +178,7 @@ input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--verde-fo
 .menu button[aria-current="page"] { color: #fff; background: var(--barra-ativo); }
 .menu button[aria-current="page"]::before { content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 2px; background: var(--verde); }
 .menu svg, .icone svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.menu .so-celular { display: none; }
 .conta { margin-top: auto; display: flex; flex-direction: row; align-items: center; gap: 4px; border-top: 1px solid var(--barra-linha); padding-top: 14px; }
 .conta-botao {
   display: flex; align-items: center; gap: 10px; background: transparent; border: 0; color: #fff; cursor: pointer;
@@ -277,7 +278,7 @@ td.pessoa { font-weight: 600; white-space: nowrap; }
 td.pessoa .avatar { vertical-align: middle; margin-right: 10px; }
 td select { min-width: 150px; min-height: 36px; padding: 6px 10px; font-size: 14px; }
 td .acoes { margin: 0; flex-wrap: nowrap; gap: 6px; justify-content: flex-end; }
-.selo { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--neutro-fundo); color: var(--neutro-texto); }
+.selo { display: inline-block; white-space: nowrap; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--neutro-fundo); color: var(--neutro-texto); }
 .selo.sim { background: var(--verde-fundo); color: var(--verde-forte); }
 
 /* ---------- Janelas ---------- */
@@ -289,6 +290,17 @@ dialog.estreita { width: min(440px, calc(100vw - 32px)); }
 dialog::backdrop { background: rgba(23, 25, 30, 0.45); }
 dialog[open] { animation: abrir 0.16s ease-out; }
 @keyframes abrir { from { opacity: 0; transform: translateY(8px); } }
+/* Painel que sobe de baixo (celular) */
+dialog.folha { padding: 0; width: 100%; max-width: 100%; margin: auto 0 0; border-radius: 20px 20px 0 0; max-height: 85vh; }
+.folha-corpo { display: flex; flex-direction: column; padding: 8px 16px calc(20px + env(safe-area-inset-bottom)); }
+.folha-alca { width: 40px; height: 5px; border-radius: 3px; background: var(--contorno); align-self: center; margin-bottom: 12px; }
+.folha-corpo h2 { font-size: 22px; letter-spacing: 0.02em; margin-bottom: 8px; }
+.folha-item { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 60px; padding: 8px 4px; border: 0; border-top: 1px solid var(--coluna); background: transparent; text-align: left; cursor: pointer; }
+.folha-item:hover { background: var(--tela); }
+.folha-item .icone { width: 40px; height: 40px; border-radius: 10px; background: var(--tela); display: flex; align-items: center; justify-content: center; flex: none; }
+.folha-item .icone svg { width: 20px; height: 20px; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.folha-item strong { display: block; font-size: 16px; font-weight: 600; }
+.folha-item small { display: block; font-size: 13px; color: var(--suave); }
 .janela-topo { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .janela-topo h2 { font-size: 26px; letter-spacing: 0.02em; }
 .fechar { width: 34px; height: 34px; border-radius: 8px; border: 0; background: transparent; cursor: pointer; position: relative; flex: none; }
@@ -313,18 +325,28 @@ dialog[open] { animation: abrir 0.16s ease-out; }
 
 /* ---------- Telas pequenas ---------- */
 @media (max-width: 820px) {
-  html, body { height: auto; }
-  .app { flex-direction: column; height: auto; min-height: 100vh; }
-  .lateral { flex: none; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 12px 16px; padding: 12px 16px; }
-  .lateral .logo { margin: 0; height: 22px; }
-  .menu { flex-direction: row; order: 3; width: 100%; overflow-x: auto; }
-  .menu button { width: auto; padding: 8px 12px; white-space: nowrap; }
-  .menu button[aria-current="page"]::before { left: 12px; right: 12px; top: auto; bottom: 0; width: auto; height: 3px; }
-  .conta { margin: 0 0 0 auto; border: 0; padding: 0; }
-  .conta-texto { display: none; }
-  .conta-botao { flex: none; padding: 4px; }
-  .app > .espinha { flex-direction: row; width: auto; height: 4px; }
-  .palco { overflow: visible; }
+  /* Moldura de aplicativo: cabeçalho e barra de baixo parados; só o miolo rola, e só na vertical */
+  html, body { height: 100%; overscroll-behavior: none; }
+  .app { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: 56px 4px minmax(0, 1fr) auto; height: 100vh; height: 100dvh; overflow: hidden; }
+  .lateral { display: contents; }
+  .lateral .logo { grid-column: 1; grid-row: 1; margin: 0; width: 100%; height: 56px; padding: 17px 16px; box-sizing: border-box; object-fit: contain; object-position: left center; background: var(--barra); align-self: stretch; }
+  .conta { grid-column: 2; grid-row: 1; margin: 0; border: 0; padding: 0 8px; background: var(--barra); }
+  .conta-texto, .conta .sair { display: none; }
+  .conta-botao { flex: none; padding: 6px; }
+  .app > .espinha { grid-column: 1 / -1; grid-row: 2; flex-direction: row; width: auto; height: 4px; }
+  .palco { grid-column: 1 / -1; grid-row: 3; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; }
+  .quadro { overscroll-behavior-x: contain; }
+  .menu { grid-column: 1 / -1; grid-row: 4; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; background: var(--painel); border-top: 1px solid var(--fio); padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); }
+  .menu button { flex-direction: column; justify-content: center; gap: 3px; min-height: 50px; padding: 4px; font-size: 12px; color: var(--suave); }
+  .menu svg { width: 24px; height: 24px; }
+  .menu button:hover, .menu button[aria-current="page"] { color: var(--tinta); background: transparent; }
+  .menu button[aria-current="page"]::before { left: calc(50% - 14px); top: auto; bottom: 0; width: 28px; height: 3px; }
+  .menu [data-visao="lixeira"], .menu [data-visao="config"] { display: none; }
+  .menu .so-celular { display: flex; }
+  /* "Mais" fica marcado quando a tela aberta é uma das que ele guarda */
+  .menu:has([data-visao="lixeira"][aria-current], [data-visao="config"][aria-current]) #menu-mais { color: var(--tinta); }
+  .menu:has([data-visao="lixeira"][aria-current], [data-visao="config"][aria-current]) #menu-mais::before { content: ""; position: absolute; left: calc(50% - 14px); bottom: 0; width: 28px; height: 3px; border-radius: 2px; background: var(--verde); }
+  #aviso { bottom: calc(84px + env(safe-area-inset-bottom)); }
   .visao { padding: 20px 16px 32px; }
   .cabecalho h1 { font-size: 32px; }
   .coluna { flex-basis: 84vw; max-height: none; }

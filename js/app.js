@@ -135,7 +135,7 @@ function irPara(visao) {
 function renderizar() {
   if (estado.arrastando) { estado.pendente = true; return; }
   if (estado.visao === "config" && !souAdmin()) estado.visao = "projetos";
-  $("#menu-config").hidden = !souAdmin();
+  $("#menu-config").hidden = $("#mais-config").hidden = !souAdmin();
   $("#conta-nome").textContent = estado.perfil.nome || estado.perfil.email;
   $("#conta-papel").textContent = souAdmin() ? "Administrador" : "Usuário";
   $("#conta-avatar").replaceWith(Object.assign(avatar(estado.perfil.id), { id: "conta-avatar" }));
@@ -163,6 +163,12 @@ function renderResumos() {
   $("#resumo-tarefas").replaceChildren(...partes(plural(abertas.length, "tarefa aberta", "tarefas abertas"),
     tAtrasadas && el("strong", { text: plural(tAtrasadas, "atrasada", "atrasadas") }), paraHoje && `${paraHoje} para hoje`));
 }
+
+// ---------- Celular: painel "Mais" da barra de baixo ----------
+$("#menu-mais").addEventListener("click", () => $("#dlg-mais").showModal());
+// Fecha ao tocar fora do painel ou em qualquer item; a navegação e o Sair seguem pelos ouvintes gerais
+$("#dlg-mais").addEventListener("click", (e) => { if (e.target === e.currentTarget || e.target.closest("button")) e.currentTarget.close(); });
+$("#mais-conta").addEventListener("click", () => $("#btn-conta").click());
 
 // ---------- Minha conta ----------
 $("#btn-conta").addEventListener("click", () => {

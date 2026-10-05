@@ -104,6 +104,10 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>
         Configurações
       </button>
+      <button type="button" id="menu-mais" class="so-celular" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
+        Mais
+      </button>
     </nav>
     <div class="conta">
       <button type="button" class="conta-botao" id="btn-conta" title="Minha conta">
@@ -383,6 +387,30 @@
       <button class="btn secundario" type="button" data-fechar>Cancelar</button>
     </div>
   </form>
+</dialog>
+
+<!-- Celular: o que não cabe na barra de baixo -->
+<dialog id="dlg-mais" class="folha" aria-labelledby="mais-titulo">
+  <div class="folha-corpo">
+    <span class="folha-alca" aria-hidden="true"></span>
+    <h2 id="mais-titulo">Mais</h2>
+    <button type="button" class="folha-item" data-visao="lixeira">
+      <span class="icone"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg></span>
+      <span><strong>Lixeira</strong><small>O que você excluiu nos últimos 30 dias</small></span>
+    </button>
+    <button type="button" class="folha-item" data-visao="config" id="mais-config" hidden>
+      <span class="icone"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg></span>
+      <span><strong>Configurações</strong><small>Usuários, colunas e lixeira geral</small></span>
+    </button>
+    <button type="button" class="folha-item" id="mais-conta">
+      <span class="icone"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg></span>
+      <span><strong>Minha conta</strong><small>Nome e senha</small></span>
+    </button>
+    <button type="button" class="folha-item" data-acao="sair">
+      <span class="icone"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5v16h5M15 8l4 4-4 4M19 12H9"/></svg></span>
+      <span><strong>Sair</strong></span>
+    </button>
+  </div>
 </dialog>
 
 <dialog id="dlg-confirma" class="estreita">

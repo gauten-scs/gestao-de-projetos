@@ -190,6 +190,19 @@ n3 = (await grav()).length; await pg.fill("#m-nome", "Ana T."); await pg.locator
 confere("salvar Minha conta grava o nome", (await grav()).slice(n3).some((x) => x[0] === "perfis" && x[2] && x[2].nome === "Ana T."));
 await pg.goto("http://localhost:8123/?convite=abc"); await pg.waitForSelector("#tela-senha:not([hidden])");
 confere("link de convite abre a tela de criar senha", (await txt("#senha-titulo")) === "Crie a sua senha");
+// Celular: moldura fixa, barra de baixo e painel "Mais"
+await pg.setViewportSize({ width: 390, height: 844 }); await pg.goto("http://localhost:8123/"); await pg.waitForSelector("#app:not([hidden])");
+confere("celular: a página não rola nem para os lados nem para baixo", await pg.evaluate(() => document.documentElement.scrollWidth === innerWidth && document.documentElement.scrollHeight === innerHeight));
+const caixa = await pg.locator(".menu").boundingBox();
+confere("celular: barra de baixo encostada no rodapé, com três itens", Math.round(caixa.y + caixa.height) === 844 && (await pg.locator(".menu button:visible").count()) === 3);
+await pg.click("[data-visao='tarefas']"); await pg.locator("[data-modo='quadro']").click();
+confere("celular: trocar de tela pela barra de baixo", await pg.locator("#visao-tarefas").isVisible() && (await pg.evaluate(() => document.documentElement.scrollWidth === innerWidth)));
+await pg.click("#menu-mais");
+confere("celular: Mais abre o painel com Configurações para o admin", await pg.locator("#dlg-mais").evaluate((d) => d.open) && await pg.locator("#mais-config").isVisible());
+await pg.click("#dlg-mais [data-visao='lixeira']");
+confere("celular: Lixeira pelo painel Mais abre a tela e fecha o painel", await pg.locator("#visao-lixeira").isVisible() && !(await pg.locator("#dlg-mais").evaluate((d) => d.open)));
+await pg.click("#menu-mais"); await pg.click("#mais-conta");
+confere("celular: Minha conta pelo painel Mais", await pg.locator("#dlg-conta").evaluate((d) => d.open) && !(await pg.locator("#dlg-mais").evaluate((d) => d.open)));
 confere("nenhum erro no console", erros.length === 0); erros.forEach((e) => console.log("   " + e));
 console.log(`RESULTADO: ${ok} ok, ${falhas} falhas`); await b.close(); srv.close();
 process.exit(falhas ? 1 : 0);
