@@ -226,6 +226,7 @@ input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--verde-fo
 /* A folga de 4 px em volta (compensada pela margem negativa) dá espaço ao contorno de foco dos cartões:
    sem ela, a rolagem lateral do quadro cortava o contorno do lado esquerdo. */
 .quadro { display: flex; gap: 20px; align-items: flex-start; overflow-x: auto; padding: 4px 4px 12px; margin: -4px -4px 0; flex: 1; }
+.etiquetas, .dica-coluna { display: none; } /* só no celular */
 .coluna { flex: 0 0 304px; display: flex; flex-direction: column; max-height: 100%; }
 .coluna-topo { display: flex; align-items: center; gap: 8px; padding: 0 4px 10px; }
 .coluna-topo h2 { font-size: 14px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--suave); }
@@ -348,7 +349,19 @@ dialog.folha { padding: 0; width: 100%; max-width: 100%; margin: auto 0 0; borde
   .conta-botao { flex: none; padding: 6px; }
   .app > .espinha { grid-column: 1 / -1; grid-row: 2; flex-direction: row; width: auto; height: 4px; }
   .palco { grid-column: 1 / -1; grid-row: 3; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; }
-  .quadro { overscroll-behavior-x: contain; }
+  /* Quadro com uma coluna por vez: fileira de etiquetas (rola para os lados) e os cartões na largura toda */
+  .quadro { flex-direction: column; align-items: stretch; gap: 12px; overflow-x: visible; }
+  .etiquetas { display: flex; gap: 8px; flex: none; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; margin: 0 -20px; padding: 4px 20px; }
+  .etiquetas::-webkit-scrollbar { display: none; }
+  .etiquetas button {
+    flex: none; display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 8px 14px; cursor: pointer; white-space: nowrap;
+    border: 1px solid var(--contorno); border-radius: 999px; background: var(--painel); color: var(--suave); font-weight: 600; font-size: 14px;
+  }
+  .etiquetas button[aria-selected="true"] { background: var(--primario); border-color: var(--primario); color: var(--primario-texto); }
+  .etiquetas .contagem { margin-left: 0; }
+  .etiquetas button[aria-selected="true"] .contagem { background: color-mix(in srgb, currentColor 18%, transparent); color: inherit; }
+  .dica-coluna { display: block; color: var(--suave); font-size: 13px; }
+  .coluna-topo, .coluna:not(.ativa) { display: none; }
   .menu { grid-column: 1 / -1; grid-row: 4; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; background: var(--painel); border-top: 1px solid var(--fio); padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); }
   .menu button { flex-direction: column; justify-content: center; gap: 3px; min-height: 50px; padding: 4px; font-size: 12px; color: var(--suave); }
   .menu svg { width: 24px; height: 24px; }
@@ -362,7 +375,7 @@ dialog.folha { padding: 0; width: 100%; max-width: 100%; margin: auto 0 0; borde
   #aviso { bottom: calc(84px + env(safe-area-inset-bottom)); }
   .visao { padding: 20px 16px 32px; }
   .cabecalho h1 { font-size: 32px; }
-  .coluna { flex-basis: 84vw; max-height: none; }
+  .coluna { flex: none; max-height: none; }
   .dupla { grid-template-columns: 1fr; }
   .linha-rapida { flex-direction: column; }
   .filtros select { min-width: 150px; }

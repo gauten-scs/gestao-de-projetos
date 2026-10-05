@@ -3,6 +3,8 @@
 
 export const $ = (seletor, raiz = document) => raiz.querySelector(seletor);
 export const PRIORIDADES = { baixa: "baixa", media: "média", alta: "alta" };
+// Tela de celular: a mesma medida do bloco "Telas pequenas" do estilo.css
+export const celular = () => matchMedia("(max-width: 820px)").matches;
 export const TELAS = ["tela-carregando", "tela-login", "tela-senha", "tela-sem-acesso", "app"];
 
 export function el(tag, props = {}, ...filhos) {

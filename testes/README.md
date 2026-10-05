@@ -1,13 +1,13 @@
 # Teste de tela
 
-Confere, em um navegador automatizado, se as telas do site continuam funcionando depois de uma alteração no código. São 93 verificações: entrada, moldura e barra de baixo do celular, resumo dos cabeçalhos, quadros de projetos e de tarefas, arrastar cartão com o mouse, janelas de tarefa e de projeto, Lista por data, Concluídas, lixeiras, Configurações, convites e Minha conta.
+Confere, em um navegador automatizado, se as telas do site continuam funcionando depois de uma alteração no código. São 104 verificações: entrada, moldura e barra de baixo do celular, quadro de uma coluna por vez no celular (etiquetas, coluna lembrada), resumo dos cabeçalhos, quadros de projetos e de tarefas, arrastar cartão com o mouse, janelas de tarefa e de projeto, Lista por data, Concluídas, lixeiras, Configurações, convites e Minha conta.
 
 ## O que este teste é, e o que não é
 
 - Usa só dados de exemplo (as pessoas "Ana Teste", "Bruno Silva" e "Abel Costa", um "Projeto Exemplo" e algumas tarefas inventadas). Não há dado real aqui.
 - Não se conecta ao Supabase. O arquivo `supabase-de-mentira.js` entra no lugar da biblioteca do Supabase e apenas anota o que o site tentaria gravar.
 - Por isso, ele não prova que o banco aceita cada gravação. Quem confere as regras do banco é `supabase/testes/regras_de_acesso.sql`.
-- Não cobre o arrastar com o dedo (celular). Da escolha de quem pode ver o projeto, cobre a lista, a busca e o que o site manda gravar ao incluir ou retirar uma pessoa.
+- Não cobre o arrastar com o dedo, que só existe em tela larga com toque (tablet); no celular não há arrastar. Da escolha de quem pode ver o projeto, cobre a lista, a busca e o que o site manda gravar ao incluir ou retirar uma pessoa.
 
 ## Arquivos
 

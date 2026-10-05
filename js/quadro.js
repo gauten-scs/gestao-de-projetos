@@ -1,8 +1,31 @@
-// O quadro Kanban: colunas, cartões, arrastar (mouse e toque) e gravação da posição.
+// O quadro Kanban: colunas, cartões, arrastar (mouse e, em tela larga, toque) e gravação da posição.
+// No celular o quadro mostra uma coluna por vez, escolhida pelas etiquetas, e não há arrastar.
 import { sb } from "./supabase.js";
 import { de } from "./ligacoes.js";
-import { $, PRIORIDADES, el, porOrdem, dataBR, dataCurta, ICONES, icone, plural, aviso, traduz } from "./util.js";
+import { $, celular, PRIORIDADES, el, porOrdem, dataBR, dataCurta, ICONES, icone, plural, aviso, traduz } from "./util.js";
 import { estado, colunasDe, avatar, atrasado, noQuadro, colunaConcluida, passaFiltro, pessoasDoProjeto } from "./estado.js";
+
+// Celular: a coluna mostrada em cada quadro fica guardada no aparelho, para ser a mesma na volta.
+const chaveColuna = (quadro) => "gp-coluna-" + quadro;
+function colunaLembrada(quadro, colunas) {
+  let id = null;
+  try { id = localStorage.getItem(chaveColuna(quadro)); } catch (_) { /* sem armazenamento: vale a primeira */ }
+  return colunas.some((c) => c.id === id) ? id : colunas[0].id;
+}
+function mostrarColuna(quadro, id, guardar) {
+  const raiz = $("#quadro-" + quadro);
+  for (const s of raiz.querySelectorAll(".coluna")) s.classList.toggle("ativa", s.dataset.coluna === id);
+  const fila = raiz.querySelector(".etiquetas");
+  for (const b of fila.children) {
+    const esta = b.dataset.coluna === id;
+    b.setAttribute("aria-selected", String(esta));
+    if (!esta) continue;
+    // Traz a etiqueta escolhida para dentro da fileira, sem mexer na rolagem da página
+    const r = b.getBoundingClientRect(), f = fila.getBoundingClientRect();
+    if (r.left < f.left || r.right > f.right) fila.scrollLeft += r.left - f.left - 16;
+  }
+  if (guardar) try { localStorage.setItem(chaveColuna(quadro), id); } catch (_) { /* segue sem guardar */ }
+}
 
 export function renderQuadro(quadro) {
   const raiz = $("#quadro-" + quadro);
@@ -12,6 +35,9 @@ export function renderQuadro(quadro) {
     raiz.append(el("p", { class: "apoio", text: "Este quadro ainda não tem colunas. O administrador pode criar colunas em Configurações." }));
     return;
   }
+  // Só aparecem no celular (estilo.css): fileira de etiquetas e a frase de como mudar de coluna
+  const etiquetas = el("div", { class: "etiquetas", role: "tablist", "aria-label": "Colunas do quadro" });
+  raiz.append(etiquetas, el("p", { class: "dica-coluna", text: "Para mudar de coluna, abra " + (quadro === "projetos" ? "o projeto." : "a tarefa.") }));
   for (const col of colunas) {
     let itens = estado[quadro].filter((i) => i.coluna_id === col.id).sort(porOrdem);
     if (quadro === "tarefas") itens = itens.filter((t) => passaFiltro(t) && noQuadro(t));
@@ -37,7 +63,10 @@ export function renderQuadro(quadro) {
       mover(quadro, estado.arrastando.id, col.id, antes ? antes.dataset.id : null);
     });
 
-    raiz.append(el("section", { class: "coluna" + (col.concluida ? " concluida" : "") },
+    etiquetas.append(el("button", { type: "button", role: "tab", onclick: () => mostrarColuna(quadro, col.id, true) },
+      col.nome, el("span", { class: "contagem", text: String(itens.length) })));
+    etiquetas.lastChild.dataset.coluna = col.id;
+    const secao = el("section", { class: "coluna" + (col.concluida ? " concluida" : "") },
       el("header", { class: "coluna-topo" },
         col.concluida ? icone("feito") : null,
         el("h2", { text: col.nome }),
@@ -46,13 +75,16 @@ export function renderQuadro(quadro) {
       el("button", {
         class: "coluna-novo", type: "button",
         onclick: () => (quadro === "projetos" ? de.abrirProjeto(null, col.id) : de.abrirTarefa(null, col.id)),
-      }, icone("mais"), quadro === "projetos" ? "Adicionar projeto" : "Adicionar tarefa")));
+      }, icone("mais"), quadro === "projetos" ? "Adicionar projeto" : "Adicionar tarefa"));
+    secao.dataset.coluna = col.id;
+    raiz.append(secao);
   }
+  mostrarColuna(quadro, colunaLembrada(quadro, colunas), false);
 }
 
 export function cartao(quadro, item, col) {
   const abrir = () => (quadro === "projetos" ? de.abrirProjeto(item.id) : de.abrirTarefa(item.id));
-  const c = el("article", { class: "cartao" + (item.concluida_em ? " feita" : ""), draggable: true, tabIndex: 0, role: "button", onclick: abrir });
+  const c = el("article", { class: "cartao" + (item.concluida_em ? " feita" : ""), draggable: !celular(), tabIndex: 0, role: "button", onclick: abrir });
   c.dataset.id = item.id;
   c.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrir(); } });
 
@@ -110,14 +142,15 @@ export function cartao(quadro, item, col) {
   return c;
 }
 
-// Arrastar com o dedo (celular e tablet): segurar o cartão por um instante e então arrastar.
+// Arrastar com o dedo, só em tela larga (tablet): segurar o cartão por um instante e então arrastar.
+// No celular não há arrastar: a coluna muda pelo campo "Coluna" da janela da tarefa ou do projeto.
 export function toqueArrastar(c, quadro, item) {
   let relogio = null, fantasma = null, inicio = null, ativo = false, alvo = null, desvio = { x: 0, y: 0 };
   const posicionar = (x, y) => { fantasma.style.left = x - desvio.x + "px"; fantasma.style.top = y - desvio.y + "px"; };
   const limparAlvos = () => { for (const l of document.querySelectorAll(".coluna-lista.sobre")) l.classList.remove("sobre"); };
 
   c.addEventListener("touchstart", (e) => {
-    if (e.touches.length !== 1) return;
+    if (e.touches.length !== 1 || celular()) return;
     inicio = { x: e.touches[0].clientX, y: e.touches[0].clientY };
     relogio = setTimeout(() => {
       const r = c.getBoundingClientRect();
