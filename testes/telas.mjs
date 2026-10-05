@@ -192,10 +192,7 @@ await pg.goto("http://localhost:8123/?convite=abc"); await pg.waitForSelector("#
 confere("link de convite abre a tela de criar senha", (await txt("#senha-titulo")) === "Crie a sua senha");
 // Celular: moldura fixa, barra de baixo e painel "Mais"
 await pg.setViewportSize({ width: 390, height: 844 }); await pg.goto("http://localhost:8123/"); await pg.waitForSelector("#app:not([hidden])");
-confere("celular: a página não rola para os lados", await pg.evaluate(() => document.documentElement.scrollWidth === innerWidth));
-await pg.click("#menu-mais"); await pg.click("#mais-config"); await pg.evaluate(() => scrollTo(0, 400)); await pg.waitForTimeout(100);
-confere("celular: ao rolar, o cabeçalho continua no topo", (await pg.evaluate(() => scrollY)) > 0 && Math.round((await pg.locator(".lateral .logo").boundingBox()).y) === 0);
-await pg.click(".menu [data-visao='projetos']"); await pg.evaluate(() => scrollTo(0, 0));
+confere("celular: a página não rola nem para os lados nem para baixo", await pg.evaluate(() => document.documentElement.scrollWidth === innerWidth && document.documentElement.scrollHeight === innerHeight));
 const caixa = await pg.locator(".menu").boundingBox();
 confere("celular: barra de baixo encostada no rodapé, com três itens", Math.round(caixa.y + caixa.height) === 844 && (await pg.locator(".menu button:visible").count()) === 3);
 await pg.click("[data-visao='tarefas']"); await pg.locator("[data-modo='quadro']").click();
@@ -206,6 +203,9 @@ await pg.click("#dlg-mais [data-visao='lixeira']");
 confere("celular: Lixeira pelo painel Mais abre a tela e fecha o painel", await pg.locator("#visao-lixeira").isVisible() && !(await pg.locator("#dlg-mais").evaluate((d) => d.open)));
 await pg.click("#menu-mais"); await pg.click("#mais-conta");
 confere("celular: Minha conta pelo painel Mais", await pg.locator("#dlg-conta").evaluate((d) => d.open) && !(await pg.locator("#dlg-mais").evaluate((d) => d.open)));
+confere("sem #diag, a caixa de diagnóstico não existe", (await pg.locator("#diagnostico").count()) === 0);
+await pg.goto("http://localhost:8123/#diag"); await pg.reload(); await pg.waitForSelector("#diagnostico");
+confere("com #diag, a caixa de diagnóstico mostra as medidas", /janela \(inner\)\s+390 x 844/.test(await txt("#diagnostico")) && /barra de baixo\s+topo/.test(await txt("#diagnostico")));
 confere("nenhum erro no console", erros.length === 0); erros.forEach((e) => console.log("   " + e));
 console.log(`RESULTADO: ${ok} ok, ${falhas} falhas`); await b.close(); srv.close();
 process.exit(falhas ? 1 : 0);

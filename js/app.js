@@ -170,6 +170,9 @@ $("#menu-mais").addEventListener("click", () => $("#dlg-mais").showModal());
 $("#dlg-mais").addEventListener("click", (e) => { if (e.target === e.currentTarget || e.target.closest("button")) e.currentTarget.close(); });
 $("#mais-conta").addEventListener("click", () => $("#btn-conta").click());
 
+// ---------- Diagnóstico de tela: só com #diag no fim do endereço ----------
+if (location.hash === "#diag") import("./diagnostico.js");
+
 // ---------- Minha conta ----------
 $("#btn-conta").addEventListener("click", () => {
   $("#m-nome").value = estado.perfil.nome;
