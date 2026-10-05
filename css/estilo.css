@@ -226,7 +226,7 @@ input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--verde-fo
 /* A folga de 4 px em volta (compensada pela margem negativa) dá espaço ao contorno de foco dos cartões:
    sem ela, a rolagem lateral do quadro cortava o contorno do lado esquerdo. */
 .quadro { display: flex; gap: 20px; align-items: flex-start; overflow-x: auto; padding: 4px 4px 12px; margin: -4px -4px 0; flex: 1; }
-.etiquetas, .dica-coluna { display: none; } /* só no celular */
+.etiquetas, .dica-coluna, .botao-novo { display: none; } /* só no celular */
 .coluna { flex: 0 0 304px; display: flex; flex-direction: column; max-height: 100%; }
 .coluna-topo { display: flex; align-items: center; gap: 8px; padding: 0 4px 10px; }
 .coluna-topo h2 { font-size: 14px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--suave); }
@@ -378,7 +378,20 @@ dialog.folha { padding: 0; width: 100%; max-width: 100%; margin: auto 0 0; borde
   .coluna { flex: none; max-height: none; }
   .dupla { grid-template-columns: 1fr; }
   .linha-rapida { flex-direction: column; }
-  .filtros select { min-width: 150px; }
+  /* Cabeçalho enxuto: os botões "Novo projeto" e "Nova tarefa" dão lugar ao botão "+"; filtro na largura da tela */
+  .so-computador, #novo-projeto, #nova-tarefa { display: none; }
+  .cabecalho { gap: 12px; margin-bottom: 16px; }
+  .filtros { width: 100%; }
+  .filtros label { flex: 1; min-width: 0; }
+  .filtros select { width: 100%; min-width: 0; }
+  /* Botão "+": na mesma casa da grade que o miolo, encostado no canto de baixo. Sem "position: fixed". */
+  .botao-novo {
+    display: flex; align-items: center; justify-content: center; grid-column: 1 / -1; grid-row: 3; align-self: end; justify-self: end; z-index: 2;
+    width: 56px; height: 56px; margin: 0 16px 16px; border: 0; border-radius: 50%; cursor: pointer;
+    background: var(--primario); color: var(--primario-texto); box-shadow: var(--sombra-2);
+  }
+  .botao-novo svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+  #visao-projetos, #visao-tarefas { padding-bottom: 96px; } /* o último cartão não fica debaixo do botão */
   .entrada { flex-direction: column; }
   .entrada-marca { flex: none; max-width: none; padding: 28px 20px; gap: 28px; }
   .entrada-marca .logo { height: 26px; }
@@ -424,6 +437,10 @@ td .abrir-texto:hover { text-decoration: underline; }
   .linha-tarefa .abrir { flex: 1 1 calc(100% - 40px); }
   .linha-tarefa .chips { flex-wrap: wrap; margin-left: 34px; }
   .barra-busca input { min-width: 0; }
+  /* Alternância na largura da tela, na ordem Lista, Quadro, Concluídas */
+  .abas { display: flex; align-self: stretch; margin-bottom: 16px; }
+  .abas button { flex: 1; min-height: 44px; padding: 10px 8px; }
+  .abas [data-modo="lista"] { order: -1; }
 }
 .lista-tarefas li > .marcar { width: 22px; flex: none; padding: 0; justify-content: center; display: inline-flex; }
 .lista-tarefas li > .marcar { height: 22px; border: 2px solid var(--contorno); border-radius: 50%; }

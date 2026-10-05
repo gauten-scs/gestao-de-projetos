@@ -136,6 +136,7 @@ function renderizar() {
   if (estado.arrastando) { estado.pendente = true; return; }
   if (estado.visao === "config" && !souAdmin()) estado.visao = "projetos";
   $("#menu-config").hidden = $("#mais-config").hidden = !souAdmin();
+  $("#botao-novo").hidden = !["projetos", "tarefas"].includes(estado.visao);
   $("#conta-nome").textContent = estado.perfil.nome || estado.perfil.email;
   $("#conta-papel").textContent = souAdmin() ? "Administrador" : "Usuário";
   $("#conta-avatar").replaceWith(Object.assign(avatar(estado.perfil.id), { id: "conta-avatar" }));
@@ -169,6 +170,12 @@ $("#menu-mais").addEventListener("click", () => $("#dlg-mais").showModal());
 // Fecha ao tocar fora do painel ou em qualquer item; a navegação e o Sair seguem pelos ouvintes gerais
 $("#dlg-mais").addEventListener("click", (e) => { if (e.target === e.currentTarget || e.target.closest("button")) e.currentTarget.close(); });
 $("#mais-conta").addEventListener("click", () => $("#btn-conta").click());
+
+// ---------- Celular: botão "+" e painel "Novo" ----------
+$("#botao-novo").addEventListener("click", () => $("#dlg-novo").showModal());
+$("#dlg-novo").addEventListener("click", (e) => { if (e.target === e.currentTarget || e.target.closest("button")) e.currentTarget.close(); });
+$("#novo-item-tarefa").addEventListener("click", () => abrirTarefa(null));
+$("#novo-item-projeto").addEventListener("click", () => abrirProjeto(null));
 
 // ---------- Contorno de foco só para quem usa o teclado ----------
 // Um toque ou clique marca a página; a tecla Tab desmarca. O estilo.css esconde o contorno enquanto a marca existir.

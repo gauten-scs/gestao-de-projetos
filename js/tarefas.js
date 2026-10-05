@@ -1,7 +1,7 @@
 // Tarefas: filtro por projeto, Quadro, Lista por data, Concluídas, botão de concluir e a janela da tarefa.
 import { sb } from "./supabase.js";
 import { de } from "./ligacoes.js";
-import { $, PRIORIDADES, el, hoje, dataBR, dataCurta, ICONES, dataHora, aviso, traduz, preencherSelect, confirmar } from "./util.js";
+import { $, celular, PRIORIDADES, el, hoje, dataBR, dataCurta, ICONES, dataHora, aviso, traduz, preencherSelect, confirmar } from "./util.js";
 import { estado, colunasDe, nomePerfil, proximaOrdem, avatar, atrasado, historico, passaFiltro, pessoasDoProjeto, travarConclusao, opcoesPessoas } from "./estado.js";
 import { renderQuadro } from "./quadro.js";
 
@@ -76,7 +76,7 @@ export function renderLista() {
     { nome: "Próximas", classe: "", itens: tarefas.filter((t) => !t.prazo || t.prazo > dia) },
   ];
   raiz.replaceChildren();
-  if (!tarefas.length) { raiz.append(el("p", { class: "apoio", text: "Nenhuma tarefa aberta. Crie uma em \"Nova tarefa\"." })); return; }
+  if (!tarefas.length) { raiz.append(el("p", { class: "apoio", text: "Nenhuma tarefa aberta. " + (celular() ? "Toque em \"+\" para criar uma." : "Crie uma em \"Nova tarefa\".") })); return; }
   for (const g of grupos) {
     if (!g.itens.length) continue;
     raiz.append(el("section", { class: "grupo-datas " + g.classe },

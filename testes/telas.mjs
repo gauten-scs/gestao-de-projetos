@@ -28,6 +28,7 @@ confere("computador: colunas lado a lado, sem etiquetas nem frase do celular", (
 confere("cartão do projeto mostra o progresso por extenso", (await txt("#quadro-projetos .progresso")).includes("0 de 1 tarefa"));
 confere("resumo de projetos no cabeçalho", (await txt("#resumo-projetos")) === "1 projeto · 1 atrasado");
 await pg.click("[data-visao='tarefas']");
+confere("computador: Tarefas abre no Quadro, sem o botão + do celular", (await pg.locator("[data-modo='quadro']").getAttribute("aria-selected")) === "true" && (await txt("[data-modo='lista']")) === "Lista por data" && !(await pg.locator("#botao-novo").isVisible()) && await pg.locator("#nova-tarefa").isVisible());
 confere("resumo de tarefas no cabeçalho", (await txt("#resumo-tarefas")) === "2 tarefas abertas · 1 atrasada");
 confere("quadro de tarefas mostra as duas tarefas", (await txt("#visao-tarefas")).includes("Tarefa atrasada") && (await txt("#visao-tarefas")).includes("Tarefa avulsa"));
 confere("data curta no cartão (1 jan 2020)", /1 jan 2020/.test(await txt("#visao-tarefas")));
@@ -219,6 +220,24 @@ confere("celular: se a coluna guardada não existe mais, mostra a primeira", (aw
 await pg.locator("#quadro-projetos .cartao").first().click(); await pg.selectOption("#p-coluna", "cp2");
 let n5 = (await grav()).length; await pg.locator("#form-projeto [type='submit']").click(); await pg.waitForTimeout(200);
 confere("celular: mudar de coluna pelo campo Coluna da janela grava a nova coluna", (await grav()).slice(n5).some((x) => x[0] === "projetos" && x[1] === "update" && x[2].coluna_id === "cp2"));
+// Celular: botão "+", painel "Novo" e cabeçalho enxuto
+confere("celular: botão + no lugar do botão do topo", await pg.locator("#botao-novo").isVisible() && !(await pg.locator("#novo-projeto").isVisible()));
+confere("celular: botão + dentro da moldura, acima da barra de baixo", await pg.evaluate(() => { const b = document.getElementById("botao-novo"), r = b.getBoundingClientRect(), m = document.querySelector(".menu").getBoundingClientRect(); return getComputedStyle(b).position !== "fixed" && r.bottom <= m.top && r.right <= innerWidth && b.parentElement.id === "app"; }));
+await pg.click("#botao-novo");
+confere("celular: + abre o painel Novo com as duas opções", await pg.locator("#dlg-novo").evaluate((d) => d.open) && await pg.locator("#novo-item-tarefa").isVisible() && await pg.locator("#novo-item-projeto").isVisible());
+await pg.click("#novo-item-projeto");
+confere("celular: Novo projeto pelo painel abre a janela vazia e fecha o painel", (await txt("#p-janela")) === "Novo projeto" && await pg.locator("#dlg-projeto").evaluate((d) => d.open) && !(await pg.locator("#dlg-novo").evaluate((d) => d.open)));
+await pg.locator("#dlg-projeto [data-fechar]").first().click();
+await pg.click(".menu [data-visao='tarefas']");
+confere("celular: Tarefas abre na Lista", (await pg.locator("[data-modo='lista']").getAttribute("aria-selected")) === "true" && await pg.locator("#lista-tarefas").isVisible() && !(await pg.locator("#quadro-tarefas").isVisible()));
+confere("celular: alternância na ordem Lista, Quadro, Concluídas, na largura da tela", await pg.evaluate(() => { const x = (m) => document.querySelector(`[data-modo='${m}']`).getBoundingClientRect().left; const a = document.querySelector(".abas").getBoundingClientRect(); return x("lista") < x("quadro") && x("quadro") < x("concluidas") && a.width > 340 && document.querySelector("[data-modo='lista']").innerText.trim() === "Lista"; }));
+confere("celular: filtro de projeto na largura da tela, sem o botão Nova tarefa", (await pg.locator("#filtro-projeto").evaluate((s) => s.getBoundingClientRect().width)) > 340 && !(await pg.locator("#nova-tarefa").isVisible()));
+await pg.click("#botao-novo"); await pg.click("#novo-item-tarefa");
+confere("celular: Nova tarefa pelo painel abre a janela vazia", (await txt("#t-janela")) === "Nova tarefa" && (await pg.inputValue("#t-titulo")) === "" && !(await pg.locator("#dlg-novo").evaluate((d) => d.open)));
+await pg.locator("#dlg-tarefa [data-fechar]").first().click();
+await pg.click("#menu-mais"); await pg.click("#dlg-mais [data-visao='lixeira']");
+confere("celular: na Lixeira não há botão +", !(await pg.locator("#botao-novo").isVisible()));
+await pg.click(".menu [data-visao='projetos']");
 await pg.evaluate(() => localStorage.clear());
 await pg.click("[data-visao='tarefas']"); await pg.locator("[data-modo='quadro']").click();
 confere("celular: trocar de tela pela barra de baixo", await pg.locator("#visao-tarefas").isVisible() && (await pg.evaluate(() => document.documentElement.scrollWidth === innerWidth)));

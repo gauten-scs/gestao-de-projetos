@@ -149,7 +149,7 @@
       </header>
       <div class="abas" role="tablist" aria-label="Formas de ver as tarefas">
         <button type="button" role="tab" data-modo="quadro">Quadro</button>
-        <button type="button" role="tab" data-modo="lista">Lista por data</button>
+        <button type="button" role="tab" data-modo="lista">Lista<span class="so-computador"> por data</span></button>
         <button type="button" role="tab" data-modo="concluidas">Concluídas</button>
       </div>
       <div class="quadro" id="quadro-tarefas"></div>
@@ -228,6 +228,8 @@
       </div>
     </section>
   </main>
+  <!-- Celular: botão "+", que abre o painel "Novo". Fica dentro da moldura, sobre o canto de baixo do miolo -->
+  <button type="button" id="botao-novo" class="botao-novo" aria-label="Novo" aria-haspopup="dialog" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
 </div>
 
 <!-- Janelas -->
@@ -387,6 +389,22 @@
       <button class="btn secundario" type="button" data-fechar>Cancelar</button>
     </div>
   </form>
+</dialog>
+
+<!-- Celular: painel do botão "+" -->
+<dialog id="dlg-novo" class="folha" aria-labelledby="novo-titulo">
+  <div class="folha-corpo">
+    <span class="folha-alca" aria-hidden="true"></span>
+    <h2 id="novo-titulo">Novo</h2>
+    <button type="button" class="folha-item" id="novo-item-tarefa">
+      <span class="icone"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6l2 2 3-3M4 13l2 2 3-3M4 20l2 2 3-3" transform="translate(0 -2)"/><path d="M13 6h8M13 12h8M13 18h8"/></svg></span>
+      <span><strong>Nova tarefa</strong><small>De um projeto ou avulsa</small></span>
+    </button>
+    <button type="button" class="folha-item" id="novo-item-projeto">
+      <span class="icone"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="5" height="16"/><rect x="10" y="4" width="5" height="10"/><rect x="17" y="4" width="4" height="13"/></svg></span>
+      <span><strong>Novo projeto</strong><small>Com responsável e quem pode ver</small></span>
+    </button>
+  </div>
 </dialog>
 
 <!-- Celular: o que não cabe na barra de baixo -->

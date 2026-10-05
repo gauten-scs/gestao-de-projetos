@@ -1,10 +1,11 @@
 // Os dados carregados do banco e as funções que os consultam.
-import { el, porOrdem, hoje, dataHora } from "./util.js";
+// No celular, Tarefas abre na Lista; no computador, no Quadro (modoTarefas).
+import { el, celular, porOrdem, hoje, dataHora } from "./util.js";
 
 export const estado = {
   usuario: null, perfil: null,
   perfis: [], colunas: [], projetos: [], tarefas: [],
-  visao: "projetos", filtroProjeto: "todos", modoTarefas: "quadro", busca: "", periodo: "todos", minhaLixeira: [],
+  visao: "projetos", filtroProjeto: "todos", modoTarefas: celular() ? "lista" : "quadro", busca: "", periodo: "todos", minhaLixeira: [],
   arrastando: null, pendente: false, canal: null, editando: null,
   lixeira: { projetos: [], tarefas: [] }, membros: [],
 };
