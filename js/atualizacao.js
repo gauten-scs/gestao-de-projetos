@@ -7,7 +7,7 @@ import { VERSAO } from "./versao.js";
 
 const CHAVE = "gp-atualizou-para";   // última versão para a qual esta aba já tentou se atualizar sozinha
 const ENTRE_CONSULTAS = 60 * 1000;   // não consulta mais que uma vez por minuto
-const DE_TEMPOS_EM_TEMPOS = 15 * 60 * 1000;
+const DE_TEMPOS_EM_TEMPOS = 2 * 60 * 1000; // com a página à vista, consulta a cada 2 minutos
 let ultimaConsulta = 0, atualizando = false, pendente = null; // pendente: versão nova já vista, à espera de a pessoa ficar livre
 
 const guardado = () => { try { return sessionStorage.getItem(CHAVE); } catch (_) { return null; } };
