@@ -49,10 +49,17 @@ export function renderTarefas() {
   if (modo === "concluidas") renderConcluidas();
 }
 
+// As etiquetas da tarefa, iguais no Quadro, na Lista e em Concluídas: prioridade, data e responsável.
+// Na tarefa concluída a data mostrada é a da conclusão, no lugar do prazo.
 export function chipsDaTarefa(t) {
   const chips = el("div", { class: "chips" });
   chips.append(el("span", { class: "chip " + t.prioridade, text: "Prioridade " + PRIORIDADES[t.prioridade] }));
-  if (t.prazo) {
+  if (t.concluida_em) {
+    const chip = el("span", { class: "chip", title: "Concluída em " + dataHora(t.concluida_em) });
+    chip.innerHTML = ICONES.feito;
+    chip.append("Concluída em " + dataCurta(t.concluida_em.slice(0, 10)));
+    chips.append(chip);
+  } else if (t.prazo) {
     const chip = el("span", { class: "chip" + (atrasado(t) ? " atrasado" : ""), title: "Prazo: " + dataBR(t.prazo) });
     chip.innerHTML = ICONES.data;
     chip.append(dataCurta(t.prazo));
@@ -82,36 +89,40 @@ export function renderLista() {
     raiz.append(el("section", { class: "grupo-datas " + g.classe },
       el("h2", {}, g.nome, el("span", { class: "contagem", text: String(g.itens.length) })),
       ...g.itens.map((t) => {
-        const chips = chipsDaTarefa(t), coluna = estado.colunas.find((c) => c.id === t.coluna_id)?.nome;
-        if (coluna) chips.prepend(el("span", { class: "chip", text: coluna, title: "Coluna no quadro" }));
-        return el("div", { class: "linha-tarefa" },
-          botaoConcluir(t),
-          el("button", { class: "abrir", type: "button", onclick: () => abrirTarefa(t.id) },
-            el("span", { class: "nome", text: t.titulo }),
-            el("span", { class: "origem" + (t.projeto_id ? "" : " avulsa"), text: origemDaTarefa(t) })),
-          chips);
+        const coluna = estado.colunas.find((c) => c.id === t.coluna_id)?.nome;
+        return linhaDaTarefa(t, coluna && el("span", { class: "chip", text: coluna, title: "Coluna no quadro" }));
       })));
   }
 }
 
+// Uma tarefa em lista: círculo de concluir, nome, projeto e etiquetas. Usada na Lista por data e em Concluídas.
+function linhaDaTarefa(t, etiquetaNaFrente) {
+  const chips = chipsDaTarefa(t);
+  if (etiquetaNaFrente) chips.prepend(etiquetaNaFrente);
+  return el("div", { class: "linha-tarefa" + (t.concluida_em ? " feita" : "") },
+    botaoConcluir(t),
+    el("button", { class: "abrir", type: "button", onclick: () => abrirTarefa(t.id) },
+      el("span", { class: "nome", text: t.titulo }),
+      el("span", { class: "origem" + (t.projeto_id ? "" : " avulsa"), text: origemDaTarefa(t) })),
+    chips);
+}
+
 export function renderConcluidas() {
-  const tabela = $("#tabela-concluidas");
+  const raiz = $("#lista-concluidas");
   const termo = estado.busca.trim().toLowerCase();
   const desde = estado.periodo === "todos" ? "" : new Date(Date.now() - Number(estado.periodo) * 86400000).toISOString();
   const tarefas = estado.tarefas.filter((t) => passaFiltro(t) && t.concluida_em
       && (!termo || (t.titulo + " " + t.descricao).toLowerCase().includes(termo))
       && (!desde || t.concluida_em >= desde))
     .sort((a, b) => (a.concluida_em < b.concluida_em ? 1 : -1));
-  tabela.replaceChildren(el("tr", {}, ...["", "Tarefa", "Projeto", "Concluída em", "Responsável"].map((t) => el("th", { text: t, scope: "col" }))));
-  for (const t of tarefas) {
-    tabela.append(el("tr", {},
-      el("td", {}, botaoConcluir(t)),
-      el("td", {}, el("button", { class: "abrir-texto", type: "button", text: t.titulo, onclick: () => abrirTarefa(t.id) })),
-      el("td", { text: origemDaTarefa(t) }),
-      el("td", { text: dataHora(t.concluida_em) }),
-      el("td", { class: "pessoa" }, t.responsavel_id ? avatar(t.responsavel_id) : null, nomePerfil(t.responsavel_id))));
+  raiz.replaceChildren();
+  if (!tarefas.length) {
+    raiz.append(el("p", { class: "apoio", text: termo || desde || estado.filtroProjeto !== "todos" ? "Nenhuma tarefa concluída com esses filtros." : "Nenhuma tarefa concluída ainda." }));
+    return;
   }
-  if (!tarefas.length) tabela.append(el("tr", {}, el("td", { colSpan: 5, class: "apoio", text: termo || desde || estado.filtroProjeto !== "todos" ? "Nenhuma tarefa concluída com esses filtros." : "Nenhuma tarefa concluída ainda." })));
+  raiz.append(el("section", { class: "grupo-datas" },
+    el("h2", {}, "Concluídas", el("span", { class: "contagem", text: String(tarefas.length) })),
+    ...tarefas.map((t) => linhaDaTarefa(t))));
 }
 
 $("#nova-tarefa").addEventListener("click", () => abrirTarefa(null));

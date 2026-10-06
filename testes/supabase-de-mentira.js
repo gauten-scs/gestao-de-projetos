@@ -14,7 +14,8 @@
       { ...base, id: "t9", titulo: "Tarefa excluída", descricao: "", coluna_id: "ct1", ordem: 9, responsavel_id: U, prazo: "2030-01-01", prioridade: "media", projeto_id: null, concluida_em: null, arquivado_em: agora, arquivado_por: U },
       { ...base, id: "t8", titulo: "Tarefa de projeto excluída", descricao: "", coluna_id: "ct1", ordem: 8, responsavel_id: U, prazo: "2030-01-01", prioridade: "media", projeto_id: "p1", concluida_em: null, arquivado_em: agora, arquivado_por: U },
       { ...base, id: "t1", titulo: "Tarefa atrasada", descricao: "", coluna_id: "ct1", ordem: 1, responsavel_id: U, prazo: "2020-01-01", prioridade: "media", projeto_id: "p1", concluida_em: null },
-      { ...base, id: "t2", titulo: "Tarefa avulsa", descricao: "", coluna_id: "ct1", ordem: 2, responsavel_id: U, prazo: "2099-01-01", prioridade: "baixa", projeto_id: null, concluida_em: null }],
+      { ...base, id: "t2", titulo: "Tarefa avulsa", descricao: "", coluna_id: "ct1", ordem: 2, responsavel_id: U, prazo: "2099-01-01", prioridade: "baixa", projeto_id: null, concluida_em: null },
+      { ...base, id: "t3", titulo: "Tarefa antiga concluída", descricao: "", coluna_id: "ct2", ordem: 1, responsavel_id: U, prazo: "2020-02-01", prioridade: "alta", projeto_id: null, concluida_em: new Date(Date.now() - 30 * 86400000).toISOString() }],
     __extra: 0,
     projeto_membros: [{ projeto_id: "p1", usuario_id: "u2" }],
   };

@@ -1,6 +1,6 @@
 # Teste de tela
 
-Confere, em um navegador automatizado, se as telas do site continuam funcionando depois de uma alteração no código. São 123 verificações: entrada, moldura e barra de baixo do celular, quadro de uma coluna por vez no celular (etiquetas, coluna lembrada), botão "+" e painel "Novo" do celular, resumo dos cabeçalhos, quadros de projetos e de tarefas, arrastar cartão com o mouse, janelas de tarefa e de projeto, Lista por data, Concluídas, lixeiras, Configurações, convites, Minha conta, versão do site e atualização de páginas já abertas.
+Confere, em um navegador automatizado, se as telas do site continuam funcionando depois de uma alteração no código. São 127 verificações: entrada, moldura e barra de baixo do celular, quadro de uma coluna por vez no celular (etiquetas, coluna lembrada), botão "+" e painel "Novo" do celular, resumo dos cabeçalhos, quadros de projetos e de tarefas, arrastar cartão com o mouse, janelas de tarefa e de projeto, Lista por data, Concluídas, lixeiras, Configurações, convites, Minha conta, versão do site e atualização de páginas já abertas.
 
 ## O que este teste é, e o que não é
 

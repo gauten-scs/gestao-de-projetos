@@ -84,19 +84,20 @@ export function renderQuadro(quadro) {
 
 export function cartao(quadro, item, col) {
   const abrir = () => (quadro === "projetos" ? de.abrirProjeto(item.id) : de.abrirTarefa(item.id));
-  const c = el("article", { class: "cartao" + (item.concluida_em ? " feita" : ""), draggable: !celular(), tabIndex: 0, role: "button", onclick: abrir });
+  const c = el("article", { class: "cartao" + (quadro === "tarefas" ? " tarefa" : "") + (item.concluida_em ? " feita" : ""), draggable: !celular(), tabIndex: 0, role: "button", onclick: abrir });
   c.dataset.id = item.id;
   c.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrir(); } });
 
+  // Tarefa: o mesmo modelo da Lista. Nome, depois o projeto, depois as etiquetas (prioridade, data e responsável).
   if (quadro === "tarefas") {
     const projeto = estado.projetos.find((p) => p.id === item.projeto_id);
-    c.append(el("span", { class: "origem" + (projeto ? "" : " avulsa"), text: projeto ? projeto.titulo : "Tarefa avulsa" }));
+    c.append(el("div", { class: "topo-tarefa" }, de.botaoConcluir(item), el("span", { class: "nome", text: item.titulo })),
+      el("span", { class: "origem" + (projeto ? "" : " avulsa"), text: projeto ? projeto.titulo : "Tarefa avulsa" }),
+      de.chipsDaTarefa(item));
+    arrastavel(c, quadro, item);
+    return c;
   }
-  if (quadro === "tarefas") {
-    c.append(el("div", { class: "topo-tarefa" }, de.botaoConcluir(item), el("span", { class: "nome", text: item.titulo })));
-  } else {
-    c.append(el("span", { class: "nome", text: item.titulo }));
-  }
+  c.append(el("span", { class: "nome", text: item.titulo }));
 
   const chips = el("div", { class: "chips" });
   chips.append(el("span", { class: "chip " + item.prioridade, text: "Prioridade " + PRIORIDADES[item.prioridade] }));
@@ -125,7 +126,12 @@ export function cartao(quadro, item, col) {
   }
   if (item.responsavel_id) (rodape.childNodes.length ? rodape : chips).append(avatar(item.responsavel_id));
   if (rodape.childNodes.length) c.append(rodape);
+  arrastavel(c, quadro, item);
+  return c;
+}
 
+// Liga no cartão o arrastar com mouse e, em tela larga, com o dedo.
+function arrastavel(c, quadro, item) {
   toqueArrastar(c, quadro, item);
   c.addEventListener("dragstart", (e) => {
     estado.arrastando = { quadro, id: item.id };
@@ -139,7 +145,6 @@ export function cartao(quadro, item, col) {
     for (const l of document.querySelectorAll(".coluna-lista.sobre")) l.classList.remove("sobre");
     if (estado.pendente) { estado.pendente = false; de.renderizar(); }
   });
-  return c;
 }
 
 // Arrastar com o dedo, só em tela larga (tablet): segurar o cartão por um instante e então arrastar.

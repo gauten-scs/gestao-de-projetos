@@ -423,6 +423,11 @@ dialog.folha { padding: 0; width: 100%; max-width: 100%; margin: auto 0 0; borde
 .marcar.feita { background: var(--tinta); border-color: var(--tinta); color: var(--painel); }
 .cartao .topo-tarefa { display: flex; align-items: flex-start; gap: 10px; }
 .cartao .topo-tarefa .nome { flex: 1; }
+/* Cartão de tarefa no mesmo modelo da Lista: projeto e etiquetas alinhados sob o nome, depois do círculo */
+.cartao.tarefa { gap: 6px; }
+.cartao.tarefa .origem, .cartao.tarefa .chips { margin-left: 32px; }
+.cartao.tarefa .chips { margin-top: 4px; }
+.linha-tarefa.feita .nome { color: var(--suave); text-decoration: line-through; }
 .lista-datas { display: flex; flex-direction: column; gap: 20px; max-width: 1040px; }
 .grupo-datas { background: var(--painel); border-radius: 14px; padding: 4px 20px 6px; border: 1px solid var(--fio); }
 .grupo-datas h2 { font-size: 14px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; padding: 12px 0 8px; display: flex; align-items: center; gap: 8px; }

@@ -32,6 +32,8 @@ confere("computador: Tarefas abre no Quadro, sem o botão + do celular", (await 
 confere("resumo de tarefas no cabeçalho", (await txt("#resumo-tarefas")) === "2 tarefas abertas · 1 atrasada");
 confere("quadro de tarefas mostra as duas tarefas", (await txt("#visao-tarefas")).includes("Tarefa atrasada") && (await txt("#visao-tarefas")).includes("Tarefa avulsa"));
 confere("data curta no cartão (1 jan 2020)", /1 jan 2020/.test(await txt("#visao-tarefas")));
+confere("cartão de tarefa no modelo da Lista: nome, projeto e etiquetas, nessa ordem", (await pg.locator("#quadro-tarefas .cartao", { hasText: "Tarefa atrasada" }).evaluate((c) => [...c.children].map((x) => x.className).join("|"))) === "topo-tarefa|origem|chips");
+confere("cartão de tarefa e Lista usam as mesmas etiquetas", (await pg.locator("#quadro-tarefas .cartao", { hasText: "Tarefa atrasada" }).locator(".chips").innerText()).replace(/\s+/g, " ").trim() === "Prioridade média 1 jan 2020 AT");
 for (const modo of await pg.locator("[data-modo]").all()) { await modo.click(); }
 confere("troca de modos de tarefas sem erro", erros.length === 0);
 await pg.locator("[data-modo='lista']").click();
@@ -94,8 +96,13 @@ confere("criar tarefa grava inserção", (await grav()).slice(n3).some((x) => x[
 await fechaJanelas(); await pg.locator("[data-modo='lista']").click(); await pg.locator("#lista-tarefas button.abrir").first().click();
 n3 = (await grav()).length; await pg.click("#t-concluir"); await pg.waitForTimeout(200);
 confere("concluir pela janela grava a conclusão", (await grav()).slice(n3).some((x) => x[0] === "tarefas" && x[2] && x[2].concluida_em));
-await pg.locator("[data-modo='concluidas']").click(); await pg.fill("#busca-concluidas", "zzz");
-confere("busca em Concluídas responde", /Nenhuma tarefa concluída/.test(await txt("#tabela-concluidas")));
+await pg.locator("[data-modo='concluidas']").click();
+confere("Concluídas no modelo da Lista: nome, projeto e etiquetas com a data da conclusão", await pg.locator("#lista-concluidas .linha-tarefa").first().evaluate((l) => l.querySelector(".abrir .nome") && l.querySelector(".abrir .origem") && /Prioridade .* Concluída em \d+ [a-z]{3}/.test(l.querySelector(".chips").innerText.replace(/\s+/g, " ")) && !!l.querySelector(".marcar.feita")) && (await pg.locator("#concluidas-tarefas table").count()) === 0);
+await pg.locator("#lista-concluidas .abrir").first().click();
+confere("Concluídas abre a tarefa", await pg.locator("#dlg-tarefa").evaluate((d) => d.open));
+await pg.locator("#dlg-tarefa [data-fechar]").first().click();
+await pg.fill("#busca-concluidas", "zzz");
+confere("busca em Concluídas responde", /Nenhuma tarefa concluída/.test(await txt("#concluidas-tarefas")));
 await pg.click("[data-visao='projetos']"); await pg.getByText("Projeto Exemplo").first().click();
 confere("janela do projeto mostra o histórico e o convite fixo da equipe", (await txt("#p-membros-resumo")) === "Clique para escolher" && /Criado por Ana Teste/.test(await txt("#p-historico")));
 const alturaAntes = await pg.locator("#form-projeto").evaluate((f) => f.getBoundingClientRect().height); const topoAntes = await pg.locator("#p-membros-nota").evaluate((n) => n.getBoundingClientRect().top - n.closest("form").getBoundingClientRect().top);

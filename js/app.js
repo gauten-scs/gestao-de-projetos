@@ -8,12 +8,12 @@ import { VERSAO } from "./versao.js";
 import { $, el, plural, hoje, mostrar, aviso, mensagem, traduz } from "./util.js";
 import { estado, souAdmin, avatar, atrasado, noMeuQuadro } from "./estado.js";
 import { renderQuadro } from "./quadro.js";
-import { renderFiltros, botaoConcluir, renderTarefas, abrirTarefa } from "./tarefas.js";
+import { renderFiltros, botaoConcluir, chipsDaTarefa, renderTarefas, abrirTarefa } from "./tarefas.js";
 import { abrirProjeto, renderTarefasDoProjeto } from "./projetos.js";
 import { renderMinhaLixeira } from "./lixeira.js";
 import { renderConfig, abrirColuna } from "./configuracoes.js";
 
-ligar({ abrirProjeto, abrirTarefa, botaoConcluir, renderizar, carregar });
+ligar({ abrirProjeto, abrirTarefa, botaoConcluir, chipsDaTarefa, renderizar, carregar });
 
 // ---------- Entrada ----------
 async function iniciar() {
