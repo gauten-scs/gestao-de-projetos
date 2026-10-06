@@ -2,6 +2,7 @@
 // Site estático (GitHub Pages) + Supabase (login, banco de dados e tempo real).
 // Este arquivo é a partida do site: entrada (login), carregamento dos dados, navegação e Minha conta.
 
+import "./marca.js";
 import { sb } from "./supabase.js";
 import { ligar } from "./ligacoes.js";
 import { VERSAO } from "./versao.js";
