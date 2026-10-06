@@ -4,6 +4,7 @@
 
 import { sb } from "./supabase.js";
 import { ligar } from "./ligacoes.js";
+import { VERSAO } from "./versao.js";
 import { $, el, plural, hoje, mostrar, aviso, mensagem, traduz } from "./util.js";
 import { estado, souAdmin, avatar, atrasado, noMeuQuadro } from "./estado.js";
 import { renderQuadro } from "./quadro.js";
@@ -189,6 +190,7 @@ if (location.hash === "#diag") import("./diagnostico.js");
 $("#btn-conta").addEventListener("click", () => {
   $("#m-nome").value = estado.perfil.nome;
   $("#m-senha").value = "";
+  $("#versao-do-site").textContent = "Versão do site: " + VERSAO;
   mensagem("#conta-msg", "");
   $("#dlg-conta").showModal();
 });

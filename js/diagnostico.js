@@ -1,5 +1,6 @@
 // Diagnóstico de tela, para investigar diferenças entre navegadores de celular.
 // Só é carregado quando o endereço termina com #diag. Não lê nem grava dado nenhum do site: mostra medidas da tela.
+import { VERSAO } from "./versao.js";
 const caixa = document.createElement("pre");
 caixa.id = "diagnostico";
 caixa.style.cssText = "margin:12px 16px;padding:12px;border:2px solid #b42a2e;border-radius:10px;background:#fff;color:#1c1e23;font:12px/1.5 ui-monospace,Menlo,monospace;white-space:pre-wrap;overflow-wrap:anywhere;user-select:text;-webkit-user-select:text";
@@ -24,6 +25,7 @@ function atualizar() {
   caixa.textContent = [
     "DIAGNÓSTICO DE TELA (tire uma captura e envie)",
     navigator.userAgent,
+    "versão do site      " + VERSAO,
     "",
     `janela (inner)      ${innerWidth} x ${innerHeight}`,
     `documento (client)  ${d.clientWidth} x ${d.clientHeight}`,
