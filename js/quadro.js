@@ -84,7 +84,7 @@ export function renderQuadro(quadro) {
 
 export function cartao(quadro, item, col) {
   const abrir = () => (quadro === "projetos" ? de.abrirProjeto(item.id) : de.abrirTarefa(item.id));
-  const c = el("article", { class: "cartao" + (quadro === "tarefas" ? " tarefa" : "") + (item.concluida_em ? " feita" : ""), draggable: !celular(), tabIndex: 0, role: "button", onclick: abrir });
+  const c = el("article", { class: "cartao " + (quadro === "tarefas" ? "tarefa" : "projeto") + (item.concluida_em ? " feita" : ""), draggable: !celular(), tabIndex: 0, role: "button", onclick: abrir });
   c.dataset.id = item.id;
   c.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrir(); } });
 
@@ -98,35 +98,27 @@ export function cartao(quadro, item, col) {
     arrastavel(c, quadro, item);
     return c;
   }
-  c.append(el("span", { class: "nome", text: item.titulo }));
-
+  // Projeto: o mesmo modelo da tarefa. Nome com o responsável à direita, depois as etiquetas, depois o andamento.
   const chips = el("div", { class: "chips" });
   chips.append(el("span", { class: "chip " + item.prioridade, text: "Prioridade " + PRIORIDADES[item.prioridade] }));
-  if (quadro === "projetos") {
-    const equipe = pessoasDoProjeto(item.id).length;
-    if (equipe > 1) chips.append(el("span", { class: "chip", text: plural(equipe, "pessoa", "pessoas"), title: "Pessoas que podem ver este projeto" }));
-  }
+  const equipe = pessoasDoProjeto(item.id).length;
+  if (equipe > 1) chips.append(el("span", { class: "chip", text: plural(equipe, "pessoa", "pessoas"), title: "Pessoas que podem ver este projeto" }));
   if (item.prazo) {
-    const fora = atrasado(item);
-    const chip = el("span", { class: "chip" + (fora ? " atrasado" : ""), title: "Prazo: " + dataBR(item.prazo) });
+    const chip = el("span", { class: "chip" + (atrasado(item) ? " atrasado" : ""), title: "Prazo: " + dataBR(item.prazo) });
     chip.innerHTML = ICONES.data;
-    chip.append((fora ? "Atrasado, " : "") + dataCurta(item.prazo));
+    chip.append(dataCurta(item.prazo));
     chips.append(chip);
   }
-  c.append(chips);
+  c.append(el("div", { class: "topo-projeto" }, el("span", { class: "nome", text: item.titulo, title: item.titulo }),
+    item.responsavel_id ? avatar(item.responsavel_id) : null), chips);
 
-  const rodape = el("div", { class: "rodape" });
-  if (quadro === "projetos") {
-    const tarefas = estado.tarefas.filter((t) => t.projeto_id === item.id);
-    if (tarefas.length) {
-      const feitas = tarefas.filter((t) => t.concluida_em).length;
-      const barra = el("i"); barra.style.width = Math.round((feitas / tarefas.length) * 100) + "%";
-      rodape.append(el("span", { class: "progresso", title: `${feitas} de ${tarefas.length} tarefas concluídas` },
-        el("span", { class: "barra" }, barra), `${feitas} de ${plural(tarefas.length, "tarefa", "tarefas")}`));
-    }
+  const tarefas = estado.tarefas.filter((t) => t.projeto_id === item.id);
+  if (tarefas.length) {
+    const feitas = tarefas.filter((t) => t.concluida_em).length;
+    const barra = el("i"); barra.style.width = Math.round((feitas / tarefas.length) * 100) + "%";
+    c.append(el("div", { class: "rodape" }, el("span", { class: "progresso", title: `${feitas} de ${tarefas.length} tarefas concluídas` },
+      el("span", { class: "barra" }, barra), `${feitas} de ${plural(tarefas.length, "tarefa", "tarefas")}`)));
   }
-  if (item.responsavel_id) (rodape.childNodes.length ? rodape : chips).append(avatar(item.responsavel_id));
-  if (rodape.childNodes.length) c.append(rodape);
   arrastavel(c, quadro, item);
   return c;
 }

@@ -25,6 +25,7 @@ confere("menu Configurações visível para admin", await pg.locator("#menu-conf
 confere("quadro de projetos mostra o cartão", (await txt("#visao-projetos")).includes("Projeto Exemplo"));
 confere("colunas do quadro", /A FAZER/i.test(await txt("#visao-projetos")) && /CONCLUÍDO/i.test(await txt("#visao-projetos")));
 confere("computador: colunas lado a lado, sem etiquetas nem frase do celular", (await pg.locator("#quadro-projetos .coluna:visible").count()) === 2 && !(await pg.locator("#quadro-projetos .etiquetas").isVisible()) && !(await pg.locator("#quadro-projetos .dica-coluna").isVisible()));
+confere("cartão de projeto no modelo da tarefa: nome com o responsável, etiquetas e andamento, nessa ordem", (await pg.locator("#quadro-projetos .cartao").first().evaluate((c) => [...c.children].map((x) => x.className).join("|"))) === "topo-projeto|chips|rodape" && (await pg.locator("#quadro-projetos .cartao .chips").first().innerText()).replace(/\s+/g, " ").trim() === "Prioridade alta 2 pessoas 1 jan 2020" && (await pg.locator("#quadro-projetos .cartao .chips .avatar, #quadro-projetos .cartao .rodape .avatar").count()) === 0);
 confere("cartão do projeto mostra o progresso por extenso", (await txt("#quadro-projetos .progresso")).includes("0 de 1 tarefa"));
 confere("resumo de projetos no cabeçalho", (await txt("#resumo-projetos")) === "1 projeto · 1 atrasado");
 await pg.click("[data-visao='tarefas']");
@@ -39,6 +40,9 @@ const primeiraLinha = (sel, nomeSel) => pg.locator(sel).first().evaluate((c, nom
   const ra = a.getBoundingClientRect(), rn = n.getBoundingClientRect(), rc = c.getBoundingClientRect();
   return { naLinhaDoNome: ra.top < rn.bottom && ra.bottom > rn.top, aDireita: rc.right - ra.right < 24, folga: ra.left - rn.right, reticencias: getComputedStyle(n).textOverflow === "ellipsis" && n.scrollWidth > n.clientWidth && rn.height < 30 }; }, nomeSel);
 const certo = (m) => m.naLinhaDoNome && m.aDireita && m.folga >= 10 && m.reticencias;
+await pg.click("[data-visao='projetos']");
+confere("cartão de projeto: responsável na primeira linha, à direita, e nome longo com reticências", certo(await primeiraLinha("#quadro-projetos .cartao", ".nome")));
+await pg.click("[data-visao='tarefas']");
 confere("cartão de tarefa: responsável na primeira linha, à direita, e nome longo com reticências", certo(await primeiraLinha("#quadro-tarefas .cartao", ".nome")));
 for (const modo of await pg.locator("[data-modo]").all()) { await modo.click(); }
 confere("troca de modos de tarefas sem erro", erros.length === 0);

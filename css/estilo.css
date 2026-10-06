@@ -427,13 +427,14 @@ dialog.folha { padding: 0; width: 100%; max-width: 100%; margin: auto 0 0; borde
 .cartao.tarefa { gap: 6px; }
 .cartao.tarefa .origem, .cartao.tarefa .chips { margin-left: 32px; }
 .cartao.tarefa .chips { margin-top: 4px; }
-/* Tarefa, igual no Quadro, na Lista e em Concluídas: o responsável fica na primeira linha, à direita.
+/* Tarefa (no Quadro, na Lista e em Concluídas) e projeto: o responsável fica na primeira linha, à direita.
    O nome ocupa uma linha só; o que não couber vira reticências, com folga antes do ícone. */
-.cartao.tarefa .nome, .linha-tarefa .nome { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.cartao.tarefa .nome, .cartao.projeto .nome, .linha-tarefa .nome { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 /* Sem estas larguras mínimas, o nome em uma linha só alargaria o cartão e a coluna em vez de ganhar reticências */
-.coluna, .cartao.tarefa, .cartao.tarefa .topo-tarefa { min-width: 0; }
-.cartao.tarefa .topo-tarefa { align-items: center; }
-.cartao.tarefa .topo-tarefa .avatar { margin-left: 6px; }
+.coluna, .cartao.tarefa, .cartao.projeto, .cartao .topo-tarefa, .cartao .topo-projeto { min-width: 0; }
+.cartao .topo-tarefa, .cartao .topo-projeto { display: flex; align-items: center; gap: 10px; }
+.cartao .topo-projeto .nome { flex: 1; }
+.cartao .topo-tarefa .avatar, .cartao .topo-projeto .avatar { margin-left: 6px; }
 .linha-tarefa > .avatar { margin-left: 2px; }
 .linha-tarefa.feita .nome { color: var(--suave); text-decoration: line-through; }
 .lista-datas { display: flex; flex-direction: column; gap: 20px; max-width: 1040px; }
