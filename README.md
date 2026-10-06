@@ -15,7 +15,7 @@ Site em estilo Kanban para acompanhamento dos projetos e das tarefas do Gauten S
 - **Histórico**: cada cartão mostra quem criou e quem fez a última alteração, com data e hora.
 - **Excluir**: só o responsável exclui um projeto ou uma tarefa.
 - **Lixeira**: cada pessoa tem a sua, com o que ela excluiu nos últimos 30 dias, e pode restaurar. Passados 30 dias, o item é apagado de vez por uma rotina diária do banco (03h15), inclusive os que estão na lixeira do administrador. O administrador tem, em Configurações, a lixeira dos projetos e das tarefas de projetos de todos, onde restaura ou exclui de vez. Tarefas avulsas não aparecem para o administrador.
-- **Celular**: para mover um cartão, segure o dedo sobre ele por um instante e arraste.
+- **Celular**: os quadros mostram uma coluna por vez, escolhida pelas etiquetas no alto; para mudar um cartão de coluna, abra o cartão e use o campo "Coluna". O botão "+" cria tarefa ou projeto, e Tarefas abre na Lista.
 - As mudanças aparecem para todos em tempo real.
 
 ## Como está montado
