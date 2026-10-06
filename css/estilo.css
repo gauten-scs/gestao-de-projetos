@@ -427,6 +427,14 @@ dialog.folha { padding: 0; width: 100%; max-width: 100%; margin: auto 0 0; borde
 .cartao.tarefa { gap: 6px; }
 .cartao.tarefa .origem, .cartao.tarefa .chips { margin-left: 32px; }
 .cartao.tarefa .chips { margin-top: 4px; }
+/* Tarefa, igual no Quadro, na Lista e em Concluídas: o responsável fica na primeira linha, à direita.
+   O nome ocupa uma linha só; o que não couber vira reticências, com folga antes do ícone. */
+.cartao.tarefa .nome, .linha-tarefa .nome { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+/* Sem estas larguras mínimas, o nome em uma linha só alargaria o cartão e a coluna em vez de ganhar reticências */
+.coluna, .cartao.tarefa, .cartao.tarefa .topo-tarefa { min-width: 0; }
+.cartao.tarefa .topo-tarefa { align-items: center; }
+.cartao.tarefa .topo-tarefa .avatar { margin-left: 6px; }
+.linha-tarefa > .avatar { margin-left: 2px; }
 .linha-tarefa.feita .nome { color: var(--suave); text-decoration: line-through; }
 .lista-datas { display: flex; flex-direction: column; gap: 20px; max-width: 1040px; }
 .grupo-datas { background: var(--painel); border-radius: 14px; padding: 4px 20px 6px; border: 1px solid var(--fio); }
@@ -448,8 +456,10 @@ td .abrir-texto:hover { text-decoration: underline; }
 .lista-tarefas li > button:not(.marcar) { flex: 1; min-width: 0; }
 @media (max-width: 820px) {
   .linha-tarefa { flex-wrap: wrap; }
-  .linha-tarefa .abrir { flex: 1 1 calc(100% - 40px); }
-  .linha-tarefa .chips { flex-wrap: wrap; margin-left: 34px; }
+  .linha-tarefa .abrir { flex: 1 1 0; }
+  .linha-tarefa .chips { flex-wrap: wrap; margin-left: 36px; order: 1; flex-basis: 100%; }
+  .linha-tarefa > .avatar { align-self: flex-start; }
+  .linha-tarefa > .marcar { align-self: flex-start; margin-top: 1px; }
   .barra-busca input { min-width: 0; }
   /* Alternância na largura da tela, na ordem Lista, Quadro, Concluídas */
   .abas { display: flex; align-self: stretch; margin-bottom: 16px; }

@@ -88,10 +88,11 @@ export function cartao(quadro, item, col) {
   c.dataset.id = item.id;
   c.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrir(); } });
 
-  // Tarefa: o mesmo modelo da Lista. Nome, depois o projeto, depois as etiquetas (prioridade, data e responsável).
+  // Tarefa: o mesmo modelo da Lista. Nome com o responsável à direita, depois o projeto, depois as etiquetas.
   if (quadro === "tarefas") {
     const projeto = estado.projetos.find((p) => p.id === item.projeto_id);
-    c.append(el("div", { class: "topo-tarefa" }, de.botaoConcluir(item), el("span", { class: "nome", text: item.titulo })),
+    c.append(el("div", { class: "topo-tarefa" }, de.botaoConcluir(item), el("span", { class: "nome", text: item.titulo, title: item.titulo }),
+        item.responsavel_id ? avatar(item.responsavel_id) : null),
       el("span", { class: "origem" + (projeto ? "" : " avulsa"), text: projeto ? projeto.titulo : "Tarefa avulsa" }),
       de.chipsDaTarefa(item));
     arrastavel(c, quadro, item);

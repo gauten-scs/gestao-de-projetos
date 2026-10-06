@@ -49,7 +49,8 @@ export function renderTarefas() {
   if (modo === "concluidas") renderConcluidas();
 }
 
-// As etiquetas da tarefa, iguais no Quadro, na Lista e em Concluídas: prioridade, data e responsável.
+// As etiquetas da tarefa, iguais no Quadro, na Lista e em Concluídas: prioridade e data.
+// O responsável não entra aqui: fica na primeira linha, à direita do nome.
 // Na tarefa concluída a data mostrada é a da conclusão, no lugar do prazo.
 export function chipsDaTarefa(t) {
   const chips = el("div", { class: "chips" });
@@ -65,7 +66,6 @@ export function chipsDaTarefa(t) {
     chip.append(dataCurta(t.prazo));
     chips.append(chip);
   }
-  if (t.responsavel_id) chips.append(avatar(t.responsavel_id));
   return chips;
 }
 export function origemDaTarefa(t) {
@@ -95,16 +95,18 @@ export function renderLista() {
   }
 }
 
-// Uma tarefa em lista: círculo de concluir, nome, projeto e etiquetas. Usada na Lista por data e em Concluídas.
+// Uma tarefa em lista: círculo de concluir, nome e projeto, etiquetas e o responsável. Usada na Lista por data e em Concluídas.
+// No celular o estilo.css leva as etiquetas para a linha de baixo, e o responsável fica na primeira linha, à direita.
 function linhaDaTarefa(t, etiquetaNaFrente) {
   const chips = chipsDaTarefa(t);
   if (etiquetaNaFrente) chips.prepend(etiquetaNaFrente);
   return el("div", { class: "linha-tarefa" + (t.concluida_em ? " feita" : "") },
     botaoConcluir(t),
     el("button", { class: "abrir", type: "button", onclick: () => abrirTarefa(t.id) },
-      el("span", { class: "nome", text: t.titulo }),
+      el("span", { class: "nome", text: t.titulo, title: t.titulo }),
       el("span", { class: "origem" + (t.projeto_id ? "" : " avulsa"), text: origemDaTarefa(t) })),
-    chips);
+    chips,
+    t.responsavel_id ? avatar(t.responsavel_id) : null);
 }
 
 export function renderConcluidas() {

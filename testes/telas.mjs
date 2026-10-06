@@ -33,7 +33,13 @@ confere("resumo de tarefas no cabeçalho", (await txt("#resumo-tarefas")) === "2
 confere("quadro de tarefas mostra as duas tarefas", (await txt("#visao-tarefas")).includes("Tarefa atrasada") && (await txt("#visao-tarefas")).includes("Tarefa avulsa"));
 confere("data curta no cartão (1 jan 2020)", /1 jan 2020/.test(await txt("#visao-tarefas")));
 confere("cartão de tarefa no modelo da Lista: nome, projeto e etiquetas, nessa ordem", (await pg.locator("#quadro-tarefas .cartao", { hasText: "Tarefa atrasada" }).evaluate((c) => [...c.children].map((x) => x.className).join("|"))) === "topo-tarefa|origem|chips");
-confere("cartão de tarefa e Lista usam as mesmas etiquetas", (await pg.locator("#quadro-tarefas .cartao", { hasText: "Tarefa atrasada" }).locator(".chips").innerText()).replace(/\s+/g, " ").trim() === "Prioridade média 1 jan 2020 AT");
+confere("cartão de tarefa e Lista usam as mesmas etiquetas", (await pg.locator("#quadro-tarefas .cartao", { hasText: "Tarefa atrasada" }).locator(".chips").innerText()).replace(/\s+/g, " ").trim() === "Prioridade média 1 jan 2020");
+// O responsável fica na primeira linha, à direita; o nome longo termina em reticências, com folga antes do ícone
+const primeiraLinha = (sel, nomeSel) => pg.locator(sel).first().evaluate((c, nomeSel) => { const a = c.querySelector(".avatar"), n = c.querySelector(nomeSel); n.textContent = "Um nome de tarefa comprido o bastante para não caber em uma linha só do cartão ou da lista, de propósito";
+  const ra = a.getBoundingClientRect(), rn = n.getBoundingClientRect(), rc = c.getBoundingClientRect();
+  return { naLinhaDoNome: ra.top < rn.bottom && ra.bottom > rn.top, aDireita: rc.right - ra.right < 24, folga: ra.left - rn.right, reticencias: getComputedStyle(n).textOverflow === "ellipsis" && n.scrollWidth > n.clientWidth && rn.height < 30 }; }, nomeSel);
+const certo = (m) => m.naLinhaDoNome && m.aDireita && m.folga >= 10 && m.reticencias;
+confere("cartão de tarefa: responsável na primeira linha, à direita, e nome longo com reticências", certo(await primeiraLinha("#quadro-tarefas .cartao", ".nome")));
 for (const modo of await pg.locator("[data-modo]").all()) { await modo.click(); }
 confere("troca de modos de tarefas sem erro", erros.length === 0);
 await pg.locator("[data-modo='lista']").click();
@@ -98,6 +104,7 @@ n3 = (await grav()).length; await pg.click("#t-concluir"); await pg.waitForTimeo
 confere("concluir pela janela grava a conclusão", (await grav()).slice(n3).some((x) => x[0] === "tarefas" && x[2] && x[2].concluida_em));
 await pg.locator("[data-modo='concluidas']").click();
 confere("Concluídas no modelo da Lista: nome, projeto e etiquetas com a data da conclusão", await pg.locator("#lista-concluidas .linha-tarefa").first().evaluate((l) => l.querySelector(".abrir .nome") && l.querySelector(".abrir .origem") && /Prioridade .* Concluída em \d+ [a-z]{3}/.test(l.querySelector(".chips").innerText.replace(/\s+/g, " ")) && !!l.querySelector(".marcar.feita")) && (await pg.locator("#concluidas-tarefas table").count()) === 0);
+confere("Concluídas: responsável à direita e nome longo com reticências", (await pg.locator("#lista-concluidas .linha-tarefa .chips .avatar").count()) === 0 && (await primeiraLinha("#lista-concluidas .linha-tarefa", ".nome")).reticencias);
 await pg.locator("#lista-concluidas .abrir").first().click();
 confere("Concluídas abre a tarefa", await pg.locator("#dlg-tarefa").evaluate((d) => d.open));
 await pg.locator("#dlg-tarefa [data-fechar]").first().click();
@@ -237,6 +244,8 @@ confere("celular: Novo projeto pelo painel abre a janela vazia e fecha o painel"
 await pg.locator("#dlg-projeto [data-fechar]").first().click();
 await pg.click(".menu [data-visao='tarefas']");
 confere("celular: Tarefas abre na Lista", (await pg.locator("[data-modo='lista']").getAttribute("aria-selected")) === "true" && await pg.locator("#lista-tarefas").isVisible() && !(await pg.locator("#quadro-tarefas").isVisible()));
+confere("celular: na Lista, responsável na primeira linha, à direita, e nome longo com reticências", certo(await primeiraLinha("#lista-tarefas .linha-tarefa", ".nome")));
+confere("celular: na Lista, as etiquetas ficam na linha de baixo, sem o responsável", await pg.locator("#lista-tarefas .linha-tarefa").first().evaluate((l) => l.querySelector(".chips").getBoundingClientRect().top >= l.querySelector(".abrir").getBoundingClientRect().bottom && !l.querySelector(".chips .avatar")));
 confere("celular: alternância na ordem Lista, Quadro, Concluídas, na largura da tela", await pg.evaluate(() => { const x = (m) => document.querySelector(`[data-modo='${m}']`).getBoundingClientRect().left; const a = document.querySelector(".abas").getBoundingClientRect(); return x("lista") < x("quadro") && x("quadro") < x("concluidas") && a.width > 340 && document.querySelector("[data-modo='lista']").innerText.trim() === "Lista"; }));
 confere("celular: filtro de projeto na largura da tela, sem o botão Nova tarefa", (await pg.locator("#filtro-projeto").evaluate((s) => s.getBoundingClientRect().width)) > 340 && !(await pg.locator("#nova-tarefa").isVisible()));
 await pg.click("#botao-novo"); await pg.click("#novo-item-tarefa");
