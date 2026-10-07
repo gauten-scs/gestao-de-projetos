@@ -6,7 +6,7 @@ import "./marca.js";
 import { sb } from "./supabase.js";
 import { ligar } from "./ligacoes.js";
 import { VERSAO } from "./versao.js";
-import { $, el, celular, plural, hoje, mostrar, aviso, mensagem, traduz } from "./util.js";
+import { $, el, plural, hoje, mostrar, aviso, mensagem, traduz } from "./util.js";
 import { estado, souAdmin, avatar, atrasado, noMeuQuadro } from "./estado.js";
 import { renderQuadro } from "./quadro.js";
 import { renderFiltros, botaoConcluir, chipsDaTarefa, renderTarefas, abrirTarefa } from "./tarefas.js";
@@ -83,17 +83,22 @@ document.addEventListener("click", async (e) => {
   if (nova) abrirColuna(nova.dataset.novaColuna, null);
 });
 
-// Painel vindo de baixo: tocar fora dele, na parte escurecida da tela, recolhe o painel.
-// Vale para os painéis "folha" e, no celular, para a janela da tarefa. O toque na parte escurecida chega
-// com o próprio painel como alvo; por isso a posição do toque é comparada com a caixa do painel.
-// Formulário em que a pessoa já digitou ou escolheu algo não recolhe, para um toque sem querer não apagar o que foi feito.
-function recolherAoTocarFora(e) {
+// Toda janela ou painel que abre por cima fecha ao clicar ou tocar fora dele, na parte escurecida da tela.
+// Vale no computador e no celular. O clique na parte escurecida chega com a própria janela como alvo;
+// por isso a posição do clique é comparada com a caixa da janela.
+// Janela em que a pessoa já digitou ou escolheu algo não fecha, para um clique sem querer não apagar o que foi feito.
+// O clique precisa começar e terminar fora: arrastar o mouse de dentro para fora (ao selecionar um texto) não fecha.
+const foraDaJanela = (e) => {
   const d = e.target;
-  if (!(d instanceof HTMLDialogElement) || !d.open) return;
-  if (!(d.classList.contains("folha") || (celular() && d.id === "dlg-tarefa"))) return;
+  if (!(d instanceof HTMLDialogElement) || !d.open) return false;
   const r = d.getBoundingClientRect();
-  const fora = e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
-  if (fora && !d.dataset.alterado) d.close();
+  return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+};
+let comecouFora = false;
+document.addEventListener("pointerdown", (e) => { comecouFora = foraDaJanela(e); }, true);
+function recolherAoTocarFora(e) {
+  if (comecouFora && foraDaJanela(e) && !e.target.dataset.alterado) e.target.close();
+  comecouFora = false;
 }
 document.addEventListener("input", (e) => { const d = e.target.closest?.("dialog"); if (d && e.target.closest("form")) d.dataset.alterado = "1"; }, true);
 document.addEventListener("close", (e) => { if (e.target instanceof HTMLDialogElement) delete e.target.dataset.alterado; }, true);

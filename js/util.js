@@ -77,7 +77,7 @@ export function confirmar(texto, rotulo = "Excluir") {
     const fim = (resposta) => { dlg.close(); resolver(resposta); };
     $("#confirma-sim").onclick = () => fim(true);
     $("#confirma-nao").onclick = () => fim(false);
-    dlg.oncancel = () => resolver(false);
+    dlg.onclose = () => resolver(false); // Esc ou clique fora valem como "não"; depois de uma resposta, não muda nada
     dlg.showModal();
   });
 }
