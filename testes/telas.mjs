@@ -233,6 +233,20 @@ confere("Gerar novo link mostra link de nova senha", (await grav()).slice(n3).so
 await fechaJanelas();
 await pg.click("#btn-conta");
 confere("Minha conta abre com o nome", (await pg.inputValue("#m-nome")) === "Ana Teste");
+// Tema: claro, escuro ou o do aparelho, guardado no aparelho
+const temaAtual = () => pg.evaluate(() => [document.documentElement.dataset.tema, getComputedStyle(document.body).backgroundColor, localStorage.getItem("gp-tema"), document.querySelector("[data-tema-opcao][aria-pressed='true']")?.dataset.temaOpcao].join("|"));
+confere("tema: sem escolha, segue o aparelho (claro) e a opção vem marcada", (await temaAtual()) === "claro|rgb(245, 244, 240)||seguir");
+await pg.click("[data-tema-opcao='escuro']");
+confere("tema: Escuro muda na hora, sem Salvar, e fica guardado no aparelho", (await temaAtual()) === "escuro|rgb(17, 19, 23)|escuro|escuro" && await pg.locator("#dlg-conta").evaluate((d) => d.open && !d.dataset.alterado));
+await pg.emulateMedia({ colorScheme: "dark" }); await pg.click("[data-tema-opcao='claro']");
+confere("tema: Claro vale mesmo com o aparelho em escuro", (await temaAtual()) === "claro|rgb(245, 244, 240)|claro|claro");
+await pg.click("[data-tema-opcao='seguir']");
+confere("tema: Seguir o aparelho apaga a escolha e acompanha o aparelho (escuro)", (await temaAtual()) === "escuro|rgb(17, 19, 23)||seguir");
+await pg.emulateMedia({ colorScheme: "light" }); await pg.waitForTimeout(100);
+confere("tema: seguindo o aparelho, a troca de tema do aparelho vale na hora", (await temaAtual()).startsWith("claro|rgb(245, 244, 240)"));
+await pg.click("[data-tema-opcao='escuro']"); await pg.reload(); await pg.waitForSelector("#app:not([hidden])");
+confere("tema: a escolha continua depois de recarregar, já antes de o site desenhar", (await pg.evaluate(() => document.documentElement.dataset.tema)) === "escuro" && await pg.evaluate(() => !!document.querySelector("head script[src='js/tema.js']") && document.querySelector("head script[src='js/tema.js']").compareDocumentPosition(document.querySelector("link[href='css/estilo.css']")) === Node.DOCUMENT_POSITION_FOLLOWING));
+await pg.evaluate(() => { localStorage.removeItem("gp-tema"); }); await pg.reload(); await pg.waitForSelector("#app:not([hidden])"); await pg.click("#btn-conta");
 n3 = (await grav()).length; await pg.fill("#m-nome", "Ana T."); await pg.locator("#form-conta [type='submit']").click(); await pg.waitForTimeout(200);
 confere("salvar Minha conta grava o nome", (await grav()).slice(n3).some((x) => x[0] === "perfis" && x[2] && x[2].nome === "Ana T."));
 await pg.goto("http://localhost:8123/?convite=abc"); await pg.waitForSelector("#tela-senha:not([hidden])");

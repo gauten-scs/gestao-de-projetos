@@ -214,8 +214,15 @@ $("#btn-conta").addEventListener("click", () => {
   $("#m-senha").value = "";
   $("#versao-do-site").textContent = "Versão do site: " + VERSAO;
   mensagem("#conta-msg", "");
+  marcarTema();
   $("#dlg-conta").showModal();
 });
+
+// Tema: muda na hora, sem depender do "Salvar", e fica guardado neste aparelho (ver js/tema.js)
+function marcarTema() {
+  for (const b of document.querySelectorAll("[data-tema-opcao]")) b.setAttribute("aria-pressed", String(b.dataset.temaOpcao === window.tema.ler()));
+}
+for (const b of document.querySelectorAll("[data-tema-opcao]")) b.addEventListener("click", () => { window.tema.definir(b.dataset.temaOpcao); marcarTema(); });
 
 $("#form-conta").addEventListener("submit", async (e) => {
   e.preventDefault();

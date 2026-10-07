@@ -12,6 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="js/tema.js"></script>
 <link rel="stylesheet" href="css/estilo.css">
 </head>
 <body>
@@ -444,6 +445,15 @@
     <div class="acoes">
       <button class="btn primario" type="submit">Salvar</button>
       <button class="btn secundario" type="button" data-fechar>Cancelar</button>
+    </div>
+    <div class="campo tema">
+      <span class="campo-rotulo" id="tema-rotulo">Tema</span>
+      <div class="abas" role="group" aria-labelledby="tema-rotulo">
+        <button type="button" data-tema-opcao="seguir">Seguir o aparelho</button>
+        <button type="button" data-tema-opcao="claro">Claro</button>
+        <button type="button" data-tema-opcao="escuro">Escuro</button>
+      </div>
+      <p class="legenda">Muda na hora e vale só para este aparelho.</p>
     </div>
     <p class="legenda" id="versao-do-site"></p>
   </form>

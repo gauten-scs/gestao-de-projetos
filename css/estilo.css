@@ -35,11 +35,12 @@
   --sombra-3: 0 24px 64px rgba(0, 0, 0, 0.3);
   --display: "Barlow Condensed", "Arial Narrow", Arial, sans-serif;
   --texto: "Source Sans 3", system-ui, Arial, sans-serif;
-  color-scheme: light dark;
+  color-scheme: light;
 }
-/* Tema escuro: valores propostos pelo guia, ainda não validados por ele */
-@media (prefers-color-scheme: dark) {
-  :root {
+/* Tema escuro: valores propostos pelo guia, ainda não validados por ele.
+   Quem decide o tema é o js/tema.js (escolha da pessoa em "Minha conta" ou o tema do aparelho), pelo atributo data-tema. */
+:root[data-tema="escuro"] {
+  color-scheme: dark;
     --tela: #111317;
     --painel: #1c1e23;
     --coluna: #17191e;
@@ -60,7 +61,6 @@
     --neutro-fundo: #23262e;
     --neutro-texto: #c9cbd1;
     --sombra-2: 0 6px 20px rgba(0, 0, 0, 0.5);
-  }
 }
 
 * { box-sizing: border-box; }
@@ -107,7 +107,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .btn.perigo { background: transparent; color: var(--alerta); margin-left: auto; }
 .btn.perigo:hover { background: var(--alerta-fundo); }
 .btn.perigo-cheio { background: var(--erro); color: #fff; }
-@media (prefers-color-scheme: dark) { .btn.perigo-cheio { color: #000; } }
+[data-tema="escuro"] .btn.perigo-cheio { color: #000; }
 .btn.largo { width: 100%; padding: 14px 18px; font-size: 15px; }
 .btn.mini { padding: 7px 10px; font-size: 13px; border-radius: 8px; }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
@@ -463,7 +463,11 @@ dialog.folha { padding: 0; width: 100%; max-width: 100%; margin: auto 0 0; borde
 /* ---------- Tarefas: abas, lista por data e concluídas ---------- */
 .abas { display: inline-flex; gap: 0; padding: 0; background: var(--painel); border: 1px solid var(--contorno); border-radius: 10px; overflow: hidden; margin-bottom: 20px; align-self: flex-start; max-width: 100%; overflow-x: auto; }
 .abas button { border: 0; background: transparent; color: var(--suave); cursor: pointer; padding: 10px 16px; font-family: var(--texto); font-weight: 600; font-size: 14px; white-space: nowrap; }
-.abas button[aria-selected="true"] { background: var(--primario); color: var(--primario-texto); }
+.abas button[aria-selected="true"], .abas button[aria-pressed="true"] { background: var(--primario); color: var(--primario-texto); }
+/* Minha conta: escolha de tema */
+.campo.tema { border-top: 1px solid var(--fio); padding-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+.campo.tema .abas { margin-bottom: 0; display: flex; align-self: stretch; }
+.campo.tema .abas button { flex: 1; min-height: 44px; padding: 10px 8px; }
 .marcar {
   width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--contorno); background: transparent; cursor: pointer;
   flex: none; padding: 0; display: inline-flex; align-items: center; justify-content: center; color: transparent;
