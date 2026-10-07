@@ -71,11 +71,13 @@ export function preencherSelect(select, opcoes, valor) {
   if (select.selectedIndex < 0) select.selectedIndex = 0;
 }
 
-export function confirmar(texto, rotulo = "Excluir") {
+// "perigo" pinta o botão de vermelho (exclusões); sem ele, o botão é o principal do site
+export function confirmar(texto, rotulo = "Excluir", perigo = true) {
   return new Promise((resolver) => {
     const dlg = $("#dlg-confirma");
     $("#confirma-texto").textContent = texto;
     $("#confirma-sim").textContent = rotulo;
+    $("#confirma-sim").className = "btn " + (perigo ? "perigo-cheio" : "primario");
     const fim = (resposta) => { dlg.close(); resolver(resposta); };
     $("#confirma-sim").onclick = () => fim(true);
     $("#confirma-nao").onclick = () => fim(false);

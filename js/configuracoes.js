@@ -51,6 +51,7 @@ export function renderConfig() {
   const itens = [
     ...estado.lixeira.projetos.map((i) => ({ ...i, tabela: "projetos", tipo: "Projeto" })),
     ...estado.lixeira.tarefas.map((i) => ({ ...i, tabela: "tarefas", tipo: "Tarefa" })),
+    ...estado.lixeira.ideias.map((i) => ({ ...i, titulo: i.texto.length > 80 ? i.texto.slice(0, 80).trimEnd() + "..." : i.texto, tabela: "ideias", tipo: "Ideia" })),
   ].sort((a, b) => (a.arquivado_em < b.arquivado_em ? 1 : -1));
   lixeira.replaceChildren(el("tr", {}, ...["Item", "Tipo", "Excluído por", "Quando", ""].map((t) => el("th", { text: t, scope: "col" }))));
   for (const i of itens) {

@@ -4,10 +4,11 @@ import { el, celular, porOrdem, hoje, dataHora } from "./util.js";
 
 export const estado = {
   usuario: null, perfil: null,
-  perfis: [], colunas: [], projetos: [], tarefas: [],
+  perfis: [], colunas: [], projetos: [], tarefas: [], ideias: [],
   visao: "projetos", filtroProjeto: "todos", modoTarefas: celular() ? "lista" : "quadro", busca: "", periodo: "todos", minhaLixeira: [],
   arrastando: null, pendente: false, canal: null, editando: null,
-  lixeira: { projetos: [], tarefas: [] }, membros: [],
+  lixeira: { projetos: [], tarefas: [], ideias: [] }, membros: [],
+  filtroIdeiaProjeto: "todos", filtroIdeiaStatus: "todos",
 };
 
 export function colunasDe(quadro) { return estado.colunas.filter((c) => c.quadro === quadro).sort(porOrdem); }

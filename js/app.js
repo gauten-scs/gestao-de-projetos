@@ -11,6 +11,7 @@ import { estado, souAdmin, avatar, atrasado, noMeuQuadro } from "./estado.js";
 import { renderQuadro } from "./quadro.js";
 import { renderFiltros, botaoConcluir, chipsDaTarefa, renderTarefas, abrirTarefa } from "./tarefas.js";
 import { abrirProjeto, renderTarefasDoProjeto } from "./projetos.js";
+import { renderIdeias } from "./ideias.js";
 import { renderMinhaLixeira } from "./lixeira.js";
 import { renderConfig, abrirColuna } from "./configuracoes.js";
 
@@ -46,7 +47,7 @@ async function entrar() {
   if (!perfil || !perfil.ativo) { mostrar("tela-sem-acesso"); return; }
   estado.perfil = perfil;
   const visao = location.hash.replace("#", "");
-  if (["projetos", "tarefas", "lixeira", "config"].includes(visao)) estado.visao = visao;
+  if (["projetos", "tarefas", "ideias", "lixeira", "config"].includes(visao)) estado.visao = visao;
   if (!(await carregar())) return;
   mostrar("app");
   assinar();
@@ -105,14 +106,15 @@ document.addEventListener("close", (e) => { if (e.target instanceof HTMLDialogEl
 
 // ---------- Dados ----------
 async function carregar() {
-  const [perfis, colunas, projetos, tarefas, membros] = await Promise.all([
+  const [perfis, colunas, projetos, tarefas, membros, ideias] = await Promise.all([
     sb.from("perfis").select("*").order("nome"),
     sb.from("colunas").select("*").order("ordem"),
     sb.from("projetos").select("*").order("ordem"),
     sb.from("tarefas").select("*").order("ordem"),
     sb.from("projeto_membros").select("projeto_id, usuario_id"),
+    sb.from("ideias").select("*"),
   ]);
-  const falha = [perfis, colunas, projetos, tarefas, membros].find((r) => r.error);
+  const falha = [perfis, colunas, projetos, tarefas, membros, ideias].find((r) => r.error);
   if (falha) { aviso("Não foi possível carregar os dados: " + traduz(falha.error)); return false; }
   estado.perfis = perfis.data; estado.colunas = colunas.data; estado.membros = membros.data;
   // Itens excluídos ficam na lixeira. Tarefas de um projeto excluído acompanham o projeto.
@@ -120,6 +122,7 @@ async function carregar() {
   estado.lixeira = {
     projetos: projetos.data.filter((p) => p.arquivado_em),
     tarefas: tarefas.data.filter((t) => t.arquivado_em && t.projeto_id && !foraP.has(t.projeto_id)),
+    ideias: ideias.data.filter((i) => i.arquivado_em && i.projeto_id && !foraP.has(i.projeto_id)),
   };
   // Lixeira de cada pessoa: o que ela excluiu como responsável, nos últimos 30 dias.
   const limite = new Date(Date.now() - 30 * 86400000).toISOString();
@@ -127,7 +130,11 @@ async function carregar() {
   estado.minhaLixeira = [
     ...projetos.data.filter(minha).map((i) => ({ ...i, tabela: "projetos", tipo: "Projeto" })),
     ...tarefas.data.filter((t) => minha(t) && !foraP.has(t.projeto_id)).map((i) => ({ ...i, tabela: "tarefas", tipo: i.projeto_id ? "Tarefa de projeto" : "Tarefa avulsa" })),
+    // A ideia vai para a lixeira de quem a escreveu (só o autor exclui)
+    ...ideias.data.filter((i) => i.arquivado_em && i.arquivado_em > limite && i.criado_por === estado.usuario.id && !foraP.has(i.projeto_id))
+      .map((i) => ({ ...i, titulo: resumoDaIdeia(i), tabela: "ideias", tipo: i.projeto_id ? "Ideia de projeto" : "Ideia avulsa" })),
   ].sort((a, b) => (a.arquivado_em < b.arquivado_em ? 1 : -1));
+  estado.ideias = ideias.data.filter((i) => !i.arquivado_em && !foraP.has(i.projeto_id));
   estado.projetos = projetos.data.filter((p) => !p.arquivado_em);
   estado.tarefas = tarefas.data.filter((t) => !t.arquivado_em && !foraP.has(t.projeto_id));
   const eu = estado.perfis.find((p) => p.id === estado.usuario.id);
@@ -136,6 +143,9 @@ async function carregar() {
   renderizar();
   return true;
 }
+
+// Na lixeira a ideia aparece pelo começo do texto
+const resumoDaIdeia = (i) => (i.texto.length > 80 ? i.texto.slice(0, 80).trimEnd() + "..." : i.texto);
 
 function assinar() {
   if (estado.canal) return;
@@ -167,9 +177,10 @@ function renderizar() {
   for (const b of document.querySelectorAll("[data-visao]")) {
     if (b.dataset.visao === estado.visao) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
   }
-  for (const v of ["projetos", "tarefas", "lixeira", "config"]) $("#visao-" + v).hidden = v !== estado.visao;
+  for (const v of ["projetos", "tarefas", "ideias", "lixeira", "config"]) $("#visao-" + v).hidden = v !== estado.visao;
   if (estado.visao === "projetos") renderQuadro("projetos");
   if (estado.visao === "tarefas") { renderFiltros(); renderTarefas(); }
+  if (estado.visao === "ideias") renderIdeias();
   if (estado.visao === "lixeira") renderMinhaLixeira();
   if (estado.visao === "config") renderConfig();
   if ($("#dlg-projeto").open) renderTarefasDoProjeto();

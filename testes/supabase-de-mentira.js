@@ -16,6 +16,11 @@
       { ...base, id: "t1", titulo: "Tarefa atrasada", descricao: "", coluna_id: "ct1", ordem: 1, responsavel_id: U, prazo: "2020-01-01", prioridade: "media", projeto_id: "p1", concluida_em: null },
       { ...base, id: "t2", titulo: "Tarefa avulsa", descricao: "", coluna_id: "ct1", ordem: 2, responsavel_id: U, prazo: "2099-01-01", prioridade: "baixa", projeto_id: null, concluida_em: null },
       { ...base, id: "t3", titulo: "Tarefa antiga concluída", descricao: "", coluna_id: "ct2", ordem: 1, responsavel_id: U, prazo: "2020-02-01", prioridade: "alta", projeto_id: null, concluida_em: new Date(Date.now() - 30 * 86400000).toISOString() }],
+    ideias: [
+      { ...base, id: "i1", texto: "Ideia avulsa de exemplo", projeto_id: null, status: "nova", criado_em: new Date(Date.now() - 86400000).toISOString() },
+      { ...base, id: "i2", texto: "Ideia do Bruno no projeto", projeto_id: "p1", status: "em_analise", criado_por: "u2", atualizado_por: "u2" },
+      { ...base, id: "i8", texto: "Ideia avulsa excluída", projeto_id: null, status: "nova", arquivado_em: new Date(Date.now() - 86400000).toISOString(), arquivado_por: U },
+      { ...base, id: "i9", texto: "Ideia de projeto excluída", projeto_id: "p1", status: "nova", criado_por: "u2", arquivado_em: new Date(Date.now() - 86400000).toISOString(), arquivado_por: "u2" }],
     __extra: 0,
     projeto_membros: [{ projeto_id: "p1", usuario_id: "u2" }],
   };

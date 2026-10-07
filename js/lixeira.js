@@ -22,6 +22,6 @@ export function renderMinhaLixeira() {
 
 export async function restaurar(item) {
   const { error } = await sb.rpc("restaurar_item", { tabela: item.tabela, item: item.id });
-  if (error) aviso("Não foi possível restaurar: " + traduz(error)); else aviso(item.tabela === "tarefas" ? "Tarefa restaurada." : "Projeto restaurado.");
+  if (error) aviso("Não foi possível restaurar: " + traduz(error)); else aviso({ tarefas: "Tarefa restaurada.", ideias: "Ideia restaurada." }[item.tabela] ?? "Projeto restaurado.");
   await de.carregar();
 }
