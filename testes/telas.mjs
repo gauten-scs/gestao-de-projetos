@@ -52,6 +52,8 @@ confere("lista por data mostra a coluna de cada tarefa", (await pg.locator("#lis
 await pg.locator("[data-modo='quadro']").click();
 await pg.getByText("Tarefa avulsa").first().click();
 confere("abre a janela da tarefa", await pg.locator("#dlg-tarefa").evaluate((d) => d.open));
+await pg.mouse.click(20, 20); await pg.waitForTimeout(100);
+confere("computador: clicar fora da janela da tarefa não fecha", await pg.locator("#dlg-tarefa").evaluate((d) => d.open));
 confere("computador: a tarefa abre direto no formulário, sem a leitura do celular", await pg.locator("#form-tarefa").isVisible() && !(await pg.locator("#t-leitura").isVisible()) && !(await pg.locator("#dlg-tarefa > .folha-alca").isVisible()));
 confere("histórico na janela", /Criado por Ana Teste em \d\d\/\d\d\/\d{4} às \d\d:\d\d/.test(await txt("#dlg-tarefa")));
 await pg.locator("#dlg-tarefa [data-fechar]:visible").first().click();
@@ -266,6 +268,25 @@ confere("celular: tarefa que já existe abre em leitura, como painel de baixo", 
 confere("celular: a leitura segue o modelo do cartão (nome, projeto, etiquetas) e mostra responsável e histórico", (await txt("#l-titulo")) === "Tarefa atrasada" && (await txt("#l-origem")) === "Projeto Exemplo" && (await txt("#l-chips")).replace(/\s+/g, " ").trim() === "Prioridade média 1 jan 2020" && (await txt("#l-responsavel")).includes("Ana Teste") && /Criado por Ana Teste/.test(await txt("#l-historico")));
 confere("celular: rodapé da leitura com Editar e Concluir, lado a lado", await pg.evaluate(() => { const a = document.getElementById("l-editar").getBoundingClientRect(), b = document.getElementById("l-concluir").getBoundingClientRect(); return document.getElementById("l-editar").textContent === "Editar" && document.getElementById("l-concluir").textContent === "Concluir" && Math.abs(a.top - b.top) < 1 && a.right <= b.left && a.height >= 44; }));
 confere("celular: o painel da tarefa não passa da largura da tela", await pg.evaluate(() => document.getElementById("dlg-tarefa").scrollWidth <= innerWidth && document.documentElement.scrollWidth === innerWidth));
+// Tocar fora do painel (na parte escurecida) recolhe; formulário já mexido não recolhe
+const aberta = () => pg.locator("#dlg-tarefa").evaluate((d) => d.open);
+await pg.mouse.click(195, 700); await pg.waitForTimeout(100);
+confere("celular: tocar dentro do painel da tarefa não recolhe", await aberta());
+await pg.mouse.click(195, 30); await pg.waitForTimeout(100);
+confere("celular: tocar fora do painel da tarefa recolhe o painel", !(await aberta()));
+await pg.locator("#lista-tarefas .linha-tarefa", { hasText: "Tarefa atrasada" }).locator(".abrir").click(); await pg.click("#l-editar"); await pg.waitForTimeout(350);
+const topoForm = await pg.locator("#dlg-tarefa").evaluate((d) => d.getBoundingClientRect().top);
+await pg.fill("#t-descricao", "Texto em andamento"); await pg.mouse.click(195, topoForm - 10); await pg.waitForTimeout(100);
+confere("celular: com algo digitado no formulário, tocar fora não recolhe nem apaga", (await aberta()) && (await pg.inputValue("#t-descricao")) === "Texto em andamento");
+await pg.locator("#form-tarefa [data-fechar]").first().click();
+await pg.locator("#lista-tarefas .linha-tarefa", { hasText: "Tarefa atrasada" }).locator(".abrir").click(); await pg.click("#l-editar"); await pg.waitForTimeout(350);
+await pg.mouse.click(195, topoForm - 10); await pg.waitForTimeout(100);
+confere("celular: formulário sem alteração recolhe ao tocar fora (a marca de alterado não passa de uma vez para a outra)", !(await aberta()));
+await pg.click("#botao-novo"); await pg.waitForTimeout(350); await pg.mouse.click(195, 100); await pg.waitForTimeout(100);
+confere("celular: tocar fora do painel Novo recolhe", !(await pg.locator("#dlg-novo").evaluate((d) => d.open)));
+await pg.click("#menu-mais"); await pg.waitForTimeout(350); await pg.mouse.click(195, 100); await pg.waitForTimeout(100);
+confere("celular: tocar fora do painel Mais recolhe", !(await pg.locator("#dlg-mais").evaluate((d) => d.open)));
+await pg.locator("#lista-tarefas .linha-tarefa", { hasText: "Tarefa atrasada" }).locator(".abrir").click(); await pg.waitForTimeout(350);
 let n6 = (await grav()).length; await pg.selectOption("#l-coluna", "ct3"); await pg.waitForTimeout(250);
 confere("celular: o campo Coluna da leitura grava na hora e o painel continua aberto", (await grav()).slice(n6).some((x) => x[0] === "tarefas" && x[1] === "update" && x[2].coluna_id === "ct3") && await pg.locator("#dlg-tarefa").evaluate((d) => d.open) && (await pg.inputValue("#l-coluna")) === "ct3" && (await txt("#aviso")) === "Tarefa movida para Em andamento.");
 await pg.click("#l-editar");
