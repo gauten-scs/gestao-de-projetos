@@ -37,7 +37,9 @@ export function renderQuadro(quadro) {
   }
   // Só aparecem no celular (estilo.css): fileira de etiquetas e a frase de como mudar de coluna
   const etiquetas = el("div", { class: "etiquetas", role: "tablist", "aria-label": "Colunas do quadro" });
-  raiz.append(etiquetas, el("p", { class: "dica-coluna", text: "Para mudar de coluna, abra " + (quadro === "projetos" ? "o projeto." : "a tarefa.") }));
+  // A frase vale só para projetos: a tarefa, no celular, abre com o campo "Coluna" à vista (ver tarefas.js)
+  raiz.append(etiquetas);
+  if (quadro === "projetos") raiz.append(el("p", { class: "dica-coluna", text: "Para mudar de coluna, abra o projeto." }));
   for (const col of colunas) {
     let itens = estado[quadro].filter((i) => i.coluna_id === col.id).sort(porOrdem);
     if (quadro === "tarefas") itens = itens.filter((t) => passaFiltro(t) && noQuadro(t));
@@ -209,15 +211,16 @@ export function toqueArrastar(c, quadro, item) {
   c.addEventListener("contextmenu", (e) => { if (ativo || relogio) e.preventDefault(); });
 }
 
+// Devolve true quando a mudança foi gravada.
 export async function mover(quadro, id, colunaId, antesId) {
   const item = estado[quadro].find((i) => i.id === id);
-  if (!item) return;
+  if (!item) return false;
   const mudaConclusao = colunaConcluida(colunaId) !== colunaConcluida(item.coluna_id);
   if (mudaConclusao && item.responsavel_id !== estado.usuario.id) {
     estado.arrastando = null; estado.pendente = false;
     de.renderizar();
     aviso(quadro === "tarefas" ? "Só o responsável pode concluir ou reabrir a tarefa." : "Só o responsável pode concluir ou reabrir o projeto.");
-    return;
+    return false;
   }
   const destino = estado[quadro].filter((i) => i.coluna_id === colunaId && i.id !== id).sort(porOrdem);
   let posicao = antesId ? destino.findIndex((i) => i.id === antesId) : destino.length;
@@ -232,6 +235,7 @@ export async function mover(quadro, id, colunaId, antesId) {
   const respostas = await Promise.all(mudancas.map((i) =>
     sb.from(quadro).update({ coluna_id: i.coluna_id, ordem: i.ordem }).eq("id", i.id)));
   const falha = respostas.find((r) => r.error);
-  if (falha) { aviso("Não foi possível mover o cartão: " + traduz(falha.error)); await de.carregar(); }
-  else if (mudaConclusao) await de.carregar();
+  if (falha) { aviso("Não foi possível mover o cartão: " + traduz(falha.error)); await de.carregar(); return false; }
+  if (mudaConclusao) await de.carregar();
+  return true;
 }

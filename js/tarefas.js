@@ -1,9 +1,10 @@
 // Tarefas: filtro por projeto, Quadro, Lista por data, Concluídas, botão de concluir e a janela da tarefa.
+// No celular a janela é um painel vindo de baixo, e a tarefa que já existe abre primeiro em leitura.
 import { sb } from "./supabase.js";
 import { de } from "./ligacoes.js";
 import { $, celular, PRIORIDADES, el, hoje, dataBR, dataCurta, ICONES, dataHora, aviso, traduz, preencherSelect, confirmar } from "./util.js";
-import { estado, colunasDe, nomePerfil, proximaOrdem, avatar, atrasado, historico, passaFiltro, pessoasDoProjeto, travarConclusao, opcoesPessoas } from "./estado.js";
-import { renderQuadro } from "./quadro.js";
+import { estado, colunasDe, nomePerfil, proximaOrdem, avatar, atrasado, historico, passaFiltro, pessoasDoProjeto, travarConclusao, opcoesPessoas, colunaConcluida } from "./estado.js";
+import { renderQuadro, mover } from "./quadro.js";
 
 export function renderFiltros() {
   preencherSelect($("#filtro-projeto"), [
@@ -168,8 +169,45 @@ export function abrirTarefa(id, colunaId, projetoId) {
   $("#t-concluir").hidden = !t || t.responsavel_id !== estado.usuario.id; // só o responsável conclui
   travarConclusao($("#t-coluna"), t ? t.responsavel_id === estado.usuario.id : true, t?.coluna_id);
   $("#t-concluir").textContent = t?.concluida_em ? "Reabrir tarefa" : "Marcar como concluída";
+  const leitura = !!t && celular();
+  if (leitura) preencherLeitura(t);
+  $("#t-leitura").hidden = !leitura;
+  $("#form-tarefa").hidden = leitura;
   $("#dlg-tarefa").showModal();
 }
+
+// Celular: a tarefa em leitura, no modelo do cartão (nome, projeto, etiquetas), com o campo "Coluna" que grava na hora.
+function preencherLeitura(t) {
+  const meu = t.responsavel_id === estado.usuario.id;
+  $("#l-titulo").textContent = t.titulo;
+  $("#l-titulo").classList.toggle("feita", !!t.concluida_em);
+  $("#l-origem").textContent = origemDaTarefa(t);
+  $("#l-origem").className = "origem" + (t.projeto_id ? "" : " avulsa");
+  $("#l-chips").replaceChildren(chipsDaTarefa(t));
+  $("#l-responsavel").replaceChildren(avatar(t.responsavel_id), el("span", { text: nomePerfil(t.responsavel_id) || "Sem responsável" }));
+  $("#l-descricao").textContent = t.descricao || "";
+  $("#l-descricao").hidden = !t.descricao;
+  preencherSelect($("#l-coluna"), colunasDe("tarefas").map((c) => ({ v: c.id, t: c.nome })), t.coluna_id);
+  travarConclusao($("#l-coluna"), meu, t.coluna_id); // só o responsável leva para a coluna concluída, ou tira de lá
+  $("#l-historico").textContent = historico(t);
+  $("#l-concluir").hidden = !meu; // só o responsável conclui
+  $("#l-concluir").textContent = t.concluida_em ? "Reabrir" : "Concluir";
+}
+$("#l-editar").addEventListener("click", () => { $("#t-leitura").hidden = true; $("#form-tarefa").hidden = false; });
+$("#l-concluir").addEventListener("click", () => $("#t-concluir").click());
+$("#l-coluna").addEventListener("change", async (e) => {
+  const t = estado.tarefas.find((x) => x.id === estado.editando?.id);
+  if (!t) return;
+  const destino = e.target.value;
+  const nome = e.target.selectedOptions[0]?.textContent ?? "";
+  // Entrar na coluna concluída conclui a tarefa, e sair dela reabre: nesses casos o painel fecha, como no botão "Concluir"
+  const mudaConclusao = colunaConcluida(destino) !== colunaConcluida(t.coluna_id);
+  if (mudaConclusao) fecharTarefa();
+  const gravou = await mover("tarefas", t.id, destino, null);
+  if (gravou) aviso("Tarefa movida para " + nome + ".");
+  const atual = estado.tarefas.find((x) => x.id === t.id);
+  if (!mudaConclusao && atual && $("#dlg-tarefa").open && !$("#t-leitura").hidden) { $("#t-coluna").value = atual.coluna_id; preencherLeitura(atual); }
+});
 
 // O responsável de uma tarefa de projeto precisa ter acesso ao projeto.
 export function pessoasDaTarefa(atual) {

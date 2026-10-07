@@ -8,7 +8,7 @@
     perfis: [{ id: U, nome: "Ana Teste", email: "ana@exemplo.com", papel: "admin", ativo: true }, { id: "u2", nome: "Bruno Silva", email: "b@exemplo.com", papel: "membro", ativo: true }, { id: "u3", nome: "Abel Costa", email: "abel@exemplo.com", papel: "membro", ativo: true }],
     colunas: [
       { id: "cp1", quadro: "projetos", nome: "A fazer", ordem: 1, concluida: false }, { id: "cp2", quadro: "projetos", nome: "Concluído", ordem: 2, concluida: true },
-      { id: "ct1", quadro: "tarefas", nome: "A fazer", ordem: 1, concluida: false }, { id: "ct2", quadro: "tarefas", nome: "Concluído", ordem: 2, concluida: true }],
+      { id: "ct1", quadro: "tarefas", nome: "A fazer", ordem: 1, concluida: false }, { id: "ct2", quadro: "tarefas", nome: "Concluído", ordem: 2, concluida: true }, { id: "ct3", quadro: "tarefas", nome: "Em andamento", ordem: 3, concluida: false }],
     projetos: [{ ...base, id: "p1", titulo: "Projeto Exemplo", descricao: "x", coluna_id: "cp1", ordem: 1, responsavel_id: U, prazo: "2020-01-01", prioridade: "alta" }],
     tarefas: [
       { ...base, id: "t9", titulo: "Tarefa excluída", descricao: "", coluna_id: "ct1", ordem: 9, responsavel_id: U, prazo: "2030-01-01", prioridade: "media", projeto_id: null, concluida_em: null, arquivado_em: agora, arquivado_por: U },

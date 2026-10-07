@@ -309,6 +309,8 @@ dialog.estreita { width: min(440px, calc(100vw - 32px)); }
 dialog::backdrop { background: rgba(23, 25, 30, 0.45); }
 dialog[open] { animation: abrir 0.16s ease-out; }
 @keyframes abrir { from { opacity: 0; transform: translateY(8px); } }
+@keyframes subir { from { transform: translateY(100%); } }
+@media (prefers-reduced-motion: reduce) { dialog[open] { animation: none !important; } }
 /* Painel que sobe de baixo (celular) */
 dialog.folha { padding: 0; width: 100%; max-width: 100%; margin: auto 0 0; border-radius: 20px 20px 0 0; max-height: 85vh; }
 .folha-corpo { display: flex; flex-direction: column; padding: 8px 16px calc(20px + env(safe-area-inset-bottom)); }
@@ -320,6 +322,20 @@ dialog.folha { padding: 0; width: 100%; max-width: 100%; margin: auto 0 0; borde
 .folha-item .icone svg { width: 20px; height: 20px; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .folha-item strong { display: block; font-size: 16px; font-weight: 600; }
 .folha-item small { display: block; font-size: 13px; color: var(--suave); }
+dialog > .folha-alca { display: none; }
+/* Tarefa em leitura (celular): o mesmo modelo do cartão, com o nome inteiro */
+.leitura { display: flex; flex-direction: column; gap: 14px; }
+.leitura .janela-topo { align-items: flex-start; }
+.leitura h2 { font-size: 24px; line-height: 1.2; overflow-wrap: anywhere; }
+.leitura h2.feita { color: var(--suave); text-decoration: line-through; }
+.leitura .origem { font-size: 14px; color: var(--suave); display: flex; align-items: center; gap: 6px; margin-top: -8px; }
+.leitura .origem::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--verde); flex: none; }
+.leitura .origem.avulsa::before { background: var(--contorno); }
+.leitura .pessoa { display: flex; align-items: center; gap: 10px; font-size: 15px; }
+.leitura .descricao { white-space: pre-wrap; overflow-wrap: anywhere; }
+.leitura label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 14px; }
+.leitura .acoes { flex-wrap: nowrap; }
+.leitura .acoes .btn { flex: 1; min-height: 48px; font-size: 15px; }
 .janela-topo { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .janela-topo h2 { font-size: 26px; letter-spacing: 0.02em; }
 .fechar { width: 34px; height: 34px; border-radius: 8px; border: 0; background: transparent; cursor: pointer; position: relative; flex: none; }
@@ -416,6 +432,13 @@ dialog.folha { padding: 0; width: 100%; max-width: 100%; margin: auto 0 0; borde
   .entrada > .espinha { flex-direction: row; width: auto; height: 4px; }
   .entrada-form { padding: 32px 20px; align-items: flex-start; }
   dialog { padding: 20px; }
+  /* Painéis que sobem de baixo. A janela da tarefa é um deles: ocupa a largura, encosta no rodapé e rola por dentro. */
+  dialog.folha[open], #dlg-tarefa[open] { animation: subir 0.22s ease-out; }
+  #dlg-tarefa {
+    width: 100%; max-width: 100%; margin: auto 0 0; border-radius: 20px 20px 0 0; max-height: 92vh; max-height: 92dvh;
+    padding: 8px 16px calc(16px + env(safe-area-inset-bottom)); overscroll-behavior: contain;
+  }
+  #dlg-tarefa > .folha-alca { display: block; margin: 0 auto 12px; }
 }
 
 /* ---------- Tarefas: abas, lista por data e concluídas ---------- */

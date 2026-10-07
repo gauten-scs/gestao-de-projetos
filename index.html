@@ -301,7 +301,25 @@
   </form>
 </dialog>
 
-<dialog id="dlg-tarefa">
+<dialog id="dlg-tarefa" aria-labelledby="l-titulo">
+  <span class="folha-alca" aria-hidden="true"></span>
+  <!-- Celular: a tarefa abre em leitura; "Editar" troca para o formulário abaixo -->
+  <div class="leitura" id="t-leitura" hidden>
+    <header class="janela-topo">
+      <h2 id="l-titulo"></h2>
+      <button class="fechar" type="button" data-fechar aria-label="Fechar"></button>
+    </header>
+    <p class="origem" id="l-origem"></p>
+    <div id="l-chips"></div>
+    <p class="pessoa" id="l-responsavel"></p>
+    <p class="descricao" id="l-descricao" hidden></p>
+    <label>Coluna <select id="l-coluna"></select></label>
+    <p class="legenda" id="l-historico"></p>
+    <div class="acoes">
+      <button class="btn secundario" type="button" id="l-editar">Editar</button>
+      <button class="btn primario" type="button" id="l-concluir">Concluir</button>
+    </div>
+  </div>
   <form class="formulario" id="form-tarefa">
     <header class="janela-topo">
       <h2 id="t-janela">Tarefa</h2>
