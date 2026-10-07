@@ -323,7 +323,6 @@
 </dialog>
 
 <dialog id="dlg-tarefa" aria-labelledby="l-titulo">
-  <span class="folha-alca" aria-hidden="true"></span>
   <!-- Celular: a tarefa abre em leitura; "Editar" troca para o formulário abaixo -->
   <div class="leitura" id="t-leitura" hidden>
     <header class="janela-topo">
@@ -487,6 +486,20 @@
       <span class="icone"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5v16h5M15 8l4 4-4 4M19 12H9"/></svg></span>
       <span><strong>Sair</strong></span>
     </button>
+  </div>
+</dialog>
+
+<!-- Celular: quem pode ver o projeto. A busca e a lista de pessoas vêm do formulário do projeto e voltam para ele ao fechar -->
+<dialog id="dlg-equipe" class="folha" aria-labelledby="equipe-titulo">
+  <div class="folha-corpo formulario">
+    <span class="folha-alca" aria-hidden="true"></span>
+    <h2 id="equipe-titulo">Quem pode ver este projeto</h2>
+    <div id="equipe-lugar"></div>
+    <p class="legenda" id="equipe-nota"></p>
+    <div class="acoes">
+      <button class="btn secundario" type="button" id="equipe-cancelar">Cancelar</button>
+      <button class="btn primario" type="button" id="equipe-aplicar">Aplicar</button>
+    </div>
   </div>
 </dialog>
 

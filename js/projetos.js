@@ -118,6 +118,38 @@ $("#p-seletor").addEventListener("toggle", () => { if ($("#p-seletor").open) ord
 export function resumoMembros() {
   $("#p-membros-resumo").textContent = estado.editando?.gerencia === false ? "Clique para ver" : "Clique para escolher";
 }
+// Celular: a escolha de quem pode ver abre em um painel vindo de baixo, com "Cancelar" e "Aplicar".
+// A busca e a lista de pessoas são as mesmas do formulário: mudam de lugar ao abrir e voltam ao fechar.
+// "Cancelar", o toque fora e a tecla Esc desfazem o que foi marcado; só "Aplicar" mantém.
+let marcadosAntes = null;
+$("#p-membros-resumo").addEventListener("click", (e) => {
+  if (!celular()) return;
+  e.preventDefault();
+  const pode = estado.editando?.gerencia !== false;
+  marcadosAntes = membrosMarcados();
+  ordenarMembros();
+  $("#equipe-lugar").append($("#p-membros-busca"), $("#p-membros"));
+  $("#equipe-nota").textContent = $("#p-membros-nota").textContent;
+  $("#equipe-aplicar").hidden = !pode;
+  $("#equipe-cancelar").textContent = pode ? "Cancelar" : "Fechar";
+  $("#dlg-equipe").showModal();
+  document.activeElement?.blur(); // sem isto o campo de busca ganha o cursor e o teclado do celular sobe sozinho
+});
+$("#equipe-lugar").addEventListener("change", () => { $("#dlg-equipe").dataset.alterado = "1"; });
+$("#equipe-cancelar").addEventListener("click", () => $("#dlg-equipe").close());
+$("#equipe-aplicar").addEventListener("click", () => {
+  if ($("#dlg-equipe").dataset.alterado) $("#dlg-projeto").dataset.alterado = "1";
+  marcadosAntes = null;
+  $("#dlg-equipe").close();
+});
+$("#dlg-equipe").addEventListener("close", () => {
+  if (marcadosAntes) for (const c of document.querySelectorAll("#p-membros input:not(:disabled)")) c.checked = marcadosAntes.includes(c.value);
+  marcadosAntes = null;
+  $("#p-membros-busca").value = "";
+  for (const linha of document.querySelectorAll("#p-membros label")) linha.hidden = false;
+  $("#p-seletor .seletor-painel").append($("#p-membros-busca"), $("#p-membros"));
+});
+
 // A lista abre por cima do conteúdo; fecha ao clicar fora dela ou com a tecla Esc (sem fechar a janela do projeto).
 $("#dlg-projeto").addEventListener("click", (e) => { if (!e.target.closest("#p-seletor")) $("#p-seletor").open = false; });
 $("#p-seletor").addEventListener("keydown", (e) => {

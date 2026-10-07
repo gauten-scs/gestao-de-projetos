@@ -322,7 +322,6 @@ dialog.folha { padding: 0; width: 100%; max-width: 100%; margin: auto 0 0; borde
 .folha-item .icone svg { width: 20px; height: 20px; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .folha-item strong { display: block; font-size: 16px; font-weight: 600; }
 .folha-item small { display: block; font-size: 13px; color: var(--suave); }
-dialog > .folha-alca { display: none; }
 /* Tarefa em leitura (celular): o mesmo modelo do cartão, com o nome inteiro */
 .leitura { display: flex; flex-direction: column; gap: 14px; }
 .leitura .janela-topo { align-items: flex-start; }
@@ -441,14 +440,21 @@ dialog > .folha-alca { display: none; }
   .entrada-form { padding: 32px 20px; align-items: flex-start; }
   dialog { padding: 20px; }
   /* Painéis que sobem de baixo. A janela da tarefa é um deles: ocupa a largura, encosta no rodapé e rola por dentro. */
-  dialog.folha[open], #dlg-tarefa[open] { animation: subir 0.22s ease-out; }
-  #dlg-tarefa {
+  dialog[open] { animation: subir 0.22s ease-out; }
+  /* Todas as janelas, menos o projeto (tela cheia): tarefa, coluna, convite, Minha conta e confirmação */
+  dialog:not(.folha, #dlg-projeto) {
     width: 100%; max-width: 100%; margin: auto 0 0; border-radius: 20px 20px 0 0; max-height: 92vh; max-height: 92dvh;
     padding: 8px 16px calc(16px + env(safe-area-inset-bottom)); overscroll-behavior: contain;
   }
-  #dlg-tarefa > .folha-alca { display: block; margin: 0 auto 12px; }
+  dialog:not(.folha, #dlg-projeto)::before { content: ""; display: block; width: 40px; height: 5px; border-radius: 3px; background: var(--contorno); margin: 0 auto 12px; }
+  dialog:not(.folha, #dlg-projeto) .acoes .btn { min-height: 44px; }
+  /* Quem pode ver o projeto: lista alta, com linhas fáceis de tocar */
+  #dlg-equipe .folha-corpo { gap: 12px; }
+  #dlg-equipe .lista-pessoas { max-height: 46vh; max-height: 46dvh; }
+  #dlg-equipe .lista-pessoas label { min-height: 44px; font-size: 16px; }
+  #dlg-equipe .acoes { flex-wrap: nowrap; }
+  #dlg-equipe .acoes .btn { flex: 1; min-height: 48px; font-size: 15px; }
   /* O projeto ocupa a tela inteira e rola por dentro */
-  #dlg-projeto[open] { animation: subir 0.22s ease-out; }
   #dlg-projeto { width: 100%; max-width: 100%; height: 100vh; height: 100dvh; max-height: none; margin: 0; border-radius: 0; padding: 0 16px; overscroll-behavior: contain; }
   #dlg-projeto .leitura { min-height: 100%; }
   #dlg-projeto .formulario { padding: calc(16px + env(safe-area-inset-top)) 0 calc(16px + env(safe-area-inset-bottom)); }
