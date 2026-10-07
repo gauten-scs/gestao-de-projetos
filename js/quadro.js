@@ -35,11 +35,10 @@ export function renderQuadro(quadro) {
     raiz.append(el("p", { class: "apoio", text: "Este quadro ainda não tem colunas. O administrador pode criar colunas em Configurações." }));
     return;
   }
-  // Só aparecem no celular (estilo.css): fileira de etiquetas e a frase de como mudar de coluna
+  // Só aparece no celular (estilo.css): a fileira de etiquetas. Para mudar de coluna, o cartão aberto traz o campo "Coluna".
   const etiquetas = el("div", { class: "etiquetas", role: "tablist", "aria-label": "Colunas do quadro" });
   // A frase vale só para projetos: a tarefa, no celular, abre com o campo "Coluna" à vista (ver tarefas.js)
   raiz.append(etiquetas);
-  if (quadro === "projetos") raiz.append(el("p", { class: "dica-coluna", text: "Para mudar de coluna, abra o projeto." }));
   for (const col of colunas) {
     let itens = estado[quadro].filter((i) => i.coluna_id === col.id).sort(porOrdem);
     if (quadro === "tarefas") itens = itens.filter((t) => passaFiltro(t) && noQuadro(t));
@@ -101,6 +100,16 @@ export function cartao(quadro, item, col) {
     return c;
   }
   // Projeto: o mesmo modelo da tarefa. Nome com o responsável à direita, depois as etiquetas, depois o andamento.
+  c.append(el("div", { class: "topo-projeto" }, el("span", { class: "nome", text: item.titulo, title: item.titulo }),
+    item.responsavel_id ? avatar(item.responsavel_id) : null), chipsDoProjeto(item));
+  const andamento = andamentoDoProjeto(item);
+  if (andamento) c.append(andamento);
+  arrastavel(c, quadro, item);
+  return c;
+}
+
+// As etiquetas do projeto, iguais no cartão e na leitura do celular: prioridade, quantidade de pessoas e prazo.
+export function chipsDoProjeto(item) {
   const chips = el("div", { class: "chips" });
   chips.append(el("span", { class: "chip " + item.prioridade, text: "Prioridade " + PRIORIDADES[item.prioridade] }));
   const equipe = pessoasDoProjeto(item.id).length;
@@ -111,18 +120,16 @@ export function cartao(quadro, item, col) {
     chip.append(dataCurta(item.prazo));
     chips.append(chip);
   }
-  c.append(el("div", { class: "topo-projeto" }, el("span", { class: "nome", text: item.titulo, title: item.titulo }),
-    item.responsavel_id ? avatar(item.responsavel_id) : null), chips);
-
+  return chips;
+}
+// A barra de andamento do projeto ("2 de 5 tarefas"); nada, se o projeto não tem tarefas.
+export function andamentoDoProjeto(item) {
   const tarefas = estado.tarefas.filter((t) => t.projeto_id === item.id);
-  if (tarefas.length) {
-    const feitas = tarefas.filter((t) => t.concluida_em).length;
-    const barra = el("i"); barra.style.width = Math.round((feitas / tarefas.length) * 100) + "%";
-    c.append(el("div", { class: "rodape" }, el("span", { class: "progresso", title: `${feitas} de ${tarefas.length} tarefas concluídas` },
-      el("span", { class: "barra" }, barra), `${feitas} de ${plural(tarefas.length, "tarefa", "tarefas")}`)));
-  }
-  arrastavel(c, quadro, item);
-  return c;
+  if (!tarefas.length) return null;
+  const feitas = tarefas.filter((t) => t.concluida_em).length;
+  const barra = el("i"); barra.style.width = Math.round((feitas / tarefas.length) * 100) + "%";
+  return el("div", { class: "rodape" }, el("span", { class: "progresso", title: `${feitas} de ${tarefas.length} tarefas concluídas` },
+    el("span", { class: "barra" }, barra), `${feitas} de ${plural(tarefas.length, "tarefa", "tarefas")}`));
 }
 
 // Liga no cartão o arrastar com mouse e, em tela larga, com o dedo.

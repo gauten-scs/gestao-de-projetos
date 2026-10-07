@@ -68,6 +68,7 @@ confere("histórico na janela", /Criado por Ana Teste em \d\d\/\d\d\/\d{4} às \
 await pg.locator("#dlg-tarefa [data-fechar]:visible").first().click();
 await pg.click("[data-visao='projetos']"); await pg.getByText("Projeto Exemplo").first().click();
 confere("abre a janela do projeto com a tarefa dele", await pg.locator("#dlg-projeto").evaluate((d) => d.open) && (await txt("#dlg-projeto")).includes("Tarefa atrasada"));
+confere("computador: o projeto abre direto no formulário, sem a leitura do celular", await pg.locator("#form-projeto").isVisible() && !(await pg.locator("#p-leitura").isVisible()));
 await pg.locator("#p-lista li button:not(.marcar)").first().click(); await pg.mouse.click(20, 20); await pg.waitForTimeout(100);
 confere("computador: com a tarefa aberta por cima do projeto, clicar fora fecha só a tarefa", !(await abertaPC("#dlg-tarefa")) && await abertaPC("#dlg-projeto"));
 await pg.mouse.click(20, 20); await pg.waitForTimeout(100);
@@ -99,7 +100,7 @@ await pg.keyboard.press("Escape"); await pg.waitForTimeout(100);
 const contorno = () => pg.evaluate(() => getComputedStyle(document.querySelector("#quadro-projetos .cartao")).outlineStyle);
 await pg.keyboard.press("Tab"); await pg.keyboard.press("Shift+Tab");
 confere("pelo teclado, o cartão em foco ganha o contorno", await pg.evaluate(() => document.activeElement.classList.contains("cartao")) && (await contorno()) !== "none");
-await pg.locator("#quadro-projetos .cartao").first().click(); await pg.locator("#dlg-projeto [data-fechar]").first().click(); await pg.waitForTimeout(100);
+await pg.locator("#quadro-projetos .cartao").first().click(); await pg.locator("#dlg-projeto [data-fechar]:visible").first().click(); await pg.waitForTimeout(100);
 confere("depois de clicar e fechar, o cartão não fica contornado", (await contorno()) === "none");
 confere("opcoesResponsavel removida", await pg.evaluate(() => import("./js/estado.js").then((m) => !("opcoesResponsavel" in m))));
 // Etapa 3: janelas e listas de projetos e tarefas
@@ -245,7 +246,7 @@ confere("celular: barra de baixo encostada no rodapé, com três itens", Math.ro
 const colunaVisivel = (q) => pg.locator(`#quadro-${q} .coluna:visible`).evaluateAll((l) => l.map((c) => c.dataset.coluna).join());
 confere("celular: o quadro mostra uma coluna por vez, a primeira", (await colunaVisivel("projetos")) === "cp1");
 confere("celular: etiquetas com o nome e a contagem de cada coluna", (await pg.locator("#quadro-projetos .etiquetas button").allInnerTexts()).map((x) => x.replace(/\s+/g, " ").trim()).join("|") === "A fazer 1|Concluído 0");
-confere("celular: frase de como mudar de coluna", (await txt("#quadro-projetos .dica-coluna")) === "Para mudar de coluna, abra o projeto.");
+confere("celular: o quadro não traz mais a frase de como mudar de coluna", (await pg.locator(".dica-coluna").count()) === 0);
 confere("celular: o quadro não rola para os lados e o cartão ocupa a largura", await pg.locator("#quadro-projetos").evaluate((q) => getComputedStyle(q).overflowX === "visible" && q.querySelector(".cartao").getBoundingClientRect().width > 340));
 confere("celular: o cartão não é arrastável", await pg.locator("#quadro-projetos .cartao").first().evaluate((c) => c.draggable === false));
 await pg.locator("#quadro-projetos .etiquetas button", { hasText: "Concluído" }).click();
@@ -256,9 +257,34 @@ await pg.reload(); await pg.waitForSelector("#app:not([hidden])"); await pg.clic
 confere("celular: ao voltar, o quadro mostra a última coluna em que a pessoa esteve", (await colunaVisivel("projetos")) === "cp2");
 await pg.evaluate(() => localStorage.setItem("gp-coluna-projetos", "coluna-que-sumiu")); await pg.reload(); await pg.waitForSelector("#app:not([hidden])"); await pg.click("[data-visao='projetos']");
 confere("celular: se a coluna guardada não existe mais, mostra a primeira", (await colunaVisivel("projetos")) === "cp1");
-await pg.locator("#quadro-projetos .cartao").first().click(); await pg.selectOption("#p-coluna", "cp2");
-let n5 = (await grav()).length; await pg.locator("#form-projeto [type='submit']").click(); await pg.waitForTimeout(200);
-confere("celular: mudar de coluna pelo campo Coluna da janela grava a nova coluna", (await grav()).slice(n5).some((x) => x[0] === "projetos" && x[1] === "update" && x[2].coluna_id === "cp2"));
+// Celular: o projeto abre em leitura, em tela cheia
+await pg.locator("#quadro-projetos .cartao").first().click(); await pg.waitForTimeout(350);
+const telaCheia = () => pg.locator("#dlg-projeto").evaluate((d) => { const r = d.getBoundingClientRect(); return Math.round(r.left) === 0 && Math.round(r.top) === 0 && Math.round(r.width) === innerWidth && Math.round(r.height) === innerHeight && getComputedStyle(d).borderTopLeftRadius === "0px"; });
+confere("celular: projeto que já existe abre em leitura, em tela cheia", await telaCheia() && await pg.locator("#p-leitura").isVisible() && !(await pg.locator("#form-projeto").isVisible()));
+confere("celular: a leitura do projeto segue o modelo do cartão (nome, etiquetas, andamento) e mostra responsável e histórico", (await txt("#lp-titulo")) === "Projeto Exemplo" && (await txt("#lp-chips")).replace(/\s+/g, " ").trim() === "Prioridade alta 2 pessoas 1 jan 2020" && (await txt("#lp-andamento")).includes("0 de 1 tarefa") && (await txt("#lp-responsavel")).includes("Ana Teste") && /Criado por Ana Teste/.test(await txt("#lp-historico")));
+confere("celular: as tarefas do projeto no modelo da Lista, com a coluna e sem repetir o nome do projeto", await pg.locator("#lp-lista .linha-tarefa").first().evaluate((l) => l.querySelector(".nome").textContent === "Tarefa atrasada" && !l.querySelector(".origem") && l.querySelector(".chips").innerText.replace(/\s+/g, " ").trim() === "A fazer Prioridade média 1 jan 2020" && !!l.querySelector(":scope > .avatar")) && (await txt("#lp-contagem")) === "1");
+confere("celular: botão de voltar em cima e Editar e Nova tarefa parados embaixo", await pg.evaluate(() => { const v = document.querySelector("#p-leitura .voltar").getBoundingClientRect(), a = document.getElementById("lp-editar").getBoundingClientRect(), b = document.getElementById("lp-nova").getBoundingClientRect(); return v.top >= 0 && v.bottom <= 60 && v.height >= 44 && Math.abs(a.top - b.top) < 1 && a.right <= b.left && b.bottom <= innerHeight && innerHeight - b.bottom < 30 && document.getElementById("lp-nova").textContent === "Nova tarefa"; }));
+confere("celular: o projeto aberto não passa da largura da tela", await pg.evaluate(() => document.getElementById("dlg-projeto").scrollWidth <= innerWidth));
+let n5 = (await grav()).length; await pg.selectOption("#lp-coluna", "cp2"); await pg.waitForTimeout(250);
+confere("celular: o campo Coluna da leitura do projeto grava na hora e a tela continua aberta", (await grav()).slice(n5).some((x) => x[0] === "projetos" && x[1] === "update" && x[2].coluna_id === "cp2") && await pg.locator("#dlg-projeto").evaluate((d) => d.open) && (await pg.inputValue("#lp-coluna")) === "cp2" && (await txt("#aviso")) === "Projeto movido para Concluído.");
+confere("celular: o aviso aparece por cima da tela aberta", await pg.evaluate(() => { const a = document.getElementById("aviso"), r = a.getBoundingClientRect(); return a.matches(":popover-open") && r.width > 100 && r.bottom < innerHeight && Math.abs((r.left + r.right) / 2 - innerWidth / 2) < 2; }));
+await pg.locator("#lp-lista .linha-tarefa .abrir").first().click(); await pg.waitForTimeout(350);
+confere("celular: tocar em uma tarefa do projeto abre o painel dela por cima, em leitura", await pg.locator("#dlg-tarefa").evaluate((d) => d.open) && await pg.locator("#t-leitura").isVisible() && await pg.locator("#dlg-projeto").evaluate((d) => d.open));
+await pg.mouse.click(195, 30); await pg.waitForTimeout(150);
+confere("celular: recolher o painel da tarefa volta para o projeto", !(await pg.locator("#dlg-tarefa").evaluate((d) => d.open)) && await pg.locator("#p-leitura").isVisible());
+await pg.click("#lp-nova"); await pg.waitForTimeout(350);
+confere("celular: Nova tarefa do projeto abre o painel no formulário, já com o projeto", await pg.locator("#form-tarefa").isVisible() && (await pg.inputValue("#t-projeto")) === "p1");
+await pg.locator("#form-tarefa [data-fechar]").first().click();
+await pg.locator("#lp-lista .marcar").first().click(); await pg.waitForTimeout(250);
+confere("celular: concluir uma tarefa pela leitura do projeto grava e a tela continua aberta", (await grav()).some((x) => x[0] === "tarefas" && x[2] && x[2].concluida_em) && await pg.locator("#p-leitura").isVisible());
+await pg.click("#lp-editar");
+confere("celular: Editar troca a leitura pelo formulário do projeto, na mesma tela", await telaCheia() && await pg.locator("#form-projeto").isVisible() && !(await pg.locator("#p-leitura").isVisible()) && (await pg.inputValue("#p-titulo")) === "Projeto Exemplo" && (await pg.inputValue("#p-coluna")) === "cp2");
+await pg.selectOption("#p-coluna", "cp1");
+n5 = (await grav()).length; await pg.locator("#form-projeto [type='submit']").click(); await pg.waitForTimeout(200);
+confere("celular: mudar de coluna pelo campo Coluna do formulário grava a nova coluna", (await grav()).slice(n5).some((x) => x[0] === "projetos" && x[1] === "update" && x[2].coluna_id === "cp1"));
+await pg.reload(); await pg.waitForSelector("#app:not([hidden])"); // os dados de exemplo voltam ao começo
+await pg.locator("#quadro-projetos .cartao").first().click(); await pg.waitForTimeout(350); await pg.click("#p-leitura .voltar");
+confere("celular: o botão de voltar fecha o projeto", !(await pg.locator("#dlg-projeto").evaluate((d) => d.open)));
 // Celular: botão "+", painel "Novo" e cabeçalho enxuto
 confere("celular: botão + no lugar do botão do topo", await pg.locator("#botao-novo").isVisible() && !(await pg.locator("#novo-projeto").isVisible()));
 confere("celular: botão + dentro da moldura, acima da barra de baixo", await pg.evaluate(() => { const b = document.getElementById("botao-novo"), r = b.getBoundingClientRect(), m = document.querySelector(".menu").getBoundingClientRect(); return getComputedStyle(b).position !== "fixed" && r.bottom <= m.top && r.right <= innerWidth && b.parentElement.id === "app"; }));
@@ -266,7 +292,7 @@ await pg.click("#botao-novo");
 confere("celular: + abre o painel Novo com as duas opções", await pg.locator("#dlg-novo").evaluate((d) => d.open) && await pg.locator("#novo-item-tarefa").isVisible() && await pg.locator("#novo-item-projeto").isVisible());
 await pg.click("#novo-item-projeto");
 confere("celular: Novo projeto pelo painel abre a janela vazia e fecha o painel", (await txt("#p-janela")) === "Novo projeto" && await pg.locator("#dlg-projeto").evaluate((d) => d.open) && !(await pg.locator("#dlg-novo").evaluate((d) => d.open)));
-await pg.locator("#dlg-projeto [data-fechar]").first().click();
+await pg.locator("#dlg-projeto [data-fechar]:visible").first().click();
 await pg.click(".menu [data-visao='tarefas']");
 confere("celular: Tarefas abre na Lista", (await pg.locator("[data-modo='lista']").getAttribute("aria-selected")) === "true" && await pg.locator("#lista-tarefas").isVisible() && !(await pg.locator("#quadro-tarefas").isVisible()));
 confere("celular: na Lista, responsável na primeira linha, à direita, e nome longo com reticências", certo(await primeiraLinha("#lista-tarefas .linha-tarefa", ".nome")));

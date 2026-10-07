@@ -48,8 +48,10 @@ let relogioAviso;
 export function aviso(texto) {
   const caixa = $("#aviso");
   caixa.textContent = texto; caixa.hidden = false;
+  // O aviso sobe para a camada de cima do navegador, senão ficaria escondido atrás de uma janela ou painel aberto
+  try { caixa.hidePopover(); caixa.showPopover(); } catch (_) { /* navegador sem esse recurso: o aviso aparece como antes */ }
   clearTimeout(relogioAviso);
-  relogioAviso = setTimeout(() => { caixa.hidden = true; }, 5000);
+  relogioAviso = setTimeout(() => { caixa.hidden = true; try { caixa.hidePopover(); } catch (_) { /* idem */ } }, 5000);
 }
 export function mensagem(id, texto) { const m = $(id); m.textContent = texto || ""; m.hidden = !texto; }
 

@@ -252,7 +252,28 @@
 </div>
 
 <!-- Janelas -->
-<dialog id="dlg-projeto">
+<dialog id="dlg-projeto" aria-labelledby="lp-titulo">
+  <!-- Celular: o projeto abre em leitura, em tela cheia; "Editar" troca para o formulário abaixo -->
+  <div class="leitura" id="p-leitura" hidden>
+    <div class="leitura-topo">
+      <button class="voltar" type="button" data-fechar><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Projetos</button>
+    </div>
+    <h2 id="lp-titulo"></h2>
+    <div id="lp-chips"></div>
+    <p class="pessoa" id="lp-responsavel"></p>
+    <p class="descricao" id="lp-descricao" hidden></p>
+    <label>Coluna <select id="lp-coluna"></select></label>
+    <div id="lp-andamento"></div>
+    <section class="grupo-datas" id="lp-tarefas">
+      <h2>Tarefas <span class="contagem" id="lp-contagem"></span></h2>
+      <div id="lp-lista"></div>
+    </section>
+    <p class="legenda" id="lp-historico"></p>
+    <div class="acoes fixas">
+      <button class="btn secundario" type="button" id="lp-editar">Editar</button>
+      <button class="btn primario" type="button" id="lp-nova">Nova tarefa</button>
+    </div>
+  </div>
   <form class="formulario" id="form-projeto">
     <header class="janela-topo">
       <h2 id="p-janela">Projeto</h2>
@@ -479,7 +500,7 @@
   </div>
 </dialog>
 
-<div id="aviso" role="status" hidden></div>
+<div id="aviso" role="status" popover="manual" hidden></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/config.js"></script>

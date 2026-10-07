@@ -234,7 +234,7 @@ input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--verde-fo
 /* A folga de 4 px em volta (compensada pela margem negativa) dá espaço ao contorno de foco dos cartões:
    sem ela, a rolagem lateral do quadro cortava o contorno do lado esquerdo. */
 .quadro { display: flex; gap: 20px; align-items: flex-start; overflow-x: auto; padding: 4px 4px 12px; margin: -4px -4px 0; flex: 1; }
-.etiquetas, .dica-coluna, .botao-novo { display: none; } /* só no celular */
+.etiquetas, .botao-novo { display: none; } /* só no celular */
 .coluna { flex: 0 0 304px; display: flex; flex-direction: column; max-height: 100%; }
 .coluna-topo { display: flex; align-items: center; gap: 8px; padding: 0 4px 10px; }
 .coluna-topo h2 { font-size: 14px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--suave); }
@@ -335,6 +335,14 @@ dialog > .folha-alca { display: none; }
 .leitura .descricao { white-space: pre-wrap; overflow-wrap: anywhere; }
 .leitura label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 14px; }
 .leitura .acoes { flex-wrap: nowrap; }
+/* Projeto em leitura (celular, tela cheia): barra de voltar em cima e os dois botões parados embaixo */
+.leitura-topo { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; min-height: 52px; margin: 0 -16px; padding: env(safe-area-inset-top) 6px 0; background: var(--painel); border-bottom: 1px solid var(--fio); }
+.voltar { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 10px 0 4px; border: 0; border-radius: 8px; background: transparent; color: var(--tinta); font-weight: 600; font-size: 15px; cursor: pointer; }
+.voltar svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.leitura .acoes.fixas { position: sticky; bottom: 0; z-index: 2; margin: auto -16px 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: var(--painel); border-top: 1px solid var(--fio); }
+.leitura .grupo-datas { padding: 4px 14px 6px; }
+.leitura .grupo-datas .apoio { padding: 4px 0 12px; }
+.leitura .rodape { min-height: 0; }
 .leitura .acoes .btn { flex: 1; min-height: 48px; font-size: 15px; }
 .janela-topo { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .janela-topo h2 { font-size: 26px; letter-spacing: 0.02em; }
@@ -354,6 +362,7 @@ dialog > .folha-alca { display: none; }
 
 #aviso {
   position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 10;
+  top: auto; right: auto; margin: 0; border: 0; overflow: visible; width: max-content; /* desfaz o padrão do navegador para "popover" */
   background: var(--barra); color: #fff; padding: 12px 20px; border-radius: 12px;
   font-weight: 600; font-size: 15px; max-width: calc(100vw - 32px); box-shadow: var(--sombra-2);
 }
@@ -393,7 +402,6 @@ dialog > .folha-alca { display: none; }
   .etiquetas button[aria-selected="true"] { background: var(--primario); border-color: var(--primario); color: var(--primario-texto); }
   .etiquetas .contagem { margin-left: 0; }
   .etiquetas button[aria-selected="true"] .contagem { background: color-mix(in srgb, currentColor 18%, transparent); color: inherit; }
-  .dica-coluna { display: block; color: var(--suave); font-size: 13px; }
   .coluna-topo, .coluna:not(.ativa) { display: none; }
   .menu { grid-column: 1 / -1; grid-row: 4; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; background: var(--painel); border-top: 1px solid var(--fio); padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); }
   .menu button { flex-direction: column; justify-content: center; gap: 3px; min-height: 50px; padding: 4px; font-size: 12px; color: var(--suave); }
@@ -439,6 +447,11 @@ dialog > .folha-alca { display: none; }
     padding: 8px 16px calc(16px + env(safe-area-inset-bottom)); overscroll-behavior: contain;
   }
   #dlg-tarefa > .folha-alca { display: block; margin: 0 auto 12px; }
+  /* O projeto ocupa a tela inteira e rola por dentro */
+  #dlg-projeto[open] { animation: subir 0.22s ease-out; }
+  #dlg-projeto { width: 100%; max-width: 100%; height: 100vh; height: 100dvh; max-height: none; margin: 0; border-radius: 0; padding: 0 16px; overscroll-behavior: contain; }
+  #dlg-projeto .leitura { min-height: 100%; }
+  #dlg-projeto .formulario { padding: calc(16px + env(safe-area-inset-top)) 0 calc(16px + env(safe-area-inset-bottom)); }
 }
 
 /* ---------- Tarefas: abas, lista por data e concluídas ---------- */

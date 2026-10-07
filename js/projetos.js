@@ -1,9 +1,11 @@
 // Projetos: a janela do projeto, quem pode ver (equipe) e a lista de tarefas dentro dele.
+// No celular a janela ocupa a tela inteira, e o projeto que já existe abre primeiro em leitura.
 import { sb } from "./supabase.js";
 import { de } from "./ligacoes.js";
-import { $, el, dataCurta, aviso, traduz, preencherSelect, confirmar } from "./util.js";
-import { estado, colunasDe, nomePerfil, proximaOrdem, atrasado, historico, travarConclusao, opcoesPessoas } from "./estado.js";
-import { botaoConcluir, abrirTarefa } from "./tarefas.js";
+import { $, el, celular, dataCurta, aviso, traduz, preencherSelect, confirmar } from "./util.js";
+import { estado, colunasDe, nomePerfil, proximaOrdem, avatar, atrasado, historico, travarConclusao, opcoesPessoas } from "./estado.js";
+import { botaoConcluir, abrirTarefa, linhaDaTarefa } from "./tarefas.js";
+import { mover, chipsDoProjeto, andamentoDoProjeto } from "./quadro.js";
 
 $("#novo-projeto").addEventListener("click", () => abrirProjeto(null));
 
@@ -32,8 +34,52 @@ export function abrirProjeto(id, colunaId) {
   $("#p-tarefas").hidden = !p;
   $("#p-excluir").hidden = !p || p.responsavel_id !== eu; // só o responsável exclui
   travarConclusao($("#p-coluna"), !p || p.responsavel_id === eu, p?.coluna_id);
+  const leitura = !!p && celular();
+  $("#p-leitura").hidden = !leitura;
+  $("#form-projeto").hidden = leitura;
   renderTarefasDoProjeto();
   $("#dlg-projeto").showModal();
+  $("#dlg-projeto").scrollTop = 0;
+}
+
+// Celular: o projeto em leitura, no modelo do cartão (nome, etiquetas, andamento), com o campo "Coluna" que grava na hora
+// e as tarefas dele no mesmo modelo da Lista. É refeita sempre que os dados mudam, enquanto estiver à mostra.
+function preencherLeitura(p) {
+  const meu = p.responsavel_id === estado.usuario.id;
+  $("#lp-titulo").textContent = p.titulo;
+  $("#lp-chips").replaceChildren(chipsDoProjeto(p));
+  $("#lp-responsavel").replaceChildren(avatar(p.responsavel_id), el("span", { text: nomePerfil(p.responsavel_id) || "Sem responsável" }));
+  $("#lp-descricao").textContent = p.descricao || "";
+  $("#lp-descricao").hidden = !p.descricao;
+  preencherSelect($("#lp-coluna"), colunasDe("projetos").map((c) => ({ v: c.id, t: c.nome })), p.coluna_id);
+  travarConclusao($("#lp-coluna"), meu, p.coluna_id); // só o responsável leva o projeto para a coluna concluída, ou tira de lá
+  $("#lp-andamento").replaceChildren(...[andamentoDoProjeto(p)].filter(Boolean));
+  const tarefas = tarefasDoProjeto(p.id);
+  $("#lp-contagem").textContent = String(tarefas.length);
+  $("#lp-lista").replaceChildren(...(tarefas.length
+    ? tarefas.map((t) => {
+        const coluna = estado.colunas.find((c) => c.id === t.coluna_id)?.nome;
+        return linhaDaTarefa(t, !t.concluida_em && coluna ? el("span", { class: "chip", text: coluna, title: "Coluna no quadro" }) : null, true);
+      })
+    : [el("p", { class: "apoio", text: "Este projeto ainda não tem tarefas." })]));
+  $("#lp-historico").textContent = historico(p);
+}
+$("#lp-editar").addEventListener("click", () => { $("#p-leitura").hidden = true; $("#form-projeto").hidden = false; $("#dlg-projeto").scrollTop = 0; });
+$("#lp-nova").addEventListener("click", () => abrirTarefa(null, null, projetoAberto));
+$("#lp-coluna").addEventListener("change", async (e) => {
+  const p = estado.projetos.find((x) => x.id === projetoAberto);
+  if (!p) return;
+  const nome = e.target.selectedOptions[0]?.textContent ?? "";
+  const gravou = await mover("projetos", p.id, e.target.value, null);
+  if (gravou) aviso("Projeto movido para " + nome + ".");
+  const atual = estado.projetos.find((x) => x.id === p.id);
+  if (atual && $("#dlg-projeto").open) { $("#p-coluna").value = atual.coluna_id; if (!$("#p-leitura").hidden) preencherLeitura(atual); }
+});
+
+// Abertas primeiro, por data; concluídas no fim da fila, tachadas.
+function tarefasDoProjeto(id) {
+  const chave = (t) => (t.concluida_em ? "1" : "0") + (t.prazo || "9999") + t.criado_em;
+  return estado.tarefas.filter((t) => t.projeto_id === id).sort((a, b) => (chave(a) < chave(b) ? -1 : 1));
 }
 
 export function renderMembros(marcados) {
@@ -92,9 +138,9 @@ export function renderTarefasDoProjeto() {
   const lista = $("#p-lista");
   lista.replaceChildren();
   if (!id) return;
-  // Abertas primeiro, por data; concluídas no fim da fila, tachadas.
-  const chave = (t) => (t.concluida_em ? "1" : "0") + (t.prazo || "9999") + t.criado_em;
-  const tarefas = estado.tarefas.filter((t) => t.projeto_id === id).sort((a, b) => (chave(a) < chave(b) ? -1 : 1));
+  const aberto = estado.projetos.find((x) => x.id === id);
+  if (aberto && !$("#p-leitura").hidden) preencherLeitura(aberto);
+  const tarefas = tarefasDoProjeto(id);
   if (!tarefas.length) { lista.append(el("li", { class: "vazio", text: "Este projeto ainda não tem tarefas." })); return; }
   for (const t of tarefas) {
     const col = estado.colunas.find((c) => c.id === t.coluna_id);
