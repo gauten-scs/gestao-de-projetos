@@ -1,11 +1,12 @@
 # Testes das regras do banco
 
-Esta pasta guarda os testes que conferem se as regras de acesso do banco continuam valendo: quem vê cada projeto e cada tarefa, quem conclui, quem exclui e quem restaura.
+Esta pasta guarda os testes que conferem se as regras de acesso do banco continuam valendo: quem vê cada projeto e cada tarefa, quem conclui, quem exclui e quem restaura, e as regras das ideias.
 
 ## Arquivos
 
 - `regras_de_acesso.sql`: 57 verificações sobre acesso por convite, perfis, colunas, projetos, tarefas de projeto, tarefas avulsas, conclusão, histórico e lixeira.
 - `exclusao_definitiva_e_limpeza.sql`: 19 verificações sobre a exclusão definitiva pelo administrador ("Excluir de vez") e a limpeza diária da lixeira, que apaga o que está lá há mais de 30 dias.
+- `regras_das_ideias.sql`: 46 verificações sobre as ideias: quem vê a ideia avulsa e a de projeto, quem altera o texto e o status, vincular e desvincular de projeto, comentários, apoios, ideia de origem de tarefa e de projeto, lixeira e limpeza diária.
 
 ## Como rodar
 
@@ -13,9 +14,9 @@ Esta pasta guarda os testes que conferem se as regras de acesso do banco continu
 2. Colar o conteúdo inteiro de um dos arquivos e clicar em "Run". Um arquivo de cada vez.
 3. Ler a mensagem que aparece. Ela vem como erro, de propósito, e começa com `RESULTADO`.
 
-Resultados esperados: `RESULTADO: 57 verificações, 0 falhas.` no primeiro arquivo e `RESULTADO: 19 verificações, 0 falhas.` no segundo.
+Resultados esperados: `RESULTADO: 57 verificações, 0 falhas.` no primeiro arquivo, `RESULTADO: 19 verificações, 0 falhas.` no segundo e `RESULTADO: 46 verificações, 0 falhas.` no terceiro.
 
-O segundo arquivo apaga linhas durante o teste. O Supabase pode pedir confirmação antes de rodar ("destructive operation"): pode confirmar, porque tudo é desfeito no fim.
+O segundo e o terceiro arquivos apagam linhas durante o teste. O Supabase pode pedir confirmação antes de rodar ("destructive operation"): pode confirmar, porque tudo é desfeito no fim.
 
 ## Por que termina em erro
 
