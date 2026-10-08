@@ -18,12 +18,28 @@ import { renderConfig, abrirColuna } from "./configuracoes.js";
 ligar({ abrirProjeto, abrirTarefa, botaoConcluir, chipsDaTarefa, renderizar, carregar });
 
 // ---------- Entrada ----------
+// O link de convite (ou de nova senha) já abre uma sessão antes de a pessoa escolher a senha.
+// Enquanto a senha não for gravada, fica uma marca neste aparelho: ao recarregar a página,
+// o site volta para a tela de senha, e não entra direto na conta.
+const SENHA_PENDENTE = "takt.senha-pendente";
+const pendente = {
+  ler() { try { return localStorage.getItem(SENHA_PENDENTE); } catch { return null; } },
+  marcar(tipo) { try { localStorage.setItem(SENHA_PENDENTE, tipo); } catch { /* sem armazenamento: segue sem a marca */ } },
+  limpar() { try { localStorage.removeItem(SENHA_PENDENTE); } catch { /* idem */ } },
+};
+
+function pedirSenha(tipo) {
+  $("#senha-titulo").textContent = tipo === "invite" ? "Crie a sua senha" : "Defina uma nova senha";
+  mostrar("tela-senha");
+}
+
 async function iniciar() {
   const parametros = new URLSearchParams(location.search);
   const token = parametros.get("convite");
   if (token) {
     const tipo = parametros.get("tipo") === "recovery" ? "recovery" : "invite";
     history.replaceState(null, "", location.pathname);
+    pendente.limpar();
     await sb.auth.signOut({ scope: "local" }).catch(() => {});
     const { error } = await sb.auth.verifyOtp({ token_hash: token, type: tipo });
     if (error) {
@@ -31,12 +47,15 @@ async function iniciar() {
       mensagem("#login-msg", "Este link venceu ou já foi usado. Peça um novo link ao administrador.");
       return;
     }
-    $("#senha-titulo").textContent = tipo === "invite" ? "Crie a sua senha" : "Defina uma nova senha";
-    mostrar("tela-senha");
+    pendente.marcar(tipo);
+    pedirSenha(tipo);
     return;
   }
   const { data } = await sb.auth.getSession();
-  if (data.session) await entrar(); else mostrar("tela-login");
+  if (!data.session) { pendente.limpar(); mostrar("tela-login"); return; }
+  const falta = pendente.ler();
+  if (falta) { pedirSenha(falta); return; }
+  await entrar();
 }
 
 async function entrar() {
@@ -58,6 +77,7 @@ $("#form-login").addEventListener("submit", async (e) => {
   mensagem("#login-msg", "");
   const { error } = await sb.auth.signInWithPassword({ email: $("#login-email").value.trim(), password: $("#login-senha").value });
   if (error) { mensagem("#login-msg", traduz(error)); return; }
+  pendente.limpar();
   $("#login-senha").value = "";
   await entrar();
 });
@@ -69,6 +89,7 @@ $("#form-senha").addEventListener("submit", async (e) => {
   if (senha !== $("#senha-repete").value) { mensagem("#senha-msg", "As duas senhas não são iguais."); return; }
   const { error } = await sb.auth.updateUser({ password: senha });
   if (error) { mensagem("#senha-msg", traduz(error)); return; }
+  pendente.limpar();
   await entrar();
 });
 

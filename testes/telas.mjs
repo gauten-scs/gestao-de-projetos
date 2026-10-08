@@ -301,6 +301,11 @@ n3 = (await grav()).length; await pg.fill("#m-nome", "Ana T."); await pg.locator
 confere("salvar Minha conta grava o nome", (await grav()).slice(n3).some((x) => x[0] === "perfis" && x[2] && x[2].nome === "Ana T."));
 await pg.goto("http://localhost:8123/?convite=abc"); await pg.waitForSelector("#tela-senha:not([hidden])");
 confere("link de convite abre a tela de criar senha", (await txt("#senha-titulo")) === "Crie a sua senha");
+await pg.reload(); await pg.waitForTimeout(400);
+confere("link de convite: recarregar sem criar a senha volta para a tela de senha, sem entrar na conta", await pg.locator("#tela-senha").isVisible() && !(await pg.locator("#app").isVisible()) && (await txt("#senha-titulo")) === "Crie a sua senha");
+await pg.fill("#senha-nova", "Senha-de-teste-1"); await pg.fill("#senha-repete", "Senha-de-teste-1"); await pg.locator("#form-senha [type='submit']").click(); await pg.waitForSelector("#app:not([hidden])");
+await pg.reload(); await pg.waitForSelector("#app:not([hidden])");
+confere("link de convite: depois de criar a senha, entra e continua dentro ao recarregar", await pg.evaluate(() => localStorage.getItem("takt.senha-pendente") === null));
 // Celular: moldura fixa, barra de baixo e painel "Mais"
 await pg.setViewportSize({ width: 390, height: 844 }); await pg.goto("http://localhost:8123/"); await pg.waitForSelector("#app:not([hidden])");
 confere("celular: a página não rola nem para os lados nem para baixo", await pg.evaluate(() => document.documentElement.scrollWidth === innerWidth && document.documentElement.scrollHeight === innerHeight));
