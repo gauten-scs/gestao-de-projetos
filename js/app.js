@@ -122,10 +122,13 @@ const foraDaJanela = (e) => {
 let comecouFora = false;
 document.addEventListener("pointerdown", (e) => { comecouFora = foraDaJanela(e); }, true);
 function recolherAoTocarFora(e) {
-  if (comecouFora && foraDaJanela(e) && !e.target.dataset.alterado) e.target.close();
+  if (comecouFora && foraDaJanela(e) && !e.target.dataset.alterado && !temRascunho(e.target)) e.target.close();
   comecouFora = false;
 }
-document.addEventListener("input", (e) => { const d = e.target.closest?.("dialog"); if (d && e.target.closest("form")) d.dataset.alterado = "1"; }, true);
+// Campo de rascunho (data-rascunho, como a ideia nova dentro do projeto) não conta como alteração da janela:
+// a ideia é gravada à parte, pelo botão dela. Enquanto houver texto nele, porém, a janela também não fecha ao clicar fora.
+const temRascunho = (d) => [...d.querySelectorAll("[data-rascunho]")].some((c) => c.value.trim());
+document.addEventListener("input", (e) => { const d = e.target.closest?.("dialog"); if (d && e.target.closest("form") && !e.target.closest("[data-rascunho]")) d.dataset.alterado = "1"; }, true);
 document.addEventListener("close", (e) => { if (e.target instanceof HTMLDialogElement) delete e.target.dataset.alterado; }, true);
 
 // ---------- Dados ----------

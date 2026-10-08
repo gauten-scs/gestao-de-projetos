@@ -19,6 +19,7 @@
     ideias: [
       { ...base, id: "i1", texto: "Ideia avulsa de exemplo", projeto_id: null, status: "nova", criado_em: new Date(Date.now() - 86400000).toISOString() },
       { ...base, id: "i2", texto: "Ideia do Bruno no projeto", projeto_id: "p1", status: "em_analise", criado_por: "u2", atualizado_por: "u2" },
+      { ...base, id: "i3", texto: "Ideia descartada no projeto", projeto_id: "p1", status: "descartada", criado_em: new Date(Date.now() - 2 * 86400000).toISOString() },
       { ...base, id: "i8", texto: "Ideia avulsa excluída", projeto_id: null, status: "nova", arquivado_em: new Date(Date.now() - 86400000).toISOString(), arquivado_por: U },
       { ...base, id: "i9", texto: "Ideia de projeto excluída", projeto_id: "p1", status: "nova", criado_por: "u2", arquivado_em: new Date(Date.now() - 86400000).toISOString(), arquivado_por: "u2" }],
     __extra: 0,

@@ -6,6 +6,7 @@ import { $, el, celular, dataCurta, aviso, traduz, preencherSelect, confirmar } 
 import { estado, colunasDe, nomePerfil, proximaOrdem, avatar, atrasado, historico, travarConclusao, opcoesPessoas } from "./estado.js";
 import { botaoConcluir, abrirTarefa, linhaDaTarefa } from "./tarefas.js";
 import { mover, chipsDoProjeto, andamentoDoProjeto } from "./quadro.js";
+import { renderIdeiasDoProjeto } from "./ideias.js";
 
 $("#novo-projeto").addEventListener("click", () => abrirProjeto(null));
 
@@ -32,6 +33,8 @@ export function abrirProjeto(id, colunaId) {
   $("#p-historico").textContent = p ? historico(p) : "";
   $("#p-historico").hidden = !p;
   $("#p-tarefas").hidden = !p;
+  $("#p-ideias").hidden = !p; // como as tarefas, as ideias só entram no projeto que já existe
+  $("#p-ideia-texto").value = $("#lp-ideia-texto").value = "";
   $("#p-excluir").hidden = !p || p.responsavel_id !== eu; // só o responsável exclui
   travarConclusao($("#p-coluna"), !p || p.responsavel_id === eu, p?.coluna_id);
   const leitura = !!p && celular();
@@ -172,6 +175,7 @@ export function renderTarefasDoProjeto() {
   if (!id) return;
   const aberto = estado.projetos.find((x) => x.id === id);
   if (aberto && !$("#p-leitura").hidden) preencherLeitura(aberto);
+  renderIdeiasDoProjeto(id);
   const tarefas = tarefasDoProjeto(id);
   if (!tarefas.length) { lista.append(el("li", { class: "vazio", text: "Este projeto ainda não tem tarefas." })); return; }
   for (const t of tarefas) {

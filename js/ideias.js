@@ -92,10 +92,55 @@ $("#form-ideia").addEventListener("submit", async (e) => {
   await de.carregar();
 });
 
+// ---------- Ideias dentro do projeto ----------
+// Na janela do projeto (computador, no formulário) e na leitura do projeto (celular, tela cheia).
+// Ordem: as da mais recente para a mais antiga e, no fim, as descartadas (decisão dele: a equipe vê o que já foi descartado).
+export function ideiasDoProjeto(projetoId) {
+  const chave = (i) => (i.status === "descartada" ? "1" : "0");
+  return estado.ideias.filter((i) => i.projeto_id === projetoId)
+    .sort((a, b) => chave(a).localeCompare(chave(b)) || (a.criado_em < b.criado_em ? 1 : -1));
+}
+let projetoDasIdeias = null;
+export function renderIdeiasDoProjeto(projetoId) {
+  projetoDasIdeias = projetoId;
+  const ideias = ideiasDoProjeto(projetoId);
+  for (const pre of ["p", "lp"]) {
+    $(`#${pre}-ideias-contagem`).textContent = String(ideias.length);
+    $(`#${pre}-ideias-lista`).replaceChildren(...(ideias.length
+      ? ideias.map((i) => linhaDaIdeia(i, true))
+      : [el("p", { class: "apoio", text: "Este projeto ainda não tem ideias." })]));
+  }
+}
+async function registrarNoProjeto(pre) {
+  const campo = $(`#${pre}-ideia-texto`);
+  const texto = campo.value.trim();
+  if (!texto || !projetoDasIdeias) { campo.focus(); return; }
+  const { error } = await sb.from("ideias").insert({ texto, projeto_id: projetoDasIdeias });
+  if (error) { aviso("Não foi possível registrar a ideia: " + traduz(error)); return; }
+  campo.value = "";
+  aviso("Ideia registrada no projeto.");
+  await de.carregar();
+}
+for (const pre of ["p", "lp"]) {
+  $(`#${pre}-ideia-registrar`).addEventListener("click", () => registrarNoProjeto(pre));
+  // Como na aba Ideias: no computador, Enter registra e Shift+Enter quebra a linha; no celular, Enter quebra a linha
+  $(`#${pre}-ideia-texto`).addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey && !e.isComposing && !celular()) { e.preventDefault(); registrarNoProjeto(pre); }
+  });
+}
+
 // ---------- Janela da ideia ----------
+// A ideia pode abrir por cima da janela do projeto. Ao fechar, a edição do projeto é retomada (como na tarefa).
+let projetoPorBaixo = null;
+$("#dlg-ideia").addEventListener("close", () => {
+  if (projetoPorBaixo && $("#dlg-projeto").open) estado.editando = projetoPorBaixo;
+  projetoPorBaixo = null;
+});
+
 export function abrirIdeia(id) {
   const i = estado.ideias.find((x) => x.id === id);
   if (!i) return;
+  projetoPorBaixo = $("#dlg-projeto").open && estado.editando?.tipo === "projeto" ? estado.editando : null;
   const autor = souAutor(i), mudaStatus = autor || respondoPeloProjeto(i);
   estado.editando = { tipo: "ideia", id: i.id };
   $("#i-origem").textContent = i.projeto_id ? origemDaIdeia(i) : (autor ? "Ideia avulsa: só você vê" : "Ideia avulsa");

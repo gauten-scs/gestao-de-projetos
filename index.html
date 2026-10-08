@@ -300,6 +300,14 @@
       <h2>Tarefas <span class="contagem" id="lp-contagem"></span></h2>
       <div id="lp-lista"></div>
     </section>
+    <section class="grupo-datas ideias-do-projeto" id="lp-ideias">
+      <h2>Ideias <span class="contagem" id="lp-ideias-contagem"></span></h2>
+      <div id="lp-ideias-lista"></div>
+      <div class="registro-linha">
+        <textarea id="lp-ideia-texto" rows="1" maxlength="2000" placeholder="Nova ideia para este projeto" aria-label="Nova ideia para este projeto" data-rascunho></textarea>
+        <button class="btn secundario" type="button" id="lp-ideia-registrar">Registrar</button>
+      </div>
+    </section>
     <p class="legenda" id="lp-historico"></p>
     <div class="acoes fixas">
       <button class="btn secundario" type="button" id="lp-editar">Editar</button>
@@ -344,6 +352,15 @@
       <h3>Tarefas deste projeto</h3>
       <ul class="lista-tarefas" id="p-lista"></ul>
       <button class="btn secundario" type="button" id="p-adicionar">Nova tarefa neste projeto</button>
+    </div>
+    <div id="p-ideias" class="subbloco ideias-do-projeto" hidden>
+      <h3>Ideias deste projeto <span class="contagem" id="p-ideias-contagem"></span></h3>
+      <div id="p-ideias-lista"></div>
+      <div class="registro-linha">
+        <textarea id="p-ideia-texto" rows="1" maxlength="2000" placeholder="Nova ideia para este projeto" aria-label="Nova ideia para este projeto" data-rascunho></textarea>
+        <button class="btn secundario" type="button" id="p-ideia-registrar">Registrar</button>
+      </div>
+      <p class="legenda">Quem tem acesso ao projeto vê as ideias dele.</p>
     </div>
     <p class="legenda" id="p-historico" hidden></p>
     <div class="acoes">

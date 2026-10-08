@@ -195,9 +195,9 @@ confere("confirmar exclusão manda para a lixeira", (await grav()).slice(n3).som
 await fechaJanelas();
 // Ideias (etapa I2): tela, registro, janela, vincular, status e exclusão
 await pg.click("[data-visao='ideias']");
-confere("Ideias: abre a tela, com o resumo e o item marcado no menu", await pg.locator("#visao-ideias").isVisible() && (await txt("#resumo-ideias")) === "2 ideias · 1 avulsa" && (await pg.locator(".menu [data-visao='ideias']").getAttribute("aria-current")) === "page");
-confere("Ideias: lista da mais recente para a mais antiga", (await pg.locator("#lista-ideias .linha-tarefa .nome").allInnerTexts()).join("|") === "Ideia do Bruno no projeto|Ideia avulsa de exemplo");
-confere("Ideias: linha no modelo do cartão (texto e projeto, etiquetas de status e data, autor)", (await pg.locator("#lista-ideias .linha-tarefa").first().evaluate((c) => [...c.children].map((x) => x.className.split(" ")[0]).join("|"))) === "abrir|chips|avatar" && /^Em análise \d+ \w{3}$/.test((await pg.locator("#lista-ideias .linha-tarefa .chips").first().innerText()).replace(/\s+/g, " ").trim()) && (await pg.locator("#lista-ideias .linha-tarefa .origem").allInnerTexts()).join("|") === "Projeto Exemplo|Ideia avulsa" && (await pg.locator("#lista-ideias .linha-tarefa .avatar").first().innerText()) === "BS");
+confere("Ideias: abre a tela, com o resumo e o item marcado no menu", await pg.locator("#visao-ideias").isVisible() && (await txt("#resumo-ideias")) === "3 ideias · 1 avulsa" && (await pg.locator(".menu [data-visao='ideias']").getAttribute("aria-current")) === "page");
+confere("Ideias: lista da mais recente para a mais antiga", (await pg.locator("#lista-ideias .linha-tarefa .nome").allInnerTexts()).join("|") === "Ideia do Bruno no projeto|Ideia avulsa de exemplo|Ideia descartada no projeto");
+confere("Ideias: linha no modelo do cartão (texto e projeto, etiquetas de status e data, autor)", (await pg.locator("#lista-ideias .linha-tarefa").first().evaluate((c) => [...c.children].map((x) => x.className.split(" ")[0]).join("|"))) === "abrir|chips|avatar" && /^Em análise \d+ \w{3}$/.test((await pg.locator("#lista-ideias .linha-tarefa .chips").first().innerText()).replace(/\s+/g, " ").trim()) && (await pg.locator("#lista-ideias .linha-tarefa .origem").allInnerTexts()).join("|") === "Projeto Exemplo|Ideia avulsa|Projeto Exemplo" && (await pg.locator("#lista-ideias .linha-tarefa .avatar").first().innerText()) === "BS");
 await pg.selectOption("#filtro-ideia-projeto", "avulsas");
 confere("Ideias: filtro Somente avulsas", (await pg.locator("#lista-ideias .linha-tarefa .nome").allInnerTexts()).join("|") === "Ideia avulsa de exemplo");
 await pg.selectOption("#filtro-ideia-status", "aprovada");
@@ -243,6 +243,29 @@ n3 = (await grav()).length; await pg.locator("#tabela-minha-lixeira tr", { hasTe
 confere("Ideias: Restaurar chama restaurar_item para a ideia", (await grav()).slice(n3).some((x) => x[0] === "rpc" && x[1] === "restaurar_item" && x[2].tabela === "ideias" && x[2].item === "i8") && (await txt("#aviso")) === "Ideia restaurada.");
 await pg.click("[data-visao='config']");
 confere("Ideias: a lixeira geral mostra a ideia de projeto excluída, e não a avulsa", (await txt("#tabela-lixeira")).includes("Ideia de projeto excluída") && !(await txt("#tabela-lixeira")).includes("Ideia avulsa excluída"));
+// Ideias dentro do projeto (etapa I3)
+await pg.click("[data-visao='projetos']"); await pg.getByText("Projeto Exemplo").first().click();
+confere("I3: o projeto mostra o bloco Ideias deste projeto, com a contagem", await pg.locator("#p-ideias").isVisible() && (await txt("#p-ideias-contagem")) === "2");
+confere("I3: as ideias do projeto no modelo do cartão, sem a linha do projeto", (await pg.locator("#p-ideias-lista .linha-tarefa .nome").allInnerTexts()).join("|") === "Ideia do Bruno no projeto|Ideia descartada no projeto" && (await pg.locator("#p-ideias-lista .origem").count()) === 0 && (await pg.locator("#p-ideias-lista .linha-tarefa .avatar").count()) === 2);
+confere("I3: as descartadas ficam no fim, mesmo sendo as mais recentes", await pg.evaluate(() => Promise.all([import("./js/estado.js"), import("./js/ideias.js")]).then(([e, m]) => {
+  const d = e.estado.ideias.find((x) => x.id === "i3"), antes = d.criado_em; d.criado_em = new Date(Date.now() + 86400000).toISOString();
+  const ordem = m.ideiasDoProjeto("p1").map((x) => x.id).join("|"); d.criado_em = antes; return ordem === "i2|i3"; })));
+await pg.fill("#p-ideia-texto", "Ideia de dentro do projeto"); await pg.mouse.click(20, 20); await pg.waitForTimeout(100);
+confere("I3: com texto no campo da ideia, clicar fora não fecha o projeto, e o projeto não conta como alterado", await abertaPC("#dlg-projeto") && !(await pg.locator("#dlg-projeto").getAttribute("data-alterado")));
+n3 = (await grav()).length; await pg.press("#p-ideia-texto", "Enter"); await pg.waitForTimeout(200);
+confere("I3: Enter registra a ideia já vinculada ao projeto, limpa o campo e avisa", (await grav()).slice(n3).some((x) => x[0] === "ideias" && x[1] === "insert" && x[2].texto === "Ideia de dentro do projeto" && x[2].projeto_id === "p1") && (await pg.inputValue("#p-ideia-texto")) === "" && (await txt("#aviso")) === "Ideia registrada no projeto." && await abertaPC("#dlg-projeto"));
+n3 = (await grav()).length; await pg.click("#p-ideia-registrar"); await pg.waitForTimeout(100);
+confere("I3: Registrar com o campo vazio não grava nada", (await grav()).length === n3);
+await pg.locator("#p-ideias-lista .abrir", { hasText: "Ideia do Bruno no projeto" }).click();
+confere("I3: clicar na ideia abre a janela dela por cima do projeto", await abertaPC("#dlg-ideia") && await abertaPC("#dlg-projeto") && (await txt("#i-leitura")) === "Ideia do Bruno no projeto");
+await pg.mouse.click(20, 20); await pg.waitForTimeout(100);
+confere("I3: clicar fora fecha só a ideia, e o projeto volta a ser o item em edição", !(await abertaPC("#dlg-ideia")) && await abertaPC("#dlg-projeto") && await pg.evaluate(() => import("./js/estado.js").then((m) => m.estado.editando?.tipo === "projeto" && m.estado.editando?.id === "p1")));
+await pg.locator("#p-ideias-lista .abrir", { hasText: "Ideia descartada no projeto" }).click(); await pg.locator("#dlg-ideia [data-fechar]").first().click();
+n3 = (await grav()).length; await pg.fill("#p-titulo", "Projeto Exemplo renomeado"); await pg.locator("#form-projeto [type='submit']").click(); await pg.waitForTimeout(200);
+confere("I3: depois de abrir e fechar uma ideia, Salvar grava o projeto certo", (await grav()).slice(n3).some((x) => x[0] === "projetos" && x[1] === "update" && x[2].titulo === "Projeto Exemplo renomeado"));
+await fechaJanelas(); await pg.click("#novo-projeto");
+confere("I3: no projeto novo, ainda não salvo, o bloco de ideias não aparece", !(await pg.locator("#p-ideias").isVisible()) && !(await pg.locator("#p-tarefas").isVisible()));
+await fechaJanelas();
 // Etapa 4: lixeiras, Configurações e convites
 await pg.reload(); await pg.waitForSelector("#app:not([hidden])");
 await pg.click("[data-visao='lixeira']");
@@ -482,6 +505,14 @@ await pg.fill("#ideia-texto", "");
 await pg.locator("#lista-ideias .abrir").first().click(); await pg.waitForTimeout(350);
 confere("celular: a ideia abre em painel vindo de baixo", await deBaixo("#dlg-ideia"));
 await pg.locator("#dlg-ideia [data-fechar]").first().click();
+await pg.evaluate(() => import("./js/projetos.js").then((m) => m.abrirProjeto("p1"))); await pg.waitForTimeout(350);
+confere("celular: na leitura do projeto, as ideias vêm depois das tarefas, sem a linha do projeto", await pg.locator("#lp-ideias").isVisible() && (await pg.locator("#lp-ideias-lista .linha-tarefa").count()) === 2 && (await pg.locator("#lp-ideias-lista .origem").count()) === 0 && await pg.evaluate(() => document.getElementById("lp-tarefas").compareDocumentPosition(document.getElementById("lp-ideias")) & Node.DOCUMENT_POSITION_FOLLOWING));
+await pg.fill("#lp-ideia-texto", "Ideia pelo celular"); await pg.press("#lp-ideia-texto", "Enter");
+{ const antesP = (await grav()).length; await pg.click("#lp-ideia-registrar"); await pg.waitForTimeout(200);
+confere("celular: no projeto, Enter quebra a linha e o botão Registrar grava a ideia no projeto", (await grav()).slice(antesP).some((x) => x[0] === "ideias" && x[1] === "insert" && x[2].texto === "Ideia pelo celular" && x[2].projeto_id === "p1") && (await pg.inputValue("#lp-ideia-texto")) === ""); }
+await pg.locator("#lp-ideias-lista .abrir").first().click(); await pg.waitForTimeout(350);
+confere("celular: a ideia aberta de dentro do projeto sobe de baixo, por cima do projeto", await deBaixo("#dlg-ideia") && await pg.locator("#dlg-projeto").evaluate((d) => d.open));
+await fechaJanelas();
 confere("sem #diag, a caixa de diagnóstico não existe", (await pg.locator("#diagnostico").count()) === 0);
 await pg.goto("http://localhost:8123/#diag"); await pg.reload(); await pg.waitForSelector("#diagnostico");
 confere("com #diag, a caixa de diagnóstico mostra as medidas", /janela \(inner\)\s+390 x 844/.test(await txt("#diagnostico")) && /barra de baixo\s+topo/.test(await txt("#diagnostico")));
