@@ -5,7 +5,7 @@
   const U = "u1", agora = new Date().toISOString();
   const base = { criado_por: U, criado_em: agora, atualizado_por: U, atualizado_em: agora, arquivado_em: null, arquivado_por: null };
   const D = {
-    perfis: [{ id: U, nome: "Ana Teste", email: "ana@exemplo.com", papel: "admin", ativo: true }, { id: "u2", nome: "Bruno Silva", email: "b@exemplo.com", papel: "membro", ativo: true }, { id: "u3", nome: "Abel Costa", email: "abel@exemplo.com", papel: "membro", ativo: true }],
+    perfis: [{ id: U, nome: "Ana Teste", email: "ana@exemplo.com", papel: "admin", ativo: true }, { id: "u2", nome: "Bruno Silva", email: "b@exemplo.com", papel: "membro", ativo: true }, { id: "u3", nome: "Abel Costa", email: "abel@exemplo.com", papel: "membro", ativo: true, senha_pendente: true }],
     colunas: [
       { id: "cp1", quadro: "projetos", nome: "A fazer", ordem: 1, concluida: false }, { id: "cp2", quadro: "projetos", nome: "Concluído", ordem: 2, concluida: true },
       { id: "ct1", quadro: "tarefas", nome: "A fazer", ordem: 1, concluida: false }, { id: "ct2", quadro: "tarefas", nome: "Concluído", ordem: 2, concluida: true }, { id: "ct3", quadro: "tarefas", nome: "Em andamento", ordem: 3, concluida: false }],

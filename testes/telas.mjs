@@ -278,7 +278,15 @@ confere("Convidar abre a janela", await pg.locator("#dlg-convite").evaluate((d) 
 await pg.fill("#v-nome", "Carla"); await pg.fill("#v-email", "carla@exemplo.com"); n3 = (await grav()).length; await pg.click("#v-gerar"); await pg.waitForTimeout(300);
 confere("gerar convite chama a função e mostra o link", (await grav()).slice(n3).some((x) => x[0] === "funcao" && x[2].acao === "convidar") && /\?convite=tok123&tipo=invite$/.test(await pg.inputValue("#v-link")));
 await fechaJanelas(); n3 = (await grav()).length;
-await pg.locator("#tabela-usuarios tr", { hasText: "Bruno Silva" }).getByRole("button", { name: "Gerar novo link" }).click(); await pg.waitForTimeout(300);
+await pg.locator("#tabela-usuarios tr", { hasText: "Bruno Silva" }).getByRole("button", { name: "Gerar novo link" }).click(); await pg.waitForTimeout(200);
+confere("Gerar novo link pede confirmação e avisa que a senha atual deixa de valer", await pg.locator("#dlg-confirma").evaluate((d) => d.open) && /Bruno Silva.*senha atual deixa de valer/.test(await txt("#confirma-texto")) && (await txt("#confirma-sim")) === "Gerar novo link");
+await pg.click("#confirma-nao"); await pg.waitForTimeout(200);
+confere("Gerar novo link: sem confirmar, a função não é chamada", !(await grav()).slice(n3).some((x) => x[0] === "funcao" && x[2].acao === "novo_link") && !(await pg.locator("#dlg-convite").evaluate((d) => d.open)));
+confere("Configurações mostra \"Aguardando senha\" para quem ainda não criou a senha", (await pg.locator("#tabela-usuarios tr", { hasText: "Abel Costa" }).locator(".selo").innerText()) === "Aguardando senha" && (await pg.locator("#tabela-usuarios tr", { hasText: "Bruno Silva" }).locator(".selo").innerText()) === "Liberado");
+await pg.locator("#tabela-usuarios tr", { hasText: "Abel Costa" }).getByRole("button", { name: "Gerar novo link" }).click(); await pg.waitForTimeout(200);
+confere("Gerar novo link para quem aguarda a senha: a pergunta fala do link anterior", /Abel Costa.*link enviado antes deixa de valer/.test(await txt("#confirma-texto")));
+await pg.click("#confirma-nao"); await pg.waitForTimeout(200);
+await pg.locator("#tabela-usuarios tr", { hasText: "Bruno Silva" }).getByRole("button", { name: "Gerar novo link" }).click(); await pg.waitForTimeout(200); await pg.click("#confirma-sim"); await pg.waitForTimeout(300);
 confere("Gerar novo link mostra link de nova senha", (await grav()).slice(n3).some((x) => x[0] === "funcao" && x[2].acao === "novo_link") && /tipo=recovery$/.test(await pg.inputValue("#v-link")));
 await fechaJanelas();
 await pg.click("#btn-conta");

@@ -21,7 +21,8 @@ export function renderConfig() {
       el("td", { class: "pessoa" }, avatar(p.id), (p.nome || "(sem nome)") + (eu ? " (você)" : "")),
       el("td", { text: p.email }),
       el("td", {}, tipo),
-      el("td", {}, el("span", { class: "selo" + (p.ativo ? " sim" : ""), text: p.ativo ? "Liberado" : "Bloqueado" })),
+      // Quem recebeu o link e ainda não criou a senha aparece como "Aguardando senha"
+      el("td", {}, el("span", { class: "selo" + (!p.ativo ? "" : p.senha_pendente ? " espera" : " sim"), text: !p.ativo ? "Bloqueado" : p.senha_pendente ? "Aguardando senha" : "Liberado" })),
       el("td", {}, el("div", { class: "acoes" },
         mini(p.ativo ? "Bloquear" : "Liberar", () => alterarPerfil(p.id, { ativo: !p.ativo }), eu),
         mini("Gerar novo link", () => novoLink(p), eu)))));
@@ -172,6 +173,12 @@ $("#form-convite").addEventListener("submit", async (e) => {
 });
 
 export async function novoLink(p) {
+  const nome = p.nome || p.email;
+  // O novo link tira a pessoa do site e invalida a senha dela: só segue com a confirmação
+  const pergunta = p.senha_pendente
+    ? `Gerar um novo link para ${nome}? O link enviado antes deixa de valer.`
+    : `Gerar um novo link para ${nome}? A senha atual deixa de valer na hora e, se a pessoa estiver com o site aberto, ela é desconectada. Ela só volta a entrar pelo novo link.`;
+  if (!(await confirmar(pergunta, "Gerar novo link", false))) return;
   try {
     const resposta = await chamarConvites({ acao: "novo_link", usuario_id: p.id });
     abrirConvite();

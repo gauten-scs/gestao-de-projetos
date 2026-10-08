@@ -32,7 +32,7 @@ Depois de qualquer mudança em `supabase/migrations` (regras de acesso, gatilhos
 
 A função de convites (`supabase/functions/convites`) não pode ser testada por SQL. Conferir no site, depois de qualquer alteração nela:
 
-1. Entrar com a conta de admin, abrir Configurações e clicar em "Gerar novo link" de um usuário de teste. Deve aparecer o link. Na própria linha do admin o botão fica desligado. Atenção: gerar o link invalida na hora a senha antiga dessa pessoa e encerra as sessões abertas dela.
+1. Entrar com a conta de admin, abrir Configurações e clicar em "Gerar novo link" de um usuário de teste e confirmar a pergunta. Deve aparecer o link, e a pessoa passa a aparecer como "Aguardando senha" até criar a senha. Na própria linha do admin o botão fica desligado. Atenção: gerar o link invalida na hora a senha antiga dessa pessoa e encerra as sessões abertas dela.
 2. Ainda como admin, clicar em "Convidar usuário", preencher um nome e um e-mail de teste e gerar o convite. Deve aparecer o link, e a pessoa deve surgir na lista de usuários.
 3. Abrir o link em uma aba anônima e, sem criar a senha, atualizar a página: deve continuar na tela de senha. Criada a senha, o site entra.
 4. Entrar com uma conta comum. O menu Configurações não deve aparecer.

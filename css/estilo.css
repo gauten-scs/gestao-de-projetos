@@ -302,6 +302,7 @@ td select { min-width: 150px; min-height: 36px; padding: 6px 10px; font-size: 14
 td .acoes { margin: 0; flex-wrap: nowrap; gap: 6px; justify-content: flex-end; }
 .selo { display: inline-block; white-space: nowrap; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--neutro-fundo); color: var(--neutro-texto); }
 .selo.sim { background: var(--verde-fundo); color: var(--verde-forte); }
+.selo.espera { background: var(--atencao-fundo); color: var(--atencao); }
 
 /* ---------- Janelas ---------- */
 dialog {
