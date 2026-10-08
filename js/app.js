@@ -11,7 +11,7 @@ import { estado, souAdmin, avatar, atrasado, noMeuQuadro } from "./estado.js";
 import { renderQuadro } from "./quadro.js";
 import { renderFiltros, botaoConcluir, chipsDaTarefa, renderTarefas, abrirTarefa } from "./tarefas.js";
 import { abrirProjeto, renderTarefasDoProjeto } from "./projetos.js";
-import { renderIdeias } from "./ideias.js";
+import { renderIdeias, renderParticipacao } from "./ideias.js";
 import { renderMinhaLixeira } from "./lixeira.js";
 import { renderConfig, abrirColuna } from "./configuracoes.js";
 
@@ -133,15 +133,17 @@ document.addEventListener("close", (e) => { if (e.target instanceof HTMLDialogEl
 
 // ---------- Dados ----------
 async function carregar() {
-  const [perfis, colunas, projetos, tarefas, membros, ideias] = await Promise.all([
+  const [perfis, colunas, projetos, tarefas, membros, ideias, comentarios, apoios] = await Promise.all([
     sb.from("perfis").select("*").order("nome"),
     sb.from("colunas").select("*").order("ordem"),
     sb.from("projetos").select("*").order("ordem"),
     sb.from("tarefas").select("*").order("ordem"),
     sb.from("projeto_membros").select("projeto_id, usuario_id"),
     sb.from("ideias").select("*"),
+    sb.from("ideia_comentarios").select("*").order("criado_em"),
+    sb.from("ideia_apoios").select("ideia_id, usuario_id, criado_em"),
   ]);
-  const falha = [perfis, colunas, projetos, tarefas, membros, ideias].find((r) => r.error);
+  const falha = [perfis, colunas, projetos, tarefas, membros, ideias, comentarios, apoios].find((r) => r.error);
   if (falha) { aviso("Não foi possível carregar os dados: " + traduz(falha.error)); return false; }
   estado.perfis = perfis.data; estado.colunas = colunas.data; estado.membros = membros.data;
   // Itens excluídos ficam na lixeira. Tarefas de um projeto excluído acompanham o projeto.
@@ -162,6 +164,7 @@ async function carregar() {
       .map((i) => ({ ...i, titulo: resumoDaIdeia(i), tabela: "ideias", tipo: i.projeto_id ? "Ideia de projeto" : "Ideia avulsa" })),
   ].sort((a, b) => (a.arquivado_em < b.arquivado_em ? 1 : -1));
   estado.ideias = ideias.data.filter((i) => !i.arquivado_em && !foraP.has(i.projeto_id));
+  estado.comentarios = comentarios.data; estado.apoios = apoios.data;
   estado.projetos = projetos.data.filter((p) => !p.arquivado_em);
   estado.tarefas = tarefas.data.filter((t) => !t.arquivado_em && !foraP.has(t.projeto_id));
   const eu = estado.perfis.find((p) => p.id === estado.usuario.id);
@@ -213,6 +216,7 @@ function renderizar() {
   if (estado.visao === "lixeira") renderMinhaLixeira();
   if (estado.visao === "config") renderConfig();
   if ($("#dlg-projeto").open) renderTarefasDoProjeto();
+  if ($("#dlg-ideia").open) renderParticipacao();
 }
 
 // ---------- Resumos do menu ----------

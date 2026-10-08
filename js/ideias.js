@@ -46,12 +46,23 @@ export function renderIdeias() {
     ...ideias.map((i) => linhaDaIdeia(i))));
 }
 
-// Etiquetas da ideia: status e data do registro
+// Apoios e comentários da ideia (só as de projeto recebem; o banco entrega só os das ideias que a pessoa enxerga)
+const SVG_APOIO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V6M6 11l6-6 6 6"/></svg>';
+const SVG_COMENTARIO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v10H10l-4 4v-4H5z"/></svg>';
+export const apoiosDa = (i) => estado.apoios.filter((a) => a.ideia_id === i.id);
+export const comentariosDa = (i) => estado.comentarios.filter((c) => c.ideia_id === i.id).sort((a, b) => (a.criado_em < b.criado_em ? -1 : 1));
+const teveParticipacao = (i) => apoiosDa(i).length + comentariosDa(i).length > 0;
+function chipComIcone(svg, n, titulo) { const c = el("span", { class: "chip", title: titulo }); c.innerHTML = svg; c.append(String(n)); return c; }
+
+// Etiquetas da ideia: status, data do registro e, se houver, apoios e comentários
 export function chipsDaIdeia(i) {
   const data = el("span", { class: "chip", title: "Registrada em " + dataHora(i.criado_em) });
   data.innerHTML = ICONES.data;
   data.append(dataCurta(diaDe(i.criado_em)));
-  return el("div", { class: "chips" }, el("span", { class: "chip status-" + i.status, text: STATUS_IDEIA[i.status] ?? i.status }), data);
+  const na = apoiosDa(i).length, nc = comentariosDa(i).length;
+  return el("div", { class: "chips" }, el("span", { class: "chip status-" + i.status, text: STATUS_IDEIA[i.status] ?? i.status }), data,
+    na ? chipComIcone(SVG_APOIO, na, plural(na, "apoio", "apoios")) : null,
+    nc ? chipComIcone(SVG_COMENTARIO, nc, plural(nc, "comentário", "comentários")) : null);
 }
 
 // Uma ideia em lista, no modelo do cartão: texto na primeira linha, com o autor à direita; projeto embaixo; depois as etiquetas.
@@ -155,13 +166,87 @@ export function abrirIdeia(id) {
   $("#i-status").disabled = !mudaStatus;
   preencherSelect($("#i-projeto"), [{ v: "", t: "Ideia avulsa (só você vê)" }, ...projetosEmOrdem()], i.projeto_id ?? "");
   $("#i-campo-projeto").hidden = !autor;
+  $("#i-comentario-texto").value = "";
   let historico = `Registrada por ${nomePerfil(i.criado_por) || "usuário removido"} em ${dataHora(i.criado_em)}.`;
   if (i.atualizado_em && i.atualizado_em !== i.criado_em) historico += ` Última alteração por ${nomePerfil(i.atualizado_por) || "usuário removido"} em ${dataHora(i.atualizado_em)}.`;
   $("#i-historico").textContent = historico;
   $("#i-salvar").hidden = !mudaStatus;
   $("#i-cancelar").textContent = mudaStatus ? "Cancelar" : "Fechar";
   $("#i-excluir").hidden = !autor;
+  renderParticipacao();
   $("#dlg-ideia").showModal();
+}
+
+// ---------- Apoiar e comentar (etapa I4) ----------
+// Gravam na hora, sem o "Salvar". Refeito sempre que os dados mudam com a janela aberta (renderizar, em app.js).
+export function renderParticipacao() {
+  const i = estado.ideias.find((x) => x.id === estado.editando?.id);
+  if (!i || estado.editando?.tipo !== "ideia") return;
+  const eu = estado.usuario.id, deProjeto = !!i.projeto_id;
+  $("#i-participacao").hidden = !deProjeto;
+  $("#i-sem-participacao").hidden = deProjeto;
+  // Ideia com participação não sai mais do projeto (regra do banco desde a I1)
+  const travado = deProjeto && souAutor(i) && teveParticipacao(i);
+  $("#i-projeto").disabled = travado;
+  $("#i-projeto-nota").hidden = !travado;
+  if (travado) $("#i-projeto").value = i.projeto_id;
+  if (!deProjeto) return;
+  const apoios = apoiosDa(i), meu = apoios.some((a) => a.usuario_id === eu);
+  $("#i-apoiar").replaceChildren();
+  $("#i-apoiar").insertAdjacentHTML("afterbegin", SVG_APOIO);
+  $("#i-apoiar").append(meu ? "Apoiada por você" : "Apoiar");
+  $("#i-apoiar").setAttribute("aria-pressed", String(meu));
+  const nomes = apoios.map((a) => nomePerfil(a.usuario_id) || "usuário removido");
+  $("#i-apoios").textContent = apoios.length ? plural(apoios.length, "apoio", "apoios") : "Ninguém apoiou ainda";
+  $("#i-apoios").title = nomes.join(", ");
+  $("#i-apoios").disabled = !apoios.length;
+  const comentarios = comentariosDa(i);
+  $("#i-comentarios-contagem").textContent = String(comentarios.length);
+  $("#i-comentarios").replaceChildren(...(comentarios.length ? comentarios.map((c) => el("div", { class: "comentario" },
+    el("div", { class: "comentario-topo" },
+      c.criado_por ? avatar(c.criado_por) : null,
+      el("strong", { text: nomePerfil(c.criado_por) || "usuário removido" }),
+      el("span", { class: "legenda", text: dataHora(c.criado_em) }),
+      c.criado_por === eu ? el("button", { class: "excluir-comentario", type: "button", text: "Excluir", onclick: () => excluirComentario(c) }) : null),
+    el("p", { class: "descricao", text: c.texto })))
+    : [el("p", { class: "apoio", text: "Nenhum comentário ainda." })]));
+}
+
+$("#i-apoios").addEventListener("click", () => { if ($("#i-apoios").title) aviso("Apoiada por: " + $("#i-apoios").title + "."); });
+
+$("#i-apoiar").addEventListener("click", async () => {
+  const i = estado.ideias.find((x) => x.id === estado.editando?.id);
+  if (!i) return;
+  const eu = estado.usuario.id;
+  const meu = apoiosDa(i).some((a) => a.usuario_id === eu);
+  const { error } = meu
+    ? await sb.from("ideia_apoios").delete().eq("ideia_id", i.id).eq("usuario_id", eu)
+    : await sb.from("ideia_apoios").insert({ ideia_id: i.id });
+  if (error) { aviso("Não foi possível registrar o apoio: " + traduz(error)); return; }
+  await de.carregar();
+});
+
+async function comentar() {
+  const i = estado.ideias.find((x) => x.id === estado.editando?.id);
+  const campo = $("#i-comentario-texto");
+  const texto = campo.value.trim();
+  if (!i || !texto) { campo.focus(); return; }
+  const { error } = await sb.from("ideia_comentarios").insert({ ideia_id: i.id, texto });
+  if (error) { aviso("Não foi possível comentar: " + traduz(error)); return; }
+  campo.value = "";
+  await de.carregar();
+}
+$("#i-comentar").addEventListener("click", comentar);
+// Como no registro de ideias: no computador, Enter grava e Shift+Enter quebra a linha; no celular, Enter quebra a linha
+$("#i-comentario-texto").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey && !e.isComposing && !celular()) { e.preventDefault(); comentar(); }
+});
+
+async function excluirComentario(c) {
+  if (!(await confirmar("Excluir o seu comentário? Esta ação não pode ser desfeita."))) return;
+  const { error } = await sb.from("ideia_comentarios").delete().eq("id", c.id);
+  if (error) { aviso("Não foi possível excluir o comentário: " + traduz(error)); return; }
+  await de.carregar();
 }
 
 $("#form-ideia-janela").addEventListener("submit", async (e) => {

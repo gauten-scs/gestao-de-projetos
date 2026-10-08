@@ -538,6 +538,25 @@ td .abrir-texto:hover { text-decoration: underline; }
 .ideias-do-projeto > div > .apoio { padding: 4px 0 8px; font-size: 14px; }
 .subbloco .linha-tarefa:first-child { border-top: 0; }
 .leitura .ideias-do-projeto { padding-bottom: 14px; }
+/* Apoios e comentários na janela da ideia (etapa I4) */
+.participacao { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--fio); margin-top: 20px; padding-top: 16px; }
+.participacao h3 { display: flex; align-items: center; gap: 8px; font-size: 14px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--suave); margin-top: 6px; }
+.participacao h3 .contagem { margin-left: 0; }
+.apoiar-linha { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.apoiar-linha .btn svg { width: 15px; height: 15px; }
+#i-apoiar[aria-pressed="true"] { background: var(--verde-fundo); border-color: var(--verde-forte); color: var(--verde-forte); }
+.quem-apoiou { background: none; border: 0; padding: 4px 0; color: var(--suave); font-size: 14px; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+.quem-apoiou:disabled { cursor: default; text-decoration: none; }
+.comentario { padding: 10px 0; border-top: 1px solid var(--coluna); display: flex; flex-direction: column; gap: 4px; }
+.comentario:first-child { border-top: 0; }
+.comentario-topo { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; }
+.comentario-topo .legenda { font-size: 12px; }
+.comentario .descricao { font-size: 15px; padding-left: 34px; }
+.excluir-comentario { margin-left: auto; background: none; border: 0; padding: 4px 6px; border-radius: 6px; color: var(--alerta); font-size: 13px; font-weight: 600; cursor: pointer; }
+.excluir-comentario:hover { background: var(--alerta-fundo); }
+.participacao .registro-linha { align-items: flex-start; }
+.participacao .registro-linha textarea { flex: 1; min-width: 0; min-height: 44px; }
+#i-sem-participacao { margin-top: 16px; }
 .descricao { white-space: pre-wrap; overflow-wrap: anywhere; }
 #dlg-ideia .origem { font-size: 14px; color: var(--suave); display: flex; align-items: center; gap: 6px; margin-top: -8px; }
 #dlg-ideia .origem::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--verde); flex: none; }

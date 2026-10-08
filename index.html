@@ -438,6 +438,7 @@
     <p class="pessoa" id="i-autor"></p>
     <label>Status <select id="i-status"></select></label>
     <label id="i-campo-projeto">Projeto <select id="i-projeto"></select></label>
+    <p class="legenda" id="i-projeto-nota" hidden>Esta ideia já recebeu comentário ou apoio e não pode mais sair do projeto.</p>
     <p class="legenda" id="i-historico"></p>
     <div class="acoes">
       <button class="btn primario" type="submit" id="i-salvar">Salvar</button>
@@ -445,6 +446,20 @@
       <button class="btn perigo" type="button" id="i-excluir">Excluir ideia</button>
     </div>
   </form>
+  <!-- Participação (etapa I4): fora do formulário, porque apoiar e comentar gravam na hora, sem o "Salvar" -->
+  <section class="participacao" id="i-participacao" aria-label="Apoios e comentários">
+    <div class="apoiar-linha">
+      <button class="btn secundario mini" type="button" id="i-apoiar" aria-pressed="false"></button>
+      <button class="quem-apoiou" type="button" id="i-apoios"></button>
+    </div>
+    <h3>Comentários <span class="contagem" id="i-comentarios-contagem"></span></h3>
+    <div id="i-comentarios"></div>
+    <div class="registro-linha">
+      <textarea id="i-comentario-texto" rows="1" maxlength="2000" placeholder="Escreva um comentário" aria-label="Escreva um comentário" data-rascunho></textarea>
+      <button class="btn secundario" type="button" id="i-comentar">Comentar</button>
+    </div>
+  </section>
+  <p class="legenda" id="i-sem-participacao" hidden>Comentários e apoios aparecem quando a ideia estiver vinculada a um projeto.</p>
 </dialog>
 
 <dialog id="dlg-coluna" class="estreita">

@@ -266,6 +266,37 @@ confere("I3: depois de abrir e fechar uma ideia, Salvar grava o projeto certo", 
 await fechaJanelas(); await pg.click("#novo-projeto");
 confere("I3: no projeto novo, ainda não salvo, o bloco de ideias não aparece", !(await pg.locator("#p-ideias").isVisible()) && !(await pg.locator("#p-tarefas").isVisible()));
 await fechaJanelas();
+// Apoios e comentários (etapa I4)
+await pg.click("[data-visao='ideias']");
+confere("I4: na lista, a ideia com participação mostra as etiquetas de apoios e de comentários", (await pg.locator("#lista-ideias .linha-tarefa", { hasText: "Ideia descartada no projeto" }).locator(".chips .chip[title]").evaluateAll((cs) => cs.map((c) => c.title).filter((t) => /apoio|coment/.test(t)).join("|"))) === "2 apoios|2 comentários" && (await pg.locator("#lista-ideias .linha-tarefa", { hasText: "Ideia do Bruno no projeto" }).locator(".chips .chip").count()) === 2);
+await pg.locator("#lista-ideias .abrir", { hasText: "Ideia do Bruno no projeto" }).click();
+confere("I4: ideia de projeto sem participação: Apoiar, ninguém apoiou e nenhum comentário", await pg.locator("#i-participacao").isVisible() && (await txt("#i-apoiar")) === "Apoiar" && (await txt("#i-apoios")) === "Ninguém apoiou ainda" && (await txt("#i-comentarios-contagem")) === "0" && (await txt("#i-comentarios")) === "Nenhum comentário ainda." && !(await pg.locator("#i-sem-participacao").isVisible()));
+n3 = (await grav()).length; await pg.click("#i-apoiar"); await pg.waitForTimeout(200);
+confere("I4: Apoiar grava o apoio na hora", (await grav()).slice(n3).some((x) => x[0] === "ideia_apoios" && x[1] === "insert" && x[2].ideia_id === "i2") && await abertaPC("#dlg-ideia"));
+await pg.fill("#i-comentario-texto", "Um comentário"); await pg.mouse.click(20, 20); await pg.waitForTimeout(100);
+confere("I4: com texto no comentário, clicar fora não fecha a janela", await abertaPC("#dlg-ideia"));
+n3 = (await grav()).length; await pg.press("#i-comentario-texto", "Enter"); await pg.waitForTimeout(200);
+confere("I4: Enter grava o comentário na hora e limpa o campo", (await grav()).slice(n3).some((x) => x[0] === "ideia_comentarios" && x[1] === "insert" && x[2].ideia_id === "i2" && x[2].texto === "Um comentário") && (await pg.inputValue("#i-comentario-texto")) === "" && await abertaPC("#dlg-ideia"));
+n3 = (await grav()).length; await pg.click("#i-comentar"); await pg.waitForTimeout(100);
+confere("I4: Comentar com o campo vazio não grava nada", (await grav()).length === n3);
+await pg.mouse.click(20, 20); await pg.waitForTimeout(100);
+confere("I4: comentar não conta como alteração: clicar fora fecha a janela depois", !(await abertaPC("#dlg-ideia")));
+await pg.locator("#lista-ideias .abrir", { hasText: "Ideia descartada no projeto" }).click();
+confere("I4: ideia própria com participação: campo Projeto travado, com a explicação", await pg.locator("#i-projeto").isDisabled() && await pg.locator("#i-projeto-nota").isVisible());
+confere("I4: apoios com a contagem, os nomes e o botão marcado para quem já apoiou", (await txt("#i-apoiar")) === "Apoiada por você" && (await pg.locator("#i-apoiar").getAttribute("aria-pressed")) === "true" && (await txt("#i-apoios")) === "2 apoios" && /Bruno Silva/.test(await pg.locator("#i-apoios").getAttribute("title")) && /Ana Teste/.test(await pg.locator("#i-apoios").getAttribute("title")));
+confere("I4: comentários do mais antigo para o mais novo, com nome e data; Excluir só no próprio", (await pg.locator("#i-comentarios .comentario .descricao").allInnerTexts()).join("|") === "Comentário do Bruno|Comentário da Ana" && /Bruno Silva\s+\d\d\/\d\d\/\d{4} às \d\d:\d\d/.test(await pg.locator("#i-comentarios .comentario").first().innerText()) && (await pg.locator("#i-comentarios .comentario").first().locator(".excluir-comentario").count()) === 0 && (await pg.locator("#i-comentarios .comentario").nth(1).locator(".excluir-comentario").count()) === 1 && (await txt("#i-comentarios-contagem")) === "2");
+await pg.click("#i-apoios");
+confere("I4: tocar na contagem mostra quem apoiou", (await txt("#aviso")).startsWith("Apoiada por: ") && (await txt("#aviso")).includes("Bruno Silva"));
+n3 = (await grav()).length; await pg.click("#i-apoiar"); await pg.waitForTimeout(200);
+confere("I4: tirar o apoio apaga só o apoio da pessoa", (await grav()).slice(n3).some((x) => x[0] === "ideia_apoios" && x[1] === "delete" && x[2].ideia_id === "i3" && x[2].usuario_id === "u1"));
+n3 = (await grav()).length; await pg.locator("#i-comentarios .excluir-comentario").click();
+confere("I4: excluir o próprio comentário pede confirmação", await abertaPC("#dlg-confirma"));
+await pg.click("#confirma-sim"); await pg.waitForTimeout(200);
+confere("I4: confirmando, apaga o comentário certo", (await grav()).slice(n3).some((x) => x[0] === "ideia_comentarios" && x[1] === "delete" && x[2].id === "c2") && await abertaPC("#dlg-ideia"));
+await fechaJanelas();
+await pg.locator("#lista-ideias .abrir", { hasText: "Ideia avulsa de exemplo" }).click();
+confere("I4: ideia avulsa não tem apoios nem comentários, só o aviso", !(await pg.locator("#i-participacao").isVisible()) && await pg.locator("#i-sem-participacao").isVisible() && !(await pg.locator("#i-projeto").isDisabled()));
+await fechaJanelas();
 // Etapa 4: lixeiras, Configurações e convites
 await pg.reload(); await pg.waitForSelector("#app:not([hidden])");
 await pg.click("[data-visao='lixeira']");
@@ -512,6 +543,10 @@ await pg.fill("#lp-ideia-texto", "Ideia pelo celular"); await pg.press("#lp-idei
 confere("celular: no projeto, Enter quebra a linha e o botão Registrar grava a ideia no projeto", (await grav()).slice(antesP).some((x) => x[0] === "ideias" && x[1] === "insert" && x[2].texto === "Ideia pelo celular" && x[2].projeto_id === "p1") && (await pg.inputValue("#lp-ideia-texto")) === ""); }
 await pg.locator("#lp-ideias-lista .abrir").first().click(); await pg.waitForTimeout(350);
 confere("celular: a ideia aberta de dentro do projeto sobe de baixo, por cima do projeto", await deBaixo("#dlg-ideia") && await pg.locator("#dlg-projeto").evaluate((d) => d.open));
+await pg.locator("#dlg-ideia [data-fechar]").first().click(); await pg.locator("#lp-ideias-lista .abrir", { hasText: "Ideia descartada no projeto" }).click(); await pg.waitForTimeout(350);
+await pg.fill("#i-comentario-texto", "Comentário no celular"); await pg.press("#i-comentario-texto", "Enter");
+{ const antesC = (await grav()).length; await pg.click("#i-comentar"); await pg.waitForTimeout(200);
+confere("celular: comentários e apoiar na janela da ideia; Enter quebra a linha e o botão Comentar grava", await pg.locator("#i-participacao").isVisible() && (await pg.locator("#i-comentarios .comentario").count()) === 2 && (await grav()).slice(antesC).some((x) => x[0] === "ideia_comentarios" && x[1] === "insert" && x[2].texto === "Comentário no celular") && await pg.evaluate(() => document.getElementById("dlg-ideia").scrollWidth <= document.getElementById("dlg-ideia").clientWidth)); }
 await fechaJanelas();
 confere("sem #diag, a caixa de diagnóstico não existe", (await pg.locator("#diagnostico").count()) === 0);
 await pg.goto("http://localhost:8123/#diag"); await pg.reload(); await pg.waitForSelector("#diagnostico");

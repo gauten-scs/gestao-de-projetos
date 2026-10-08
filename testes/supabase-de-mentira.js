@@ -22,6 +22,10 @@
       { ...base, id: "i3", texto: "Ideia descartada no projeto", projeto_id: "p1", status: "descartada", criado_em: new Date(Date.now() - 2 * 86400000).toISOString() },
       { ...base, id: "i8", texto: "Ideia avulsa excluída", projeto_id: null, status: "nova", arquivado_em: new Date(Date.now() - 86400000).toISOString(), arquivado_por: U },
       { ...base, id: "i9", texto: "Ideia de projeto excluída", projeto_id: "p1", status: "nova", criado_por: "u2", arquivado_em: new Date(Date.now() - 86400000).toISOString(), arquivado_por: "u2" }],
+    ideia_comentarios: [
+      { id: "c1", ideia_id: "i3", texto: "Comentário do Bruno", criado_por: "u2", criado_em: new Date(Date.now() - 3600000).toISOString() },
+      { id: "c2", ideia_id: "i3", texto: "Comentário da Ana", criado_por: U, criado_em: agora }],
+    ideia_apoios: [{ ideia_id: "i3", usuario_id: "u2", criado_em: agora }, { ideia_id: "i3", usuario_id: U, criado_em: agora }],
     __extra: 0,
     projeto_membros: [{ projeto_id: "p1", usuario_id: "u2" }],
   };
