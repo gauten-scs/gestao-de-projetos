@@ -306,6 +306,13 @@ confere("link de convite: recarregar sem criar a senha volta para a tela de senh
 await pg.fill("#senha-nova", "Senha-de-teste-1"); await pg.fill("#senha-repete", "Senha-de-teste-1"); await pg.locator("#form-senha [type='submit']").click(); await pg.waitForSelector("#app:not([hidden])");
 await pg.reload(); await pg.waitForSelector("#app:not([hidden])");
 confere("link de convite: depois de criar a senha, entra e continua dentro ao recarregar", await pg.evaluate(() => localStorage.getItem("takt.senha-pendente") === null));
+// Trava do banco: perfil com a senha pendente não entra, mesmo sem a marca no aparelho
+await pg.goto("http://localhost:8123/?pendente=1"); await pg.waitForTimeout(400);
+confere("senha pendente no banco: o site pede a senha e não abre os dados, mesmo sem a marca no aparelho", await pg.locator("#tela-senha").isVisible() && !(await pg.locator("#app").isVisible()) && (await txt("#senha-titulo")) === "Defina uma nova senha");
+await pg.fill("#senha-nova", "Senha-de-teste-2"); await pg.fill("#senha-repete", "Senha-de-teste-2"); await pg.locator("#form-senha [type='submit']").click(); await pg.waitForSelector("#app:not([hidden])");
+confere("senha pendente no banco: gravada a senha, o site entra", await pg.locator("#app").isVisible());
+await pg.goto("http://localhost:8123/#config"); await pg.waitForSelector("#app:not([hidden])");
+confere("Configurações: \"Gerar novo link\" fica desligado na própria linha e ligado nas demais", await pg.locator("#tabela-usuarios tr").evaluateAll((l) => l.slice(1).map((r) => [...r.querySelectorAll("button")].find((x) => x.textContent === "Gerar novo link").disabled).join()) === "true,false,false");
 // Celular: moldura fixa, barra de baixo e painel "Mais"
 await pg.setViewportSize({ width: 390, height: 844 }); await pg.goto("http://localhost:8123/"); await pg.waitForSelector("#app:not([hidden])");
 confere("celular: a página não rola nem para os lados nem para baixo", await pg.evaluate(() => document.documentElement.scrollWidth === innerWidth && document.documentElement.scrollHeight === innerHeight));

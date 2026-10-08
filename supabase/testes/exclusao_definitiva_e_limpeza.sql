@@ -48,8 +48,9 @@ begin
          'teste-' || u.nome || '-' || sufixo || '@teste.invalid', '', now(),
          '{}'::jsonb, jsonb_build_object('nome', 'Teste ' || u.nome), now(), now()
     from (values (ua, 'a'), (ub, 'b'), (uadm, 'adm')) as u(id, nome);
-  update public.perfis set ativo = true where id in (ua, ub);
-  update public.perfis set ativo = true, papel = 'admin' where id = uadm;
+  -- Os usuários de teste nascem sem senha, e por isso com a senha pendente; aqui a trava é desligada.
+  update public.perfis set ativo = true, senha_pendente = false where id in (ua, ub);
+  update public.perfis set ativo = true, senha_pendente = false, papel = 'admin' where id = uadm;
 
   set local role authenticated;
   perform set_config('request.jwt.claims', ja, true);

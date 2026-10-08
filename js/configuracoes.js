@@ -24,7 +24,7 @@ export function renderConfig() {
       el("td", {}, el("span", { class: "selo" + (p.ativo ? " sim" : ""), text: p.ativo ? "Liberado" : "Bloqueado" })),
       el("td", {}, el("div", { class: "acoes" },
         mini(p.ativo ? "Bloquear" : "Liberar", () => alterarPerfil(p.id, { ativo: !p.ativo }), eu),
-        mini("Gerar novo link", () => novoLink(p))))));
+        mini("Gerar novo link", () => novoLink(p), eu)))));
   }
 
   // Colunas

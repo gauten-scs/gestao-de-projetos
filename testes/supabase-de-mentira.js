@@ -24,6 +24,9 @@
     __extra: 0,
     projeto_membros: [{ projeto_id: "p1", usuario_id: "u2" }],
   };
+  // ?pendente=1 no endereço: a conta de exemplo fica com a senha pendente, até a senha ser gravada
+  const comPendencia = new URLSearchParams(location.search).has("pendente") || sessionStorage.getItem("teste-pendente") === "1";
+  if (comPendencia) { sessionStorage.setItem("teste-pendente", "1"); D.perfis[0].senha_pendente = true; }
   window.__gravacoes = [];
   function consulta(tabela) {
     let linhas = D[tabela] || [], unico = false, op = "select", filtro = null;
@@ -42,7 +45,7 @@
   const usuario = { id: U, email: "ana@exemplo.com" };
   window.supabase = { createClient: () => ({
     auth: { getSession: async () => ({ data: { session: { user: usuario } } }), getUser: async () => ({ data: { user: usuario }, error: null }),
-            signOut: async () => ({}), verifyOtp: async () => ({ error: null }), signInWithPassword: async () => ({ error: null }), updateUser: async () => ({ error: null }) },
+            signOut: async () => ({}), verifyOtp: async () => ({ error: null }), signInWithPassword: async () => ({ error: null }), updateUser: async () => { sessionStorage.removeItem("teste-pendente"); D.perfis[0].senha_pendente = false; return { error: null }; } },
     from: consulta, rpc: async (n, p) => { window.__gravacoes.push(["rpc", n, p]); return { error: null }; },
     functions: { invoke: async (n, o) => { window.__gravacoes.push(["funcao", n, o.body]); return { data: { token: "tok123", tipo: o.body.acao === "convidar" ? "invite" : "recovery" }, error: null }; } },
     channel: () => { const c = { on: () => c, subscribe: () => c }; return c; },

@@ -19,8 +19,9 @@ ligar({ abrirProjeto, abrirTarefa, botaoConcluir, chipsDaTarefa, renderizar, car
 
 // ---------- Entrada ----------
 // O link de convite (ou de nova senha) já abre uma sessão antes de a pessoa escolher a senha.
-// Enquanto a senha não for gravada, fica uma marca neste aparelho: ao recarregar a página,
-// o site volta para a tela de senha, e não entra direto na conta.
+// Quem trava o acesso é o banco: o perfil fica com "senha_pendente" até a senha ser gravada (ver entrar()).
+// A marca abaixo, neste aparelho, só guarda qual foi o tipo do link, para a tela de senha voltar
+// com o título certo ao recarregar a página.
 const SENHA_PENDENTE = "takt.senha-pendente";
 const pendente = {
   ler() { try { return localStorage.getItem(SENHA_PENDENTE); } catch { return null; } },
@@ -63,6 +64,8 @@ async function entrar() {
   if (error || !data.user) { mostrar("tela-login"); return; }
   estado.usuario = data.user;
   const { data: perfil } = await sb.from("perfis").select("*").eq("id", data.user.id).maybeSingle();
+  // A senha ainda não foi criada: o banco não entrega nada à conta até lá (campo senha_pendente do perfil)
+  if (perfil?.senha_pendente) { pedirSenha(pendente.ler() || "recovery"); return; }
   if (!perfil || !perfil.ativo) { mostrar("tela-sem-acesso"); return; }
   estado.perfil = perfil;
   const visao = location.hash.replace("#", "");
@@ -159,6 +162,8 @@ async function carregar() {
   estado.projetos = projetos.data.filter((p) => !p.arquivado_em);
   estado.tarefas = tarefas.data.filter((t) => !t.arquivado_em && !foraP.has(t.projeto_id));
   const eu = estado.perfis.find((p) => p.id === estado.usuario.id);
+  // Um novo link foi gerado para esta conta com o site aberto: a sessão foi encerrada, volta para a entrada
+  if (eu?.senha_pendente) { await sb.auth.signOut({ scope: "local" }).catch(() => {}); location.reload(); return false; }
   if (!eu || !eu.ativo) { mostrar("tela-sem-acesso"); return false; }
   estado.perfil = eu;
   renderizar();

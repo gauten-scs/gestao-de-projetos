@@ -46,8 +46,9 @@ begin
          'teste-' || u.nome || '-' || sufixo || '@teste.invalid', '', now(),
          '{}'::jsonb, jsonb_build_object('nome', 'Teste ' || u.nome), now(), now()
     from (values (ua, 'a'), (ub, 'b'), (uc, 'c'), (uadm, 'adm'), (ui, 'i')) as u(id, nome);
-  update public.perfis set ativo = true where id in (ua, ub, uc);
-  update public.perfis set ativo = true, papel = 'admin' where id = uadm;
+  -- Os usuários de teste nascem sem senha, e por isso com a senha pendente; aqui a trava é desligada.
+  update public.perfis set ativo = true, senha_pendente = false where id in (ua, ub, uc);
+  update public.perfis set ativo = true, senha_pendente = false, papel = 'admin' where id = uadm;
 
   insert into public.projetos (id, titulo, coluna_id, responsavel_id, criado_por) values
     (p1, 'Projeto de teste 1', cp, ua, ua), (p2, 'Projeto de teste 2', cp, uc, uc);

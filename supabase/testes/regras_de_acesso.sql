@@ -53,8 +53,9 @@ begin
   select count(*) into n from public.perfis where id in (ua, ub, uc, uadm, ui) and not ativo and papel = 'membro';
   if n <> 5 then falhas := falhas || 'usuário novo deveria nascer sem acesso e como membro'; end if;
 
-  update public.perfis set ativo = true where id in (ua, ub, uc);
-  update public.perfis set ativo = true, papel = 'admin' where id = uadm;
+  -- Os usuários de teste nascem sem senha, e por isso com a senha pendente; aqui a trava é desligada.
+  update public.perfis set ativo = true, senha_pendente = false where id in (ua, ub, uc);
+  update public.perfis set ativo = true, senha_pendente = false, papel = 'admin' where id = uadm;
 
   set local role authenticated;
 
