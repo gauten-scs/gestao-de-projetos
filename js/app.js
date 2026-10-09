@@ -11,7 +11,7 @@ import { estado, souAdmin, avatar, atrasado, noMeuQuadro } from "./estado.js";
 import { renderQuadro } from "./quadro.js";
 import { renderFiltros, botaoConcluir, chipsDaTarefa, renderTarefas, abrirTarefa } from "./tarefas.js";
 import { abrirProjeto, renderTarefasDoProjeto } from "./projetos.js";
-import { renderIdeias, renderParticipacao } from "./ideias.js";
+import { renderIdeias, renderParticipacao, novaIdeia } from "./ideias.js";
 import { renderMinhaLixeira } from "./lixeira.js";
 import { renderConfig, abrirColuna } from "./configuracoes.js";
 
@@ -125,8 +125,8 @@ function recolherAoTocarFora(e) {
   if (comecouFora && foraDaJanela(e) && !e.target.dataset.alterado && !temRascunho(e.target)) e.target.close();
   comecouFora = false;
 }
-// Campo de rascunho (data-rascunho, como a ideia nova dentro do projeto) não conta como alteração da janela:
-// a ideia é gravada à parte, pelo botão dela. Enquanto houver texto nele, porém, a janela também não fecha ao clicar fora.
+// Campo de rascunho (data-rascunho, como o comentário da ideia) não conta como alteração da janela:
+// o comentário é gravado à parte, pelo botão dele. Enquanto houver texto nele, porém, a janela também não fecha ao clicar fora.
 const temRascunho = (d) => [...d.querySelectorAll("[data-rascunho]")].some((c) => c.value.trim());
 document.addEventListener("input", (e) => { const d = e.target.closest?.("dialog"); if (d && e.target.closest("form") && !e.target.closest("[data-rascunho]")) d.dataset.alterado = "1"; }, true);
 document.addEventListener("close", (e) => { if (e.target instanceof HTMLDialogElement) delete e.target.dataset.alterado; }, true);
@@ -161,7 +161,7 @@ async function carregar() {
     ...tarefas.data.filter((t) => minha(t) && !foraP.has(t.projeto_id)).map((i) => ({ ...i, tabela: "tarefas", tipo: i.projeto_id ? "Tarefa de projeto" : "Tarefa avulsa" })),
     // A ideia vai para a lixeira de quem a escreveu (só o autor exclui)
     ...ideias.data.filter((i) => i.arquivado_em && i.arquivado_em > limite && i.criado_por === estado.usuario.id && !foraP.has(i.projeto_id))
-      .map((i) => ({ ...i, titulo: resumoDaIdeia(i), tabela: "ideias", tipo: i.projeto_id ? "Ideia de projeto" : "Ideia avulsa" })),
+      .map((i) => ({ ...i, tabela: "ideias", tipo: i.projeto_id ? "Ideia de projeto" : "Ideia avulsa" })),
   ].sort((a, b) => (a.arquivado_em < b.arquivado_em ? 1 : -1));
   estado.ideias = ideias.data.filter((i) => !i.arquivado_em && !foraP.has(i.projeto_id));
   estado.comentarios = comentarios.data; estado.apoios = apoios.data;
@@ -175,9 +175,6 @@ async function carregar() {
   renderizar();
   return true;
 }
-
-// Na lixeira a ideia aparece pelo começo do texto
-const resumoDaIdeia = (i) => (i.texto.length > 80 ? i.texto.slice(0, 80).trimEnd() + "..." : i.texto);
 
 function assinar() {
   if (estado.canal) return;
@@ -201,7 +198,7 @@ function renderizar() {
   if (estado.arrastando) { estado.pendente = true; return; }
   if (estado.visao === "config" && !souAdmin()) estado.visao = "projetos";
   $("#menu-config").hidden = $("#mais-config").hidden = !souAdmin();
-  $("#botao-novo").hidden = !["projetos", "tarefas"].includes(estado.visao);
+  $("#botao-novo").hidden = !["projetos", "tarefas", "ideias"].includes(estado.visao);
   $("#conta-nome").textContent = estado.perfil.nome || estado.perfil.email;
   $("#conta-papel").textContent = souAdmin() ? "Administrador" : "Usuário";
   $("#conta-avatar").replaceWith(Object.assign(avatar(estado.perfil.id), { id: "conta-avatar" }));
@@ -239,7 +236,8 @@ $("#dlg-mais").addEventListener("click", (e) => { if (e.target === e.currentTarg
 $("#mais-conta").addEventListener("click", () => $("#btn-conta").click());
 
 // ---------- Celular: botão "+" e painel "Novo" ----------
-$("#botao-novo").addEventListener("click", () => $("#dlg-novo").showModal());
+// Em Ideias o "+" abre direto a janela da nova ideia; nas outras, o painel "Novo"
+$("#botao-novo").addEventListener("click", () => (estado.visao === "ideias" ? novaIdeia(null) : $("#dlg-novo").showModal()));
 $("#dlg-novo").addEventListener("click", (e) => { if (e.target === e.currentTarget || e.target.closest("button")) e.currentTarget.close(); });
 $("#novo-item-tarefa").addEventListener("click", () => abrirTarefa(null));
 $("#novo-item-projeto").addEventListener("click", () => abrirProjeto(null));

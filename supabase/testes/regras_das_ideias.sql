@@ -1,11 +1,11 @@
 -- Takt: teste das regras das ideias.
 --
 -- Como usar: colar tudo no SQL Editor do Supabase e clicar em "Run".
--- O teste cria cinco usuários fictícios, dois projetos e algumas ideias, confere 51 regras
+-- O teste cria cinco usuários fictícios, dois projetos e algumas ideias, confere 54 regras
 -- e termina de propósito com um "erro" que começa com RESULTADO. Esse erro desfaz tudo:
 -- nenhum dado de teste fica gravado no banco.
 --
--- Resultado esperado: "RESULTADO: 51 verificações, 0 falhas."
+-- Resultado esperado: "RESULTADO: 54 verificações, 0 falhas."
 -- O teste apaga linhas (comentário, apoio e limpeza da lixeira). O Supabase pode pedir confirmação
 -- antes de rodar ("destructive operation"): pode confirmar, porque tudo é desfeito no fim.
 
@@ -60,30 +60,30 @@ begin
   perform set_config('request.jwt.claims', ji, true);
   total := total + 1;
   begin
-    insert into public.ideias (texto) values ('Ideia de quem não tem acesso');
+    insert into public.ideias (titulo) values ('Ideia de quem não tem acesso');
     falhas := falhas || 'usuário sem acesso não deveria criar ideia'::text;
   exception when insufficient_privilege then null;
   end;
 
   perform set_config('request.jwt.claims', jb, true);
   total := total + 1;
-  insert into public.ideias (id, texto) values (i1, 'Ideia avulsa de B');
+  insert into public.ideias (id, titulo) values (i1, 'Ideia avulsa de B');
   select count(*) into n from public.ideias where id = i1 and criado_por = ub and status = 'nova' and projeto_id is null;
   if n <> 1 then falhas := falhas || 'ideia avulsa deveria nascer com o autor, status Nova e sem projeto'::text; end if;
   total := total + 1;
-  insert into public.ideias (id, texto, projeto_id, criado_por) values (i2, 'Ideia de B em P1', p1, ub);
+  insert into public.ideias (id, titulo, projeto_id, criado_por) values (i2, 'Ideia de B em P1', p1, ub);
   select count(*) into n from public.ideias where id = i2;
   if n <> 1 then falhas := falhas || 'participante deveria criar ideia no projeto'::text; end if;
   total := total + 1;
   begin
-    insert into public.ideias (texto, projeto_id) values ('Ideia em projeto alheio', p2);
+    insert into public.ideias (titulo, projeto_id) values ('Ideia em projeto alheio', p2);
     falhas := falhas || 'não deveria criar ideia em projeto que não acessa'::text;
   exception when insufficient_privilege then null;
   end;
   total := total + 1;
   begin
-    insert into public.ideias (texto, criado_por) values ('Ideia em nome de outro', ua);
-    select count(*) into n from public.ideias where texto = 'Ideia em nome de outro' and criado_por = ua;
+    insert into public.ideias (titulo, criado_por) values ('Ideia em nome de outro', ua);
+    select count(*) into n from public.ideias where titulo = 'Ideia em nome de outro' and criado_por = ua;
     if n <> 0 then falhas := falhas || 'não deveria criar ideia em nome de outra pessoa'::text; end if;
   exception when insufficient_privilege then null;
   end;
@@ -100,7 +100,7 @@ begin
   total := total + 1;
   select count(*) into n from public.ideias where id in (i1, i2);
   if n <> 0 then falhas := falhas || 'quem está fora do projeto não deveria ver as ideias dele'::text; end if;
-  insert into public.ideias (id, texto) values (i3, 'Ideia avulsa de C');
+  insert into public.ideias (id, titulo) values (i3, 'Ideia avulsa de C');
 
   perform set_config('request.jwt.claims', jadm, true);
   total := total + 1;
@@ -134,10 +134,29 @@ begin
   perform set_config('request.jwt.claims', ja, true);
   total := total + 1;
   begin
-    update public.ideias set texto = 'Texto trocado pelo responsável' where id = i2;
-    falhas := falhas || 'responsável do projeto não deveria alterar o texto da ideia de outro'::text;
+    update public.ideias set titulo = 'Título trocado pelo responsável' where id = i2;
+    falhas := falhas || 'responsável do projeto não deveria alterar o título da ideia de outro'::text;
   exception when raise_exception then
-    if sqlerrm not like 'Somente o autor pode alterar o texto%' then falhas := falhas || ('texto por outro, erro inesperado: ' || sqlerrm); end if;
+    if sqlerrm not like 'Somente o autor pode alterar o título e a descrição%' then falhas := falhas || ('título por outro, erro inesperado: ' || sqlerrm); end if;
+  end;
+  total := total + 1;
+  begin
+    update public.ideias set descricao = 'Descrição trocada pelo responsável' where id = i2;
+    falhas := falhas || 'responsável do projeto não deveria alterar a descrição da ideia de outro'::text;
+  exception when raise_exception then
+    if sqlerrm not like 'Somente o autor pode alterar o título e a descrição%' then falhas := falhas || ('descrição por outro, erro inesperado: ' || sqlerrm); end if;
+  end;
+  total := total + 1;
+  begin
+    insert into public.ideias (titulo, projeto_id) values ('   ', p1);
+    falhas := falhas || 'ideia com título em branco não deveria ser aceita'::text;
+  exception when check_violation then null;
+  end;
+  total := total + 1;
+  begin
+    insert into public.ideias (titulo, projeto_id) values (repeat('a', 201), p1);
+    falhas := falhas || 'ideia com título de mais de 200 caracteres não deveria ser aceita'::text;
+  exception when check_violation then null;
   end;
   total := total + 1;
   update public.ideias set status = 'em_analise' where id = i2;
@@ -160,9 +179,9 @@ begin
 
   perform set_config('request.jwt.claims', jb, true);
   total := total + 1;
-  update public.ideias set texto = 'Ideia de B em P1, revista', status = 'aprovada' where id = i2;
+  update public.ideias set titulo = 'Ideia de B em P1, revista', status = 'aprovada' where id = i2;
   get diagnostics n = row_count;
-  if n <> 1 then falhas := falhas || 'autor deveria alterar o texto e o status da própria ideia'::text; end if;
+  if n <> 1 then falhas := falhas || 'autor deveria alterar o título e o status da própria ideia'::text; end if;
   total := total + 1;
   begin
     update public.ideias set criado_por = ua where id = i2;

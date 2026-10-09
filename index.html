@@ -209,17 +209,9 @@
           <label>Status
             <select id="filtro-ideia-status"></select>
           </label>
+          <button class="btn primario" type="button" id="ideia-nova"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Nova ideia</button>
         </div>
       </header>
-      <form id="form-ideia" class="bloco registro-ideia">
-        <label class="campo-rotulo" for="ideia-texto">Nova ideia</label>
-        <textarea id="ideia-texto" rows="2" maxlength="2000" placeholder="Escreva a ideia" required></textarea>
-        <div class="registro-linha">
-          <select id="ideia-destino" aria-label="Onde registrar a ideia"></select>
-          <button class="btn primario" type="submit">Registrar</button>
-        </div>
-        <p class="legenda" id="ideia-nota"></p>
-      </form>
       <div id="lista-ideias" class="lista-datas"></div>
     </section>
 
@@ -304,8 +296,7 @@
       <h2>Ideias <span class="contagem" id="lp-ideias-contagem"></span></h2>
       <div id="lp-ideias-lista"></div>
       <div class="registro-linha">
-        <textarea id="lp-ideia-texto" rows="1" maxlength="2000" placeholder="Nova ideia para este projeto" aria-label="Nova ideia para este projeto" data-rascunho></textarea>
-        <button class="btn secundario" type="button" id="lp-ideia-registrar">Registrar</button>
+        <button class="btn secundario" type="button" id="lp-ideia-nova">Nova ideia neste projeto</button>
       </div>
     </section>
     <p class="legenda" id="lp-historico"></p>
@@ -357,8 +348,7 @@
       <h3>Ideias deste projeto <span class="contagem" id="p-ideias-contagem"></span></h3>
       <div id="p-ideias-lista"></div>
       <div class="registro-linha">
-        <textarea id="p-ideia-texto" rows="1" maxlength="2000" placeholder="Nova ideia para este projeto" aria-label="Nova ideia para este projeto" data-rascunho></textarea>
-        <button class="btn secundario" type="button" id="p-ideia-registrar">Registrar</button>
+        <button class="btn secundario" type="button" id="p-ideia-nova">Nova ideia neste projeto</button>
       </div>
       <p class="legenda">Quem tem acesso ao projeto vê as ideias dele.</p>
     </div>
@@ -431,13 +421,18 @@
       <button class="fechar" type="button" data-fechar aria-label="Fechar"></button>
     </header>
     <p class="origem" id="i-origem"></p>
-    <label id="i-campo-texto">Texto
-      <textarea id="i-texto" rows="5" maxlength="2000" required></textarea>
+    <label id="i-campo-titulo">Título
+      <input type="text" id="i-titulo" maxlength="200" required>
     </label>
+    <label id="i-campo-descricao">Descrição (opcional)
+      <textarea id="i-descricao" rows="5" maxlength="2000"></textarea>
+    </label>
+    <h3 class="titulo-leitura" id="i-titulo-leitura" hidden></h3>
     <p class="descricao" id="i-leitura" hidden></p>
     <p class="pessoa" id="i-autor"></p>
-    <label>Status <select id="i-status"></select></label>
+    <label id="i-campo-status">Status <select id="i-status"></select></label>
     <label id="i-campo-projeto">Projeto <select id="i-projeto"></select></label>
+    <p class="legenda" id="i-destino-nota" hidden></p>
     <p class="legenda" id="i-projeto-nota" hidden>Esta ideia já recebeu comentário ou apoio e não pode mais sair do projeto.</p>
     <p class="legenda" id="i-historico"></p>
     <div class="acoes">

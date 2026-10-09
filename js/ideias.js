@@ -1,6 +1,6 @@
-// Ideias: registro rápido, lista com filtros e a janela da ideia.
+// Ideias: lista com filtros e a janela da ideia (criar, editar, apoiar e comentar). A ideia tem título e descrição (opcional).
 // Ideia avulsa (sem projeto) é privada: só quem criou vê. Ideia de projeto é vista por quem acessa o projeto e pelo administrador.
-// Só o autor altera o texto, vincula, desvincula e exclui. O status é do autor ou do responsável pelo projeto.
+// Só o autor altera título e descrição, vincula, desvincula e exclui. O status é do autor ou do responsável pelo projeto.
 import { sb } from "./supabase.js";
 import { de } from "./ligacoes.js";
 import { $, el, celular, plural, dataCurta, dataHora, dois, ICONES, aviso, traduz, preencherSelect, confirmar } from "./util.js";
@@ -21,10 +21,6 @@ export function origemDaIdeia(i) { return tituloDoProjeto(i.projeto_id) ?? "Idei
 
 // ---------- Tela ----------
 export function renderIdeias() {
-  // Registro: avulsa ou em um projeto que a pessoa acessa (os únicos que ela enxerga)
-  const destino = $("#ideia-destino");
-  preencherSelect(destino, [{ v: "", t: "Ideia avulsa (só você vê)" }, ...projetosParaGravar()], destino.value);
-  notaDoDestino();
   // Filtros
   preencherSelect($("#filtro-ideia-projeto"), [{ v: "todos", t: "Todas" }, { v: "avulsas", t: "Somente avulsas" }, ...projetosEmOrdem()], estado.filtroIdeiaProjeto);
   estado.filtroIdeiaProjeto = $("#filtro-ideia-projeto").value;
@@ -40,7 +36,7 @@ export function renderIdeias() {
   const raiz = $("#lista-ideias");
   raiz.replaceChildren();
   if (!ideias.length) {
-    raiz.append(el("p", { class: "apoio", text: estado.ideias.length ? "Nenhuma ideia com esses filtros." : "Nenhuma ideia registrada ainda. Escreva a primeira no campo acima." }));
+    raiz.append(el("p", { class: "apoio", text: estado.ideias.length ? "Nenhuma ideia com esses filtros." : "Nenhuma ideia registrada ainda. Use o botão \"Nova ideia\"." }));
     return;
   }
   raiz.append(el("section", { class: "grupo-datas" },
@@ -67,12 +63,12 @@ export function chipsDaIdeia(i) {
     nc ? chipComIcone(SVG_COMENTARIO, nc, plural(nc, "comentário", "comentários")) : null);
 }
 
-// Uma ideia em lista, no modelo do cartão: texto na primeira linha, com o autor à direita; projeto embaixo; depois as etiquetas.
+// Uma ideia em lista, no modelo do cartão: título na primeira linha, com o autor à direita; projeto embaixo; depois as etiquetas.
 // Dentro do projeto a linha não repete o nome do projeto.
 export function linhaDaIdeia(i, semOrigem) {
   return el("div", { class: "linha-tarefa ideia" },
     el("button", { class: "abrir", type: "button", onclick: () => abrirIdeia(i.id) },
-      el("span", { class: "nome", text: i.texto, title: i.texto }),
+      el("span", { class: "nome", text: i.titulo, title: i.titulo }),
       semOrigem ? null : el("span", { class: "origem" + (i.projeto_id ? "" : " avulsa"), text: origemDaIdeia(i) })),
     chipsDaIdeia(i),
     i.criado_por ? avatar(i.criado_por) : null);
@@ -81,29 +77,9 @@ export function linhaDaIdeia(i, semOrigem) {
 $("#filtro-ideia-projeto").addEventListener("change", (e) => { estado.filtroIdeiaProjeto = e.target.value; renderIdeias(); });
 $("#filtro-ideia-status").addEventListener("change", (e) => { estado.filtroIdeiaStatus = e.target.value; renderIdeias(); });
 
-// ---------- Registrar ----------
-function notaDoDestino() {
-  $("#ideia-nota").textContent = $("#ideia-destino").value
-    ? "Todos que têm acesso ao projeto e o administrador vão ver esta ideia."
-    : "Ideia avulsa: só você vê. Dá para vincular a um projeto depois.";
-}
-$("#ideia-destino").addEventListener("change", notaDoDestino);
-
-// No computador, Enter registra e Shift+Enter quebra a linha. No celular, Enter quebra a linha e o botão registra.
-$("#ideia-texto").addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && !e.shiftKey && !e.isComposing && !celular()) { e.preventDefault(); $("#form-ideia").requestSubmit(); }
-});
-
-$("#form-ideia").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const texto = $("#ideia-texto").value.trim();
-  if (!texto) return;
-  const { error } = await sb.from("ideias").insert({ texto, projeto_id: $("#ideia-destino").value || null });
-  if (error) { aviso("Não foi possível registrar a ideia: " + traduz(error)); return; }
-  $("#ideia-texto").value = "";
-  aviso("Ideia registrada.");
-  await de.carregar();
-});
+// ---------- Nova ideia ----------
+// O botão da aba abre a janela da ideia em modo de criação (avulsa ou em um projeto de que a pessoa faz parte).
+$("#ideia-nova").addEventListener("click", () => novaIdeia(null));
 
 // ---------- Ideias dentro do projeto ----------
 // Na janela do projeto (computador, no formulário) e na leitura do projeto (celular, tela cheia).
@@ -124,23 +100,7 @@ export function renderIdeiasDoProjeto(projetoId) {
       : [el("p", { class: "apoio", text: "Este projeto ainda não tem ideias." })]));
   }
 }
-async function registrarNoProjeto(pre) {
-  const campo = $(`#${pre}-ideia-texto`);
-  const texto = campo.value.trim();
-  if (!texto || !projetoDasIdeias) { campo.focus(); return; }
-  const { error } = await sb.from("ideias").insert({ texto, projeto_id: projetoDasIdeias });
-  if (error) { aviso("Não foi possível registrar a ideia: " + traduz(error)); return; }
-  campo.value = "";
-  aviso("Ideia registrada no projeto.");
-  await de.carregar();
-}
-for (const pre of ["p", "lp"]) {
-  $(`#${pre}-ideia-registrar`).addEventListener("click", () => registrarNoProjeto(pre));
-  // Como na aba Ideias: no computador, Enter registra e Shift+Enter quebra a linha; no celular, Enter quebra a linha
-  $(`#${pre}-ideia-texto`).addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.shiftKey && !e.isComposing && !celular()) { e.preventDefault(); registrarNoProjeto(pre); }
-  });
-}
+for (const pre of ["p", "lp"]) $(`#${pre}-ideia-nova`).addEventListener("click", () => novaIdeia(projetoDasIdeias));
 
 // ---------- Janela da ideia ----------
 // A ideia pode abrir por cima da janela do projeto. Ao fechar, a edição do projeto é retomada (como na tarefa).
@@ -150,19 +110,62 @@ $("#dlg-ideia").addEventListener("close", () => {
   projetoPorBaixo = null;
 });
 
+// Título e descrição: campos para quem edita; para os demais, o título em destaque e a descrição, se houver
+function camposDeTexto(edita, titulo, descricao) {
+  $("#i-campo-titulo").hidden = $("#i-campo-descricao").hidden = !edita;
+  $("#i-titulo-leitura").hidden = edita;
+  $("#i-titulo-leitura").textContent = titulo ?? "";
+  $("#i-leitura").textContent = descricao ?? "";
+  $("#i-leitura").hidden = edita || !descricao;
+}
+
+// Janela da nova ideia: título, descrição e projeto. Em um projeto, o projeto já vem escolhido e fica travado.
+export function novaIdeia(projetoId) {
+  projetoPorBaixo = $("#dlg-projeto").open && estado.editando?.tipo === "projeto" ? estado.editando : null;
+  estado.editando = { tipo: "ideia", id: null, novo: true };
+  $("#i-janela").textContent = "Nova ideia";
+  $("#i-origem").hidden = $("#i-autor").hidden = $("#i-historico").hidden = $("#i-campo-status").hidden = true;
+  $("#i-titulo").value = $("#i-descricao").value = "";
+  camposDeTexto(true);
+  preencherSelect($("#i-projeto"), projetoId ? [{ v: projetoId, t: tituloDoProjeto(projetoId) }] : [{ v: "", t: "Ideia avulsa (só você vê)" }, ...projetosParaGravar()], projetoId ?? "");
+  $("#i-campo-projeto").hidden = false;
+  $("#i-projeto").disabled = !!projetoId;
+  $("#i-projeto-nota").hidden = true;
+  notaDoDestino();
+  $("#i-comentario-texto").value = "";
+  $("#i-participacao").hidden = $("#i-sem-participacao").hidden = true;
+  $("#i-salvar").hidden = false;
+  $("#i-salvar").textContent = "Salvar";
+  $("#i-cancelar").textContent = "Cancelar";
+  $("#i-excluir").hidden = true;
+  $("#dlg-ideia").showModal();
+  document.activeElement?.blur();
+}
+function notaDoDestino() {
+  if (!estado.editando?.novo) return;
+  $("#i-destino-nota").hidden = false;
+  $("#i-destino-nota").textContent = $("#i-projeto").value
+    ? "Todos que têm acesso ao projeto e o administrador vão ver esta ideia."
+    : "Ideia avulsa: só você vê. Dá para vincular a um projeto depois.";
+}
+$("#i-projeto").addEventListener("change", notaDoDestino);
+
 export function abrirIdeia(id) {
   const i = estado.ideias.find((x) => x.id === id);
   if (!i) return;
   projetoPorBaixo = $("#dlg-projeto").open && estado.editando?.tipo === "projeto" ? estado.editando : null;
   const autor = souAutor(i), mudaStatus = autor || respondoPeloProjeto(i);
   estado.editando = { tipo: "ideia", id: i.id };
+  $("#i-janela").textContent = "Ideia";
+  $("#i-origem").hidden = $("#i-autor").hidden = $("#i-historico").hidden = $("#i-campo-status").hidden = false;
+  $("#i-destino-nota").hidden = true;
+  $("#i-salvar").textContent = "Salvar";
   $("#i-origem").textContent = i.projeto_id ? origemDaIdeia(i) : (autor ? "Ideia avulsa: só você vê" : "Ideia avulsa");
   $("#i-origem").className = "origem" + (i.projeto_id ? "" : " avulsa");
-  // O autor edita o texto; os demais leem
-  $("#i-texto").value = i.texto;
-  $("#i-campo-texto").hidden = !autor;
-  $("#i-leitura").textContent = i.texto;
-  $("#i-leitura").hidden = autor;
+  // O autor edita título e descrição; os demais leem
+  $("#i-titulo").value = i.titulo;
+  $("#i-descricao").value = i.descricao ?? "";
+  camposDeTexto(autor, i.titulo, i.descricao);
   $("#i-autor").replaceChildren(i.criado_por ? avatar(i.criado_por) : "", el("span", { text: nomePerfil(i.criado_por) || "usuário removido" }));
   preencherSelect($("#i-status"), opcoesStatus, i.status);
   $("#i-status").disabled = !mudaStatus;
@@ -258,14 +261,27 @@ async function excluirComentario(c) {
 
 $("#form-ideia-janela").addEventListener("submit", async (e) => {
   e.preventDefault();
+  if (estado.editando?.novo) {
+    const titulo = $("#i-titulo").value.trim();
+    if (!titulo) return;
+    const projeto_id = $("#i-projeto").value || null;
+    const { error } = await sb.from("ideias").insert({ titulo, descricao: $("#i-descricao").value.trim() || null, projeto_id });
+    if (error) { aviso("Não foi possível registrar a ideia: " + traduz(error)); return; }
+    $("#dlg-ideia").close();
+    aviso(projeto_id ? "Ideia registrada no projeto." : "Ideia registrada.");
+    await de.carregar();
+    return;
+  }
   const i = estado.ideias.find((x) => x.id === estado.editando?.id);
   if (!i) return;
   const autor = souAutor(i), dados = {};
   if ($("#i-status").value !== i.status) dados.status = $("#i-status").value;
   if (autor) {
-    const texto = $("#i-texto").value.trim();
-    if (!texto) return;
-    if (texto !== i.texto) dados.texto = texto;
+    const titulo = $("#i-titulo").value.trim();
+    if (!titulo) return;
+    if (titulo !== i.titulo) dados.titulo = titulo;
+    const descricao = $("#i-descricao").value.trim() || null;
+    if (descricao !== (i.descricao ?? null)) dados.descricao = descricao;
     const projeto = $("#i-projeto").value || null;
     if (projeto !== (i.projeto_id ?? null)) {
       // Mudar a ideia de lugar muda quem a enxerga: a pessoa confirma antes

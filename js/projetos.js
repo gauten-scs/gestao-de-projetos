@@ -35,7 +35,6 @@ export function abrirProjeto(id, colunaId) {
   $("#p-historico").hidden = !p;
   $("#p-tarefas").hidden = !p;
   $("#p-ideias").hidden = !p; // como as tarefas, as ideias só entram no projeto que já existe
-  $("#p-ideia-texto").value = $("#lp-ideia-texto").value = "";
   $("#p-excluir").hidden = !p || p.responsavel_id !== eu; // só o responsável exclui
   travarConclusao($("#p-coluna"), !p || p.responsavel_id === eu, p?.coluna_id);
   soLer(ro, [$("#p-titulo"), $("#p-descricao"), $("#p-coluna"), $("#p-prioridade"), $("#p-prazo")],
