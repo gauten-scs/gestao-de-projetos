@@ -2,8 +2,8 @@
 // No celular a janela ocupa a tela inteira, e o projeto que já existe abre primeiro em leitura.
 import { sb } from "./supabase.js";
 import { de } from "./ligacoes.js";
-import { $, el, celular, dataCurta, aviso, traduz, preencherSelect, confirmar } from "./util.js";
-import { estado, colunasDe, nomePerfil, proximaOrdem, avatar, atrasado, historico, travarConclusao, opcoesPessoas } from "./estado.js";
+import { $, el, celular, dataCurta, aviso, traduz, preencherSelect, confirmar, soLer } from "./util.js";
+import { estado, colunasDe, nomePerfil, proximaOrdem, avatar, atrasado, historico, travarConclusao, opcoesPessoas, vejoComoAdmin, NOTA_ADMIN } from "./estado.js";
 import { botaoConcluir, abrirTarefa, linhaDaTarefa } from "./tarefas.js";
 import { mover, chipsDoProjeto, andamentoDoProjeto } from "./quadro.js";
 import { renderIdeiasDoProjeto } from "./ideias.js";
@@ -19,7 +19,8 @@ export function abrirProjeto(id, colunaId) {
   const p = id ? estado.projetos.find((x) => x.id === id) : null;
   estado.editando = { tipo: "projeto", id: p ? p.id : null };
   projetoAberto = estado.editando.id;
-  $("#p-janela").textContent = p ? "Editar projeto" : "Novo projeto";
+  const ro = !!p && vejoComoAdmin(p.id); // administrador em projeto de que não faz parte: só lê
+  $("#p-janela").textContent = ro ? "Projeto" : p ? "Editar projeto" : "Novo projeto";
   $("#p-titulo").value = p?.titulo ?? "";
   $("#p-descricao").value = p?.descricao ?? "";
   preencherSelect($("#p-coluna"), colunas.map((c) => ({ v: c.id, t: c.nome })), p?.coluna_id ?? colunaId ?? colunas[0].id);
@@ -37,6 +38,10 @@ export function abrirProjeto(id, colunaId) {
   $("#p-ideia-texto").value = $("#lp-ideia-texto").value = "";
   $("#p-excluir").hidden = !p || p.responsavel_id !== eu; // só o responsável exclui
   travarConclusao($("#p-coluna"), !p || p.responsavel_id === eu, p?.coluna_id);
+  soLer(ro, [$("#p-titulo"), $("#p-descricao"), $("#p-coluna"), $("#p-prioridade"), $("#p-prazo")],
+    [$("#form-projeto button[type=submit]"), $("#p-adicionar"), $("#p-ideias .registro-linha"), $("#lp-nova"), $("#lp-ideias .registro-linha")]);
+  $("#form-projeto .acoes [data-fechar]").textContent = ro ? "Fechar" : "Cancelar";
+  $("#lp-editar").textContent = ro ? "Ver detalhes" : "Editar";
   const leitura = !!p && celular();
   $("#p-leitura").hidden = !leitura;
   $("#form-projeto").hidden = leitura;
@@ -56,6 +61,7 @@ function preencherLeitura(p) {
   $("#lp-descricao").hidden = !p.descricao;
   preencherSelect($("#lp-coluna"), colunasDe("projetos").map((c) => ({ v: c.id, t: c.nome })), p.coluna_id);
   travarConclusao($("#lp-coluna"), meu, p.coluna_id); // só o responsável leva o projeto para a coluna concluída, ou tira de lá
+  $("#lp-coluna").disabled = vejoComoAdmin(p.id);
   $("#lp-andamento").replaceChildren(...[andamentoDoProjeto(p)].filter(Boolean));
   const tarefas = tarefasDoProjeto(p.id);
   $("#lp-contagem").textContent = String(tarefas.length);
@@ -65,7 +71,7 @@ function preencherLeitura(p) {
         return linhaDaTarefa(t, !t.concluida_em && coluna ? el("span", { class: "chip", text: coluna, title: "Coluna no quadro" }) : null, true);
       })
     : [el("p", { class: "apoio", text: "Este projeto ainda não tem tarefas." })]));
-  $("#lp-historico").textContent = historico(p);
+  $("#lp-historico").textContent = historico(p) + (vejoComoAdmin(p.id) ? " " + NOTA_ADMIN : "");
 }
 $("#lp-editar").addEventListener("click", () => { $("#p-leitura").hidden = true; $("#form-projeto").hidden = false; $("#dlg-projeto").scrollTop = 0; });
 $("#lp-nova").addEventListener("click", () => abrirTarefa(null, null, projetoAberto));
@@ -98,9 +104,10 @@ export function renderMembros(marcados) {
   ordenarMembros();
   $("#p-seletor").open = false;
   $("#p-membros-busca").value = "";
+  const id = estado.editando.id;
   $("#p-membros-nota").textContent = pode
-    ? "Só o responsável e as pessoas selecionadas enxergam o projeto e as tarefas dele."
-    : "Só o responsável pelo projeto altera quem pode ver.";
+    ? "Só o responsável, as pessoas selecionadas e o administrador enxergam o projeto e o que é dele."
+    : id && vejoComoAdmin(id) ? NOTA_ADMIN : "Só o responsável pelo projeto altera quem pode ver.";
   resumoMembros();
 }
 export function membrosMarcados() {
@@ -197,6 +204,7 @@ $("#p-adicionar").addEventListener("click", () => {
 $("#form-projeto").addEventListener("submit", async (e) => {
   e.preventDefault();
   const id = estado.editando.id;
+  if (id && vejoComoAdmin(id)) return;
   const atual = id ? estado.projetos.find((x) => x.id === id) : null;
   const dados = {
     titulo: $("#p-titulo").value.trim(), descricao: $("#p-descricao").value.trim(),

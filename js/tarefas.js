@@ -2,8 +2,8 @@
 // No celular a janela é um painel vindo de baixo, e a tarefa que já existe abre primeiro em leitura.
 import { sb } from "./supabase.js";
 import { de } from "./ligacoes.js";
-import { $, celular, PRIORIDADES, el, hoje, dataBR, dataCurta, ICONES, dataHora, aviso, traduz, preencherSelect, confirmar } from "./util.js";
-import { estado, colunasDe, nomePerfil, proximaOrdem, avatar, atrasado, historico, passaFiltro, pessoasDoProjeto, travarConclusao, opcoesPessoas, colunaConcluida } from "./estado.js";
+import { $, celular, PRIORIDADES, el, hoje, dataBR, dataCurta, ICONES, dataHora, aviso, traduz, preencherSelect, confirmar, soLer } from "./util.js";
+import { estado, colunasDe, nomePerfil, proximaOrdem, avatar, atrasado, historico, passaFiltro, pessoasDoProjeto, travarConclusao, opcoesPessoas, colunaConcluida, vejoComoAdmin, NOTA_ADMIN, projetosQueGravo } from "./estado.js";
 import { renderQuadro, mover } from "./quadro.js";
 
 export function renderFiltros() {
@@ -152,13 +152,14 @@ export function abrirTarefa(id, colunaId, projetoId) {
   const t = id ? estado.tarefas.find((x) => x.id === id) : null;
   projetoPorBaixo = $("#dlg-projeto").open && estado.editando?.tipo === "projeto" ? estado.editando : null;
   estado.editando = { tipo: "tarefa", id: t ? t.id : null };
-  $("#t-janela").textContent = t ? "Editar tarefa" : "Nova tarefa";
+  const ro = !!t && vejoComoAdmin(t.projeto_id); // administrador em tarefa de projeto de que não faz parte: só lê
+  $("#t-janela").textContent = ro ? "Tarefa" : t ? "Editar tarefa" : "Nova tarefa";
   $("#t-titulo").value = t?.titulo ?? "";
   $("#t-descricao").value = t?.descricao ?? "";
   const filtro = estado.filtroProjeto;
   const projetoPadrao = projetoId ?? (filtro !== "todos" && filtro !== "avulsas" ? filtro : "");
   preencherSelect($("#t-projeto"), [{ v: "", t: "Tarefa avulsa (sem projeto)" },
-    ...estado.projetos.slice().sort((a, b) => a.titulo.localeCompare(b.titulo)).map((p) => ({ v: p.id, t: p.titulo }))],
+    ...(ro ? estado.projetos : projetosQueGravo()).slice().sort((a, b) => a.titulo.localeCompare(b.titulo)).map((p) => ({ v: p.id, t: p.titulo }))],
     t ? (t.projeto_id ?? "") : projetoPadrao);
   preencherSelect($("#t-coluna"), colunas.map((c) => ({ v: c.id, t: c.nome })), t?.coluna_id ?? colunaId ?? colunas[0].id);
   $("#t-prioridade").value = t?.prioridade ?? "media";
@@ -170,6 +171,11 @@ export function abrirTarefa(id, colunaId, projetoId) {
   $("#t-concluir").hidden = !t || t.responsavel_id !== estado.usuario.id; // só o responsável conclui
   travarConclusao($("#t-coluna"), t ? t.responsavel_id === estado.usuario.id : true, t?.coluna_id);
   $("#t-concluir").textContent = t?.concluida_em ? "Reabrir tarefa" : "Marcar como concluída";
+  soLer(ro, [$("#t-titulo"), $("#t-descricao"), $("#t-projeto"), $("#t-coluna"), $("#t-prioridade"), $("#t-prazo"), $("#t-responsavel")],
+    [$("#form-tarefa button[type=submit]")]);
+  $("#form-tarefa .acoes [data-fechar]").textContent = ro ? "Fechar" : "Cancelar";
+  $("#l-editar").textContent = ro ? "Ver detalhes" : "Editar";
+  if (ro) $("#t-visivel").textContent = NOTA_ADMIN;
   const leitura = !!t && celular();
   if (leitura) preencherLeitura(t);
   $("#t-leitura").hidden = !leitura;
@@ -190,6 +196,7 @@ function preencherLeitura(t) {
   $("#l-descricao").hidden = !t.descricao;
   preencherSelect($("#l-coluna"), colunasDe("tarefas").map((c) => ({ v: c.id, t: c.nome })), t.coluna_id);
   travarConclusao($("#l-coluna"), meu, t.coluna_id); // só o responsável leva para a coluna concluída, ou tira de lá
+  $("#l-coluna").disabled = vejoComoAdmin(t.projeto_id);
   $("#l-historico").textContent = historico(t);
   $("#l-concluir").hidden = !meu; // só o responsável conclui
   $("#l-concluir").textContent = t.concluida_em ? "Reabrir" : "Concluir";
@@ -217,7 +224,7 @@ export function pessoasDaTarefa(atual) {
   const opcoes = opcoesPessoas(ids, ids ? null : atual);
   preencherSelect($("#t-responsavel"), opcoes, opcoes.some((o) => o.v === atual) ? atual : (opcoes.some((o) => o.v === estado.usuario.id) ? estado.usuario.id : ""));
   $("#t-visivel").textContent = projetoId
-    ? "Todos que têm acesso ao projeto veem esta tarefa dentro dele. No quadro de tarefas ela aparece só para o responsável."
+    ? "Todos que têm acesso ao projeto veem esta tarefa dentro dele. No quadro de tarefas ela aparece só para o responsável e para o administrador."
     : "Tarefa avulsa: só você e o responsável enxergam.";
 }
 $("#t-projeto").addEventListener("change", () => pessoasDaTarefa($("#t-responsavel").value));
@@ -226,6 +233,7 @@ $("#form-tarefa").addEventListener("submit", async (e) => {
   e.preventDefault();
   const id = estado.editando.id;
   const atual = id ? estado.tarefas.find((x) => x.id === id) : null;
+  if (atual && vejoComoAdmin(atual.projeto_id)) return;
   const dados = {
     titulo: $("#t-titulo").value.trim(), descricao: $("#t-descricao").value.trim(),
     projeto_id: $("#t-projeto").value || null, coluna_id: $("#t-coluna").value,

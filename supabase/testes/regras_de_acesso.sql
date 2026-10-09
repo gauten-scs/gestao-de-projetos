@@ -1,11 +1,11 @@
 -- Gestão de Projetos do Gauten Smart.GOV: teste das regras de acesso do banco.
 --
 -- Como usar: colar tudo no SQL Editor do Supabase e clicar em "Run".
--- O teste cria cinco usuários fictícios, um projeto e três tarefas, confere 57 regras
+-- O teste cria cinco usuários fictícios, um projeto e três tarefas, confere 66 regras
 -- e termina de propósito com um "erro" que começa com RESULTADO. Esse erro desfaz tudo:
 -- nenhum dado de teste fica gravado no banco.
 --
--- Resultado esperado: "RESULTADO: 57 verificações, 0 falhas."
+-- Resultado esperado: "RESULTADO: 66 verificações, 0 falhas."
 -- Se houver falhas, cada uma aparece em uma linha, dizendo qual regra não se comportou como deveria.
 --
 -- O que este teste não cobre: exclusão definitiva e limpeza diária da lixeira.
@@ -181,7 +181,7 @@ begin
   perform set_config('request.jwt.claims', jadm, true);
   total := total + 1;
   select count(*) into n from public.projetos where id = p1;
-  if n <> 0 then falhas := falhas || 'admin não deveria ver projeto dos outros fora da lixeira'; end if;
+  if n <> 1 then falhas := falhas || 'admin deveria ver o projeto dos outros'; end if;
 
   perform set_config('request.jwt.claims', ja, true);
   total := total + 1;
@@ -212,7 +212,7 @@ begin
   perform set_config('request.jwt.claims', jadm, true);
   total := total + 1;
   select count(*) into n from public.tarefas where id = t1;
-  if n <> 0 then falhas := falhas || 'admin não deveria ver tarefa de projeto dos outros fora da lixeira'; end if;
+  if n <> 1 then falhas := falhas || 'admin deveria ver a tarefa de projeto dos outros'; end if;
 
   perform set_config('request.jwt.claims', ja, true);
   total := total + 1;
@@ -289,6 +289,48 @@ begin
   total := total + 1;
   select count(*) into n from public.tarefas where id in (t2, t3);
   if n <> 0 then falhas := falhas || 'admin não deveria ver tarefa avulsa dos outros'; end if;
+
+  -- ---------- Administrador nos projetos dos outros: vê tudo, em somente leitura ----------
+  total := total + 1;
+  select count(*) into n from public.projeto_membros where projeto_id = p1;
+  if n < 1 then falhas := falhas || 'admin deveria ver quem pode ver o projeto'; end if;
+  total := total + 1;
+  update public.projetos set descricao = 'Alterado pelo admin' where id = p1;
+  get diagnostics n = row_count;
+  if n <> 0 then falhas := falhas || 'admin não deveria alterar o projeto dos outros'; end if;
+  total := total + 1;
+  update public.tarefas set descricao = 'Alterada pelo admin' where id = t1;
+  get diagnostics n = row_count;
+  if n <> 0 then falhas := falhas || 'admin não deveria alterar a tarefa de projeto dos outros'; end if;
+  total := total + 1;
+  update public.projetos set coluna_id = case when coluna_id = cp then cpc else cp end where id = p1;
+  get diagnostics n = row_count;
+  if n <> 0 then falhas := falhas || 'admin não deveria concluir nem reabrir o projeto dos outros'; end if;
+  total := total + 1;
+  update public.tarefas set concluida_em = case when concluida_em is null then now() end where id = t1;
+  get diagnostics n = row_count;
+  if n <> 0 then falhas := falhas || 'admin não deveria concluir nem reabrir a tarefa dos outros'; end if;
+  total := total + 1;
+  update public.projetos set arquivado_em = now() where id = p1;
+  get diagnostics n = row_count;
+  if n <> 0 then falhas := falhas || 'admin não deveria excluir o projeto dos outros'; end if;
+  total := total + 1;
+  update public.tarefas set arquivado_em = now() where id = t1;
+  get diagnostics n = row_count;
+  if n <> 0 then falhas := falhas || 'admin não deveria excluir a tarefa dos outros'; end if;
+  total := total + 1;
+  begin
+    insert into public.projeto_membros (projeto_id, usuario_id) values (p1, uadm);
+    falhas := falhas || 'admin não deveria definir quem pode ver o projeto dos outros';
+  exception when insufficient_privilege then null;
+  end;
+  total := total + 1;
+  begin
+    insert into public.tarefas (titulo, projeto_id, coluna_id, responsavel_id, prazo)
+    values ('Do admin', p1, ct, uadm, current_date);
+    falhas := falhas || 'admin não deveria criar tarefa no projeto dos outros';
+  exception when insufficient_privilege then null;
+  end;
 
   -- ---------- Lixeira ----------
   perform set_config('request.jwt.claims', jb, true);

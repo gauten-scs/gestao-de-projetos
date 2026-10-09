@@ -3,7 +3,7 @@
 import { sb } from "./supabase.js";
 import { de } from "./ligacoes.js";
 import { $, celular, PRIORIDADES, el, porOrdem, dataBR, dataCurta, ICONES, icone, plural, aviso, traduz } from "./util.js";
-import { estado, colunasDe, avatar, atrasado, noQuadro, colunaConcluida, passaFiltro, pessoasDoProjeto } from "./estado.js";
+import { estado, colunasDe, avatar, atrasado, noQuadro, colunaConcluida, passaFiltro, pessoasDoProjeto, vejoComoAdmin, NOTA_ADMIN } from "./estado.js";
 
 // Celular: a coluna mostrada em cada quadro fica guardada no aparelho, para ser a mesma na volta.
 const chaveColuna = (quadro) => "gp-coluna-" + quadro;
@@ -83,9 +83,13 @@ export function renderQuadro(quadro) {
   mostrarColuna(quadro, colunaLembrada(quadro, colunas), false);
 }
 
+// O cartão é só para leitura quando é de um projeto que o administrador vê sem fazer parte.
+const soLeitura = (quadro, item) => vejoComoAdmin(quadro === "projetos" ? item.id : item.projeto_id);
+
 export function cartao(quadro, item, col) {
   const abrir = () => (quadro === "projetos" ? de.abrirProjeto(item.id) : de.abrirTarefa(item.id));
-  const c = el("article", { class: "cartao " + (quadro === "tarefas" ? "tarefa" : "projeto") + (item.concluida_em ? " feita" : ""), draggable: !celular(), tabIndex: 0, role: "button", onclick: abrir });
+  const ro = soLeitura(quadro, item); // administrador em projeto de que não faz parte: o cartão abre, mas não se move
+  const c = el("article", { class: "cartao " + (quadro === "tarefas" ? "tarefa" : "projeto") + (item.concluida_em ? " feita" : ""), draggable: !celular() && !ro, tabIndex: 0, role: "button", onclick: abrir });
   c.dataset.id = item.id;
   c.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrir(); } });
 
@@ -96,7 +100,7 @@ export function cartao(quadro, item, col) {
         item.responsavel_id ? avatar(item.responsavel_id) : null),
       el("span", { class: "origem" + (projeto ? "" : " avulsa"), text: projeto ? projeto.titulo : "Tarefa avulsa" }),
       de.chipsDaTarefa(item));
-    arrastavel(c, quadro, item);
+    if (!ro) arrastavel(c, quadro, item);
     return c;
   }
   // Projeto: o mesmo modelo da tarefa. Nome com o responsável à direita, depois as etiquetas, depois o andamento.
@@ -104,7 +108,7 @@ export function cartao(quadro, item, col) {
     item.responsavel_id ? avatar(item.responsavel_id) : null), chipsDoProjeto(item));
   const andamento = andamentoDoProjeto(item);
   if (andamento) c.append(andamento);
-  arrastavel(c, quadro, item);
+  if (!ro) arrastavel(c, quadro, item);
   return c;
 }
 
@@ -222,6 +226,12 @@ export function toqueArrastar(c, quadro, item) {
 export async function mover(quadro, id, colunaId, antesId) {
   const item = estado[quadro].find((i) => i.id === id);
   if (!item) return false;
+  if (soLeitura(quadro, item)) {
+    estado.arrastando = null; estado.pendente = false;
+    de.renderizar();
+    aviso(NOTA_ADMIN);
+    return false;
+  }
   const mudaConclusao = colunaConcluida(colunaId) !== colunaConcluida(item.coluna_id);
   if (mudaConclusao && item.responsavel_id !== estado.usuario.id) {
     estado.arrastando = null; estado.pendente = false;
@@ -239,7 +249,8 @@ export async function mover(quadro, id, colunaId, antesId) {
   });
   estado.arrastando = null; estado.pendente = false;
   de.renderizar();
-  const respostas = await Promise.all(mudancas.map((i) =>
+  // A nova ordem dos cartões só de leitura (do administrador) não é gravada: o banco recusaria
+  const respostas = await Promise.all(mudancas.filter((i) => !soLeitura(quadro, i)).map((i) =>
     sb.from(quadro).update({ coluna_id: i.coluna_id, ordem: i.ordem }).eq("id", i.id)));
   const falha = respostas.find((r) => r.error);
   if (falha) { aviso("Não foi possível mover o cartão: " + traduz(falha.error)); await de.carregar(); return false; }

@@ -1,11 +1,11 @@
 -- Takt: teste das regras das ideias.
 --
 -- Como usar: colar tudo no SQL Editor do Supabase e clicar em "Run".
--- O teste cria cinco usuários fictícios, dois projetos e algumas ideias, confere 46 regras
+-- O teste cria cinco usuários fictícios, dois projetos e algumas ideias, confere 51 regras
 -- e termina de propósito com um "erro" que começa com RESULTADO. Esse erro desfaz tudo:
 -- nenhum dado de teste fica gravado no banco.
 --
--- Resultado esperado: "RESULTADO: 46 verificações, 0 falhas."
+-- Resultado esperado: "RESULTADO: 51 verificações, 0 falhas."
 -- O teste apaga linhas (comentário, apoio e limpeza da lixeira). O Supabase pode pedir confirmação
 -- antes de rodar ("destructive operation"): pode confirmar, porque tudo é desfeito no fim.
 
@@ -104,8 +104,31 @@ begin
 
   perform set_config('request.jwt.claims', jadm, true);
   total := total + 1;
-  select count(*) into n from public.ideias where id in (i1, i2, i3);
-  if n <> 0 then falhas := falhas || 'administrador não deveria ver ideias dos outros'; end if;
+  select count(*) into n from public.ideias where id in (i1, i2);
+  if n <> 2 then falhas := falhas || 'administrador deveria ver as ideias de projeto dos outros'; end if;
+  total := total + 1;
+  select count(*) into n from public.ideias where id = i3;
+  if n <> 0 then falhas := falhas || 'administrador não deveria ver ideia avulsa dos outros'; end if;
+  total := total + 1;
+  update public.ideias set arquivado_em = now() where id in (i1, i2);
+  get diagnostics n = row_count;
+  if n <> 0 then falhas := falhas || 'administrador não deveria excluir ideia dos outros'; end if;
+  total := total + 1;
+  update public.ideias set status = 'aprovada' where id in (i1, i2);
+  get diagnostics n = row_count;
+  if n <> 0 then falhas := falhas || 'administrador não deveria alterar ideia dos outros'; end if;
+  total := total + 1;
+  begin
+    insert into public.ideia_comentarios (ideia_id, texto) values (i1, 'Comentário do administrador');
+    falhas := falhas || 'administrador não deveria comentar ideia de projeto dos outros';
+  exception when insufficient_privilege then null;
+  end;
+  total := total + 1;
+  begin
+    insert into public.ideia_apoios (ideia_id) values (i1);
+    falhas := falhas || 'administrador não deveria apoiar ideia de projeto dos outros';
+  exception when insufficient_privilege then null;
+  end;
 
   -- ---------- Alterar ----------
   perform set_config('request.jwt.claims', ja, true);

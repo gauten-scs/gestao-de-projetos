@@ -41,9 +41,10 @@ export function historico(item) {
 
 // No quadro de tarefas cada pessoa vê só as tarefas em que é responsável,
 // mais as avulsas que ela mesma criou (mesmo delegadas a outra pessoa).
+// O administrador vê também as tarefas de todos os projetos (só para leitura); as avulsas dos outros o banco não entrega a ele.
 export function noMeuQuadro(t) {
   const eu = estado.usuario.id;
-  return t.responsavel_id === eu || (!t.projeto_id && t.criado_por === eu);
+  return t.responsavel_id === eu || (!t.projeto_id && t.criado_por === eu) || (!!t.projeto_id && souAdmin());
 }
 
 // Tarefa concluída fica 7 dias na coluna concluída do quadro; depois, só na aba Concluídas.
@@ -61,7 +62,16 @@ export function passaFiltro(t) {
   return true;
 }
 
-// Quem enxerga um projeto: o responsável e os usuários selecionados.
+// O administrador vê todos os projetos. Naqueles de que não faz parte, só lê: não altera, não inclui e não exclui nada
+// (o banco recusa; as telas escondem os botões e desligam os campos).
+export function vejoComoAdmin(projetoId) {
+  return !!projetoId && souAdmin() && !pessoasDoProjeto(projetoId).includes(estado.usuario.id);
+}
+export const NOTA_ADMIN = "Você vê este projeto como administrador, somente para leitura.";
+// Os projetos em que a pessoa pode gravar (criar tarefa, registrar ideia): os de que ela faz parte.
+export function projetosQueGravo() { return estado.projetos.filter((p) => !vejoComoAdmin(p.id)); }
+
+// Quem faz parte de um projeto: o responsável e os usuários selecionados. (O administrador vê todos, sem fazer parte.)
 export function pessoasDoProjeto(projetoId) {
   const p = estado.projetos.find((x) => x.id === projetoId);
   const ids = new Set(estado.membros.filter((m) => m.projeto_id === projetoId).map((m) => m.usuario_id));

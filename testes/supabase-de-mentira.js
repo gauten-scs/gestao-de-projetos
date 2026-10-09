@@ -32,6 +32,12 @@
   // ?pendente=1 no endereço: a conta de exemplo fica com a senha pendente, até a senha ser gravada
   const comPendencia = new URLSearchParams(location.search).has("pendente") || sessionStorage.getItem("teste-pendente") === "1";
   if (comPendencia) { sessionStorage.setItem("teste-pendente", "1"); D.perfis[0].senha_pendente = true; }
+  // ?visao=1 no endereço: um projeto do Bruno, com uma tarefa e uma ideia dele, do qual a Ana (administradora) não faz parte
+  if (new URLSearchParams(location.search).has("visao")) {
+    D.projetos.push({ ...base, id: "p7", titulo: "Projeto do Bruno", descricao: "", coluna_id: "cp1", ordem: 2, responsavel_id: "u2", criado_por: "u2", prazo: null, prioridade: "media" });
+    D.tarefas.push({ ...base, id: "t7", titulo: "Tarefa do Bruno", descricao: "", coluna_id: "ct1", ordem: 3, responsavel_id: "u2", criado_por: "u2", prazo: "2099-01-01", prioridade: "media", projeto_id: "p7", concluida_em: null });
+    D.ideias.push({ ...base, id: "i7", texto: "Ideia do Bruno no projeto dele", projeto_id: "p7", status: "nova", criado_por: "u2", atualizado_por: "u2" });
+  }
   window.__gravacoes = [];
   function consulta(tabela) {
     let linhas = D[tabela] || [], unico = false, op = "select", filtro = null;

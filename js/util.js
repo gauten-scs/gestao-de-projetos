@@ -65,6 +65,13 @@ export function traduz(erro) {
   return m;
 }
 
+// Janela em somente leitura: desliga os campos e esconde os botões informados. Chamar em toda abertura da janela,
+// com "sim" falso ou verdadeiro, para a janela não ficar travada na abertura seguinte.
+export function soLer(sim, campos, botoes) {
+  for (const c of campos) c.disabled = sim;
+  for (const b of botoes) b.hidden = sim;
+}
+
 export function preencherSelect(select, opcoes, valor) {
   select.replaceChildren(...opcoes.map((o) => el("option", { value: o.v, text: o.t })));
   select.value = valor ?? "";

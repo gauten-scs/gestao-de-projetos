@@ -1,14 +1,16 @@
 // Ideias: registro rápido, lista com filtros e a janela da ideia.
-// Ideia avulsa (sem projeto) é privada: só quem criou vê. Ideia de projeto é vista por quem acessa o projeto.
+// Ideia avulsa (sem projeto) é privada: só quem criou vê. Ideia de projeto é vista por quem acessa o projeto e pelo administrador.
 // Só o autor altera o texto, vincula, desvincula e exclui. O status é do autor ou do responsável pelo projeto.
 import { sb } from "./supabase.js";
 import { de } from "./ligacoes.js";
 import { $, el, celular, plural, dataCurta, dataHora, dois, ICONES, aviso, traduz, preencherSelect, confirmar } from "./util.js";
-import { estado, nomePerfil, avatar } from "./estado.js";
+import { estado, nomePerfil, avatar, vejoComoAdmin, NOTA_ADMIN, projetosQueGravo } from "./estado.js";
 
 export const STATUS_IDEIA = { nova: "Nova", em_analise: "Em análise", aprovada: "Aprovada", descartada: "Descartada" };
 const opcoesStatus = Object.entries(STATUS_IDEIA).map(([v, t]) => ({ v, t }));
 const projetosEmOrdem = () => estado.projetos.slice().sort((a, b) => a.titulo.localeCompare(b.titulo)).map((p) => ({ v: p.id, t: p.titulo }));
+// Para registrar ou vincular uma ideia, só os projetos de que a pessoa faz parte (o administrador só lê os demais)
+const projetosParaGravar = () => projetosQueGravo().sort((a, b) => a.titulo.localeCompare(b.titulo)).map((p) => ({ v: p.id, t: p.titulo }));
 const tituloDoProjeto = (id) => estado.projetos.find((p) => p.id === id)?.titulo;
 const souAutor = (i) => i.criado_por === estado.usuario.id;
 const respondoPeloProjeto = (i) => !!i.projeto_id && estado.projetos.find((p) => p.id === i.projeto_id)?.responsavel_id === estado.usuario.id;
@@ -21,7 +23,7 @@ export function origemDaIdeia(i) { return tituloDoProjeto(i.projeto_id) ?? "Idei
 export function renderIdeias() {
   // Registro: avulsa ou em um projeto que a pessoa acessa (os únicos que ela enxerga)
   const destino = $("#ideia-destino");
-  preencherSelect(destino, [{ v: "", t: "Ideia avulsa (só você vê)" }, ...projetosEmOrdem()], destino.value);
+  preencherSelect(destino, [{ v: "", t: "Ideia avulsa (só você vê)" }, ...projetosParaGravar()], destino.value);
   notaDoDestino();
   // Filtros
   preencherSelect($("#filtro-ideia-projeto"), [{ v: "todos", t: "Todas" }, { v: "avulsas", t: "Somente avulsas" }, ...projetosEmOrdem()], estado.filtroIdeiaProjeto);
@@ -82,7 +84,7 @@ $("#filtro-ideia-status").addEventListener("change", (e) => { estado.filtroIdeia
 // ---------- Registrar ----------
 function notaDoDestino() {
   $("#ideia-nota").textContent = $("#ideia-destino").value
-    ? "Todos que têm acesso ao projeto vão ver esta ideia."
+    ? "Todos que têm acesso ao projeto e o administrador vão ver esta ideia."
     : "Ideia avulsa: só você vê. Dá para vincular a um projeto depois.";
 }
 $("#ideia-destino").addEventListener("change", notaDoDestino);
@@ -164,11 +166,12 @@ export function abrirIdeia(id) {
   $("#i-autor").replaceChildren(i.criado_por ? avatar(i.criado_por) : "", el("span", { text: nomePerfil(i.criado_por) || "usuário removido" }));
   preencherSelect($("#i-status"), opcoesStatus, i.status);
   $("#i-status").disabled = !mudaStatus;
-  preencherSelect($("#i-projeto"), [{ v: "", t: "Ideia avulsa (só você vê)" }, ...projetosEmOrdem()], i.projeto_id ?? "");
+  preencherSelect($("#i-projeto"), [{ v: "", t: "Ideia avulsa (só você vê)" }, ...projetosParaGravar()], i.projeto_id ?? "");
   $("#i-campo-projeto").hidden = !autor;
   $("#i-comentario-texto").value = "";
   let historico = `Registrada por ${nomePerfil(i.criado_por) || "usuário removido"} em ${dataHora(i.criado_em)}.`;
   if (i.atualizado_em && i.atualizado_em !== i.criado_em) historico += ` Última alteração por ${nomePerfil(i.atualizado_por) || "usuário removido"} em ${dataHora(i.atualizado_em)}.`;
+  if (vejoComoAdmin(i.projeto_id)) historico += " " + NOTA_ADMIN;
   $("#i-historico").textContent = historico;
   $("#i-salvar").hidden = !mudaStatus;
   $("#i-cancelar").textContent = mudaStatus ? "Cancelar" : "Fechar";
@@ -191,6 +194,10 @@ export function renderParticipacao() {
   $("#i-projeto-nota").hidden = !travado;
   if (travado) $("#i-projeto").value = i.projeto_id;
   if (!deProjeto) return;
+  // Administrador em projeto de que não faz parte: lê os apoios e os comentários, sem apoiar nem comentar
+  const ro = vejoComoAdmin(i.projeto_id);
+  $("#i-apoiar").hidden = ro;
+  $("#i-participacao .registro-linha").hidden = ro;
   const apoios = apoiosDa(i), meu = apoios.some((a) => a.usuario_id === eu);
   $("#i-apoiar").replaceChildren();
   $("#i-apoiar").insertAdjacentHTML("afterbegin", SVG_APOIO);
@@ -263,7 +270,7 @@ $("#form-ideia-janela").addEventListener("submit", async (e) => {
     if (projeto !== (i.projeto_id ?? null)) {
       // Mudar a ideia de lugar muda quem a enxerga: a pessoa confirma antes
       const pergunta = !projeto ? "Desvincular esta ideia do projeto? Ela volta a ser privada: só você vai ver."
-        : `Vincular esta ideia ao projeto "${tituloDoProjeto(projeto)}"? Ela ficará visível para todos que têm acesso a esse projeto.`;
+        : `Vincular esta ideia ao projeto "${tituloDoProjeto(projeto)}"? Ela ficará visível para todos que têm acesso a esse projeto e para o administrador.`;
       if (!(await confirmar(pergunta, projeto ? "Vincular" : "Desvincular", false))) return;
       dados.projeto_id = projeto;
     }
