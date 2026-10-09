@@ -184,7 +184,7 @@ begin
 
   perform set_config('request.jwt.claims', jb, true);
   total := total + 1;
-  update public.ideias set titulo = 'Ideia de B em P1, revista', status = 'aprovada' where id = i2;
+  update public.ideias set titulo = 'Ideia de B em P1, revista', status = 'nova' where id = i2;
   get diagnostics n = row_count;
   if n <> 1 then falhas := falhas || 'autor deveria alterar o título e o status da própria ideia'::text; end if;
   total := total + 1;
