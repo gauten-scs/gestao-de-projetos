@@ -1,13 +1,27 @@
 // Ideias: lista com filtros e a janela da ideia (criar, editar, apoiar e comentar). A ideia tem título e descrição (opcional).
 // Ideia avulsa (sem projeto) é privada: só quem criou vê. Ideia de projeto é vista por quem acessa o projeto e pelo administrador.
-// Só o autor altera título e descrição, vincula, desvincula e exclui. O status é do autor ou do responsável pelo projeto.
+// Fluxo do status: Nova, Em análise, Aprovada e Executada, um passo por vez (e voltando só um passo); Nova, Em análise e
+// Aprovada podem ser descartadas, e a Descartada só volta para Em análise. Ideia que deu origem a tarefa ou projeto não é descartada.
+// Aprovada, Executada e Descartada (entrar ou sair) só pelo responsável pelo projeto (na avulsa, o autor); entre Nova e Em análise,
+// o autor ou o responsável. Título e descrição: o autor, em Nova e Em análise; nos demais status, o responsável (na avulsa, o autor).
+// Só o autor vincula, desvincula (em Nova e Em análise) e exclui. Quem garante tudo isso é o banco; aqui a tela só oferece o que vale.
 import { sb } from "./supabase.js";
 import { de } from "./ligacoes.js";
 import { $, el, celular, plural, dataCurta, dataHora, dois, ICONES, aviso, traduz, preencherSelect, confirmar } from "./util.js";
 import { estado, nomePerfil, avatar, vejoComoAdmin, NOTA_ADMIN, projetosQueGravo } from "./estado.js";
 
-export const STATUS_IDEIA = { nova: "Nova", em_analise: "Em análise", aprovada: "Aprovada", descartada: "Descartada" };
-const opcoesStatus = Object.entries(STATUS_IDEIA).map(([v, t]) => ({ v, t }));
+export const STATUS_IDEIA = { nova: "Nova", em_analise: "Em análise", aprovada: "Aprovada", executada: "Executada", descartada: "Descartada" };
+const opcoesStatusAbertas = ["nova", "em_analise", "aprovada"].map((v) => ({ v, t: STATUS_IDEIA[v] }));
+// Abas: Abertas (Nova, Em análise e Aprovada), Executadas e Descartadas
+const ABAS_IDEIA = { abertas: ["nova", "em_analise", "aprovada"], executadas: ["executada"], descartadas: ["descartada"] };
+const NOMES_ABA = { abertas: "Abertas", executadas: "Executadas", descartadas: "Descartadas" };
+const SEM_IDEIA = { abertas: "Nenhuma ideia aberta.", executadas: "Nenhuma ideia executada.", descartadas: "Nenhuma ideia descartada." };
+const naAba = (i, aba) => ABAS_IDEIA[aba].includes(i.status);
+function montarAbas(raiz, ideias, atual, aoTrocar) {
+  raiz.replaceChildren(...Object.keys(ABAS_IDEIA).map((a) => el("button", {
+    type: "button", role: "tab", "aria-selected": String(a === atual),
+    text: `${NOMES_ABA[a]} (${ideias.filter((i) => naAba(i, a)).length})`, onclick: () => aoTrocar(a) })));
+}
 const projetosEmOrdem = () => estado.projetos.slice().sort((a, b) => a.titulo.localeCompare(b.titulo)).map((p) => ({ v: p.id, t: p.titulo }));
 // Para registrar ou vincular uma ideia, só os projetos de que a pessoa faz parte (o administrador só lê os demais)
 const projetosParaGravar = () => projetosQueGravo().sort((a, b) => a.titulo.localeCompare(b.titulo)).map((p) => ({ v: p.id, t: p.titulo }));
@@ -15,6 +29,18 @@ const tituloDoProjeto = (id) => estado.projetos.find((p) => p.id === id)?.titulo
 const souAutor = (i) => i.criado_por === estado.usuario.id;
 const respondoPeloProjeto = (i) => !!i.projeto_id && estado.projetos.find((p) => p.id === i.projeto_id)?.responsavel_id === estado.usuario.id;
 // Dia em que a ideia foi registrada, no horário do aparelho, no formato das datas do site (ano-mês-dia)
+// Passos permitidos entre os status (espelham a regra do banco)
+const PASSOS = { nova: ["em_analise", "descartada"], em_analise: ["nova", "aprovada", "descartada"], aprovada: ["em_analise", "executada", "descartada"], executada: ["aprovada"], descartada: ["em_analise"] };
+const alto = (s) => ["aprovada", "executada", "descartada"].includes(s);
+const dono = (i) => (i.projeto_id ? respondoPeloProjeto(i) : souAutor(i));
+const geraOrigem = (i) => estado.tarefas.some((t) => t.ideia_id === i.id) || estado.projetos.some((p) => p.ideia_id === i.id);
+// Para quais status a pessoa pode levar esta ideia agora
+function statusPermitidos(i) {
+  if (vejoComoAdmin(i.projeto_id)) return [];
+  return (PASSOS[i.status] ?? []).filter((t) => !(t === "descartada" && geraOrigem(i))
+    && ((alto(i.status) || alto(t)) ? dono(i) : (souAutor(i) || respondoPeloProjeto(i))));
+}
+const podeEditarTexto = (i) => !vejoComoAdmin(i.projeto_id) && (alto(i.status) ? dono(i) : souAutor(i));
 function diaDe(iso) { const d = new Date(iso); return `${d.getFullYear()}-${dois(d.getMonth() + 1)}-${dois(d.getDate())}`; }
 
 export function origemDaIdeia(i) { return tituloDoProjeto(i.projeto_id) ?? "Ideia avulsa"; }
@@ -24,23 +50,27 @@ export function renderIdeias() {
   // Filtros
   preencherSelect($("#filtro-ideia-projeto"), [{ v: "todos", t: "Todas" }, { v: "avulsas", t: "Somente avulsas" }, ...projetosEmOrdem()], estado.filtroIdeiaProjeto);
   estado.filtroIdeiaProjeto = $("#filtro-ideia-projeto").value;
-  preencherSelect($("#filtro-ideia-status"), [{ v: "todos", t: "Todos" }, ...opcoesStatus], estado.filtroIdeiaStatus);
+  preencherSelect($("#filtro-ideia-status"), [{ v: "todos", t: "Todos" }, ...opcoesStatusAbertas], estado.filtroIdeiaStatus);
+  estado.filtroIdeiaStatus = $("#filtro-ideia-status").value;
+  $("#filtro-ideia-status-campo").hidden = estado.abaIdeia !== "abertas";
   // Resumo do cabeçalho
   const avulsas = estado.ideias.filter((i) => !i.projeto_id).length;
   $("#resumo-ideias").replaceChildren(el("b", { text: plural(estado.ideias.length, "ideia", "ideias") }),
     ...(avulsas ? [" · ", plural(avulsas, "avulsa", "avulsas")] : []));
   // Lista, da mais recente para a mais antiga
-  const fp = estado.filtroIdeiaProjeto, fs = estado.filtroIdeiaStatus;
-  const ideias = estado.ideias.filter((i) => (fp === "todos" || (fp === "avulsas" ? !i.projeto_id : i.projeto_id === fp)) && (fs === "todos" || i.status === fs))
+  const fp = estado.filtroIdeiaProjeto, fs = estado.filtroIdeiaStatus, aba = estado.abaIdeia;
+  const doProjeto = estado.ideias.filter((i) => fp === "todos" || (fp === "avulsas" ? !i.projeto_id : i.projeto_id === fp));
+  montarAbas($("#abas-ideias"), doProjeto, aba, (a) => { estado.abaIdeia = a; renderIdeias(); });
+  const ideias = doProjeto.filter((i) => naAba(i, aba) && (aba !== "abertas" || fs === "todos" || i.status === fs))
     .sort((a, b) => (a.criado_em < b.criado_em ? 1 : -1));
   const raiz = $("#lista-ideias");
   raiz.replaceChildren();
   if (!ideias.length) {
-    raiz.append(el("p", { class: "apoio", text: estado.ideias.length ? "Nenhuma ideia com esses filtros." : "Nenhuma ideia registrada ainda. Use o botão \"Nova ideia\"." }));
+    raiz.append(el("p", { class: "apoio", text: estado.ideias.length ? (doProjeto.length && !doProjeto.some((i) => naAba(i, aba)) ? SEM_IDEIA[aba] : "Nenhuma ideia com esses filtros.") : "Nenhuma ideia registrada ainda. Use o botão \"Nova ideia\"." }));
     return;
   }
   raiz.append(el("section", { class: "grupo-datas" },
-    el("h2", {}, "Ideias", el("span", { class: "contagem", text: String(ideias.length) })),
+    el("h2", {}, NOMES_ABA[aba], el("span", { class: "contagem", text: String(ideias.length) })),
     ...ideias.map((i) => linhaDaIdeia(i))));
 }
 
@@ -83,23 +113,26 @@ $("#ideia-nova").addEventListener("click", () => novaIdeia(null));
 
 // ---------- Ideias dentro do projeto ----------
 // Na janela do projeto (computador, no formulário) e na leitura do projeto (celular, tela cheia).
-// Ordem: as da mais recente para a mais antiga e, no fim, as descartadas (decisão dele: a equipe vê o que já foi descartado).
+// Abas Abertas, Executadas e Descartadas (a equipe continua vendo o que já foi descartado); em cada uma, da mais recente para a mais antiga.
 export function ideiasDoProjeto(projetoId) {
-  const chave = (i) => (i.status === "descartada" ? "1" : "0");
-  return estado.ideias.filter((i) => i.projeto_id === projetoId)
-    .sort((a, b) => chave(a).localeCompare(chave(b)) || (a.criado_em < b.criado_em ? 1 : -1));
+  return estado.ideias.filter((i) => i.projeto_id === projetoId).sort((a, b) => (a.criado_em < b.criado_em ? 1 : -1));
 }
 let projetoDasIdeias = null;
 export function renderIdeiasDoProjeto(projetoId) {
+  if (projetoId !== projetoDasIdeias) estado.abaIdeiaProjeto = "abertas";
   projetoDasIdeias = projetoId;
-  const ideias = ideiasDoProjeto(projetoId);
+  const todas = ideiasDoProjeto(projetoId), aba = estado.abaIdeiaProjeto;
+  const ideias = todas.filter((i) => naAba(i, aba));
   for (const pre of ["p", "lp"]) {
-    $(`#${pre}-ideias-contagem`).textContent = String(ideias.length);
+    $(`#${pre}-ideias-contagem`).textContent = String(todas.length);
+    montarAbas($(`#${pre}-abas-ideias`), todas, aba, (a) => { estado.abaIdeiaProjeto = a; renderIdeiasDoProjeto(projetoId); });
     $(`#${pre}-ideias-lista`).replaceChildren(...(ideias.length
       ? ideias.map((i) => linhaDaIdeia(i, true))
-      : [el("p", { class: "apoio", text: "Este projeto ainda não tem ideias." })]));
+      : [el("p", { class: "apoio", text: todas.length ? SEM_IDEIA[aba] : "Este projeto ainda não tem ideias." })]));
   }
 }
+// Ao fechar o projeto, as abas voltam para "Abertas"
+$("#dlg-projeto").addEventListener("close", () => { estado.abaIdeiaProjeto = "abertas"; projetoDasIdeias = null; });
 for (const pre of ["p", "lp"]) $(`#${pre}-ideia-nova`).addEventListener("click", () => novaIdeia(projetoDasIdeias));
 
 // ---------- Janela da ideia ----------
@@ -125,6 +158,7 @@ export function novaIdeia(projetoId) {
   estado.editando = { tipo: "ideia", id: null, novo: true };
   $("#i-janela").textContent = "Nova ideia";
   $("#i-origem").hidden = $("#i-autor").hidden = $("#i-historico").hidden = $("#i-campo-status").hidden = true;
+  $("#i-status-nota").hidden = $("#i-registro").hidden = true;
   $("#i-titulo").value = $("#i-descricao").value = "";
   camposDeTexto(true);
   preencherSelect($("#i-projeto"), projetoId ? [{ v: projetoId, t: tituloDoProjeto(projetoId) }] : [{ v: "", t: "Ideia avulsa (só você vê)" }, ...projetosParaGravar()], projetoId ?? "");
@@ -154,7 +188,7 @@ export function abrirIdeia(id) {
   const i = estado.ideias.find((x) => x.id === id);
   if (!i) return;
   projetoPorBaixo = $("#dlg-projeto").open && estado.editando?.tipo === "projeto" ? estado.editando : null;
-  const autor = souAutor(i), mudaStatus = autor || respondoPeloProjeto(i);
+  const autor = souAutor(i), permitidos = statusPermitidos(i), editaTexto = podeEditarTexto(i);
   estado.editando = { tipo: "ideia", id: i.id };
   $("#i-janela").textContent = "Ideia";
   $("#i-origem").hidden = $("#i-autor").hidden = $("#i-historico").hidden = $("#i-campo-status").hidden = false;
@@ -162,13 +196,14 @@ export function abrirIdeia(id) {
   $("#i-salvar").textContent = "Salvar";
   $("#i-origem").textContent = i.projeto_id ? origemDaIdeia(i) : (autor ? "Ideia avulsa: só você vê" : "Ideia avulsa");
   $("#i-origem").className = "origem" + (i.projeto_id ? "" : " avulsa");
-  // O autor edita título e descrição; os demais leem
+  // Quem pode alterar o texto neste status edita título e descrição; os demais leem
   $("#i-titulo").value = i.titulo;
   $("#i-descricao").value = i.descricao ?? "";
-  camposDeTexto(autor, i.titulo, i.descricao);
+  camposDeTexto(editaTexto, i.titulo, i.descricao);
   $("#i-autor").replaceChildren(i.criado_por ? avatar(i.criado_por) : "", el("span", { text: nomePerfil(i.criado_por) || "usuário removido" }));
-  preencherSelect($("#i-status"), opcoesStatus, i.status);
-  $("#i-status").disabled = !mudaStatus;
+  preencherSelect($("#i-status"), [i.status, ...permitidos].map((v) => ({ v, t: STATUS_IDEIA[v] ?? v })), i.status);
+  $("#i-status").disabled = !permitidos.length;
+  notaDoStatus(i, permitidos);
   preencherSelect($("#i-projeto"), [{ v: "", t: "Ideia avulsa (só você vê)" }, ...projetosParaGravar()], i.projeto_id ?? "");
   $("#i-campo-projeto").hidden = !autor;
   $("#i-comentario-texto").value = "";
@@ -176,12 +211,41 @@ export function abrirIdeia(id) {
   if (i.atualizado_em && i.atualizado_em !== i.criado_em) historico += ` Última alteração por ${nomePerfil(i.atualizado_por) || "usuário removido"} em ${dataHora(i.atualizado_em)}.`;
   if (vejoComoAdmin(i.projeto_id)) historico += " " + NOTA_ADMIN;
   $("#i-historico").textContent = historico;
-  $("#i-salvar").hidden = !mudaStatus;
-  $("#i-cancelar").textContent = mudaStatus ? "Cancelar" : "Fechar";
+  const podeAlgo = permitidos.length > 0 || editaTexto || (autor && !alto(i.status));
+  $("#i-salvar").hidden = !podeAlgo;
+  $("#i-cancelar").textContent = podeAlgo ? "Cancelar" : "Fechar";
   $("#i-excluir").hidden = !autor;
   renderParticipacao();
   $("#dlg-ideia").showModal();
 }
+
+// Explica por que o campo Status oferece poucas opções (ou nenhuma)
+function notaDoStatus(i, permitidos) {
+  const avisos = [];
+  if (!vejoComoAdmin(i.projeto_id)) {
+    if (!dono(i) && !alto(i.status)) avisos.push("Aprovar, executar e descartar: só o responsável pelo projeto.");
+    else if (!permitidos.length && !dono(i)) avisos.push("Nesta fase só o responsável pelo projeto (na ideia avulsa, o autor) muda o status.");
+    if (geraOrigem(i) && dono(i) && PASSOS[i.status]?.includes("descartada")) avisos.push("Esta ideia deu origem a uma tarefa ou a um projeto e não pode ser descartada.");
+  }
+  $("#i-status-nota").hidden = !avisos.length;
+  $("#i-status-nota").textContent = avisos.join(" ");
+}
+
+// Histórico de alterações nos status Aprovada, Executada e Descartada (gravado pelo banco)
+const resumoDeTexto = (t) => { const s = (t ?? "").trim(); return s ? (s.length > 160 ? s.slice(0, 160) + "…" : s) : "(vazio)"; };
+function renderRegistro(i) {
+  const linhas = estado.historico.filter((h) => h.ideia_id === i.id).sort((a, b) => (a.em < b.em ? -1 : 1));
+  $("#i-registro").hidden = !linhas.length;
+  $("#i-registro-lista").replaceChildren(...linhas.map((h) => el("li", {},
+    el("span", { class: "legenda", text: `${dataHora(h.em)} · ${nomePerfil(h.usuario_id) || "usuário removido"}` }),
+    ...(h.tipo === "status"
+      ? [el("span", { text: `Status: ${STATUS_IDEIA[h.status_de] ?? h.status_de} → ${STATUS_IDEIA[h.status_para] ?? h.status_para}` })]
+      : [h.titulo_antes !== h.titulo_depois ? el("span", { text: `Título: "${resumoDeTexto(h.titulo_antes)}" → "${resumoDeTexto(h.titulo_depois)}"` }) : null,
+         (h.descricao_antes ?? "") !== (h.descricao_depois ?? "") ? el("span", { text: `Descrição: "${resumoDeTexto(h.descricao_antes)}" → "${resumoDeTexto(h.descricao_depois)}"` }) : null]))));
+}
+// Por que o campo Projeto está travado (null se não está)
+const motivoDaTravaDoProjeto = (i) => alto(i.status) ? "Só dá para vincular ou desvincular a ideia quando ela está em Nova ou Em análise."
+  : (i.projeto_id && teveParticipacao(i) ? "Esta ideia já recebeu comentário ou apoio e não pode mais sair do projeto." : null);
 
 // ---------- Apoiar e comentar (etapa I4) ----------
 // Gravam na hora, sem o "Salvar". Refeito sempre que os dados mudam com a janela aberta (renderizar, em app.js).
@@ -191,11 +255,13 @@ export function renderParticipacao() {
   const eu = estado.usuario.id, deProjeto = !!i.projeto_id;
   $("#i-participacao").hidden = !deProjeto;
   $("#i-sem-participacao").hidden = deProjeto;
-  // Ideia com participação não sai mais do projeto (regra do banco desde a I1)
-  const travado = deProjeto && souAutor(i) && teveParticipacao(i);
-  $("#i-projeto").disabled = travado;
-  $("#i-projeto-nota").hidden = !travado;
-  if (travado) $("#i-projeto").value = i.projeto_id;
+  // O campo Projeto trava com participação (regra do banco desde a I1) e fora de Nova e Em análise (desde a I6)
+  const motivo = souAutor(i) ? motivoDaTravaDoProjeto(i) : null;
+  $("#i-projeto").disabled = !!motivo;
+  $("#i-projeto-nota").textContent = motivo ?? "";
+  $("#i-projeto-nota").hidden = !motivo;
+  if (motivo) $("#i-projeto").value = i.projeto_id ?? "";
+  renderRegistro(i);
   if (!deProjeto) return;
   // Administrador em projeto de que não faz parte: lê os apoios e os comentários, sem apoiar nem comentar
   const ro = vejoComoAdmin(i.projeto_id);
@@ -276,12 +342,14 @@ $("#form-ideia-janela").addEventListener("submit", async (e) => {
   if (!i) return;
   const autor = souAutor(i), dados = {};
   if ($("#i-status").value !== i.status) dados.status = $("#i-status").value;
-  if (autor) {
+  if (podeEditarTexto(i)) {
     const titulo = $("#i-titulo").value.trim();
     if (!titulo) return;
     if (titulo !== i.titulo) dados.titulo = titulo;
     const descricao = $("#i-descricao").value.trim() || null;
     if (descricao !== (i.descricao ?? null)) dados.descricao = descricao;
+  }
+  if (autor && !alto(i.status)) {
     const projeto = $("#i-projeto").value || null;
     if (projeto !== (i.projeto_id ?? null)) {
       // Mudar a ideia de lugar muda quem a enxerga: a pessoa confirma antes

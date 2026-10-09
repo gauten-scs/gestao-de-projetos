@@ -133,7 +133,7 @@ document.addEventListener("close", (e) => { if (e.target instanceof HTMLDialogEl
 
 // ---------- Dados ----------
 async function carregar() {
-  const [perfis, colunas, projetos, tarefas, membros, ideias, comentarios, apoios] = await Promise.all([
+  const [perfis, colunas, projetos, tarefas, membros, ideias, comentarios, apoios, historico] = await Promise.all([
     sb.from("perfis").select("*").order("nome"),
     sb.from("colunas").select("*").order("ordem"),
     sb.from("projetos").select("*").order("ordem"),
@@ -142,8 +142,9 @@ async function carregar() {
     sb.from("ideias").select("*"),
     sb.from("ideia_comentarios").select("*").order("criado_em"),
     sb.from("ideia_apoios").select("ideia_id, usuario_id, criado_em"),
+    sb.from("ideia_historico").select("*").order("em"),
   ]);
-  const falha = [perfis, colunas, projetos, tarefas, membros, ideias, comentarios, apoios].find((r) => r.error);
+  const falha = [perfis, colunas, projetos, tarefas, membros, ideias, comentarios, apoios, historico].find((r) => r.error);
   if (falha) { aviso("Não foi possível carregar os dados: " + traduz(falha.error)); return false; }
   estado.perfis = perfis.data; estado.colunas = colunas.data; estado.membros = membros.data;
   // Itens excluídos ficam na lixeira. Tarefas de um projeto excluído acompanham o projeto.
@@ -164,7 +165,7 @@ async function carregar() {
       .map((i) => ({ ...i, tabela: "ideias", tipo: i.projeto_id ? "Ideia de projeto" : "Ideia avulsa" })),
   ].sort((a, b) => (a.arquivado_em < b.arquivado_em ? 1 : -1));
   estado.ideias = ideias.data.filter((i) => !i.arquivado_em && !foraP.has(i.projeto_id));
-  estado.comentarios = comentarios.data; estado.apoios = apoios.data;
+  estado.comentarios = comentarios.data; estado.apoios = apoios.data; estado.historico = historico.data;
   estado.projetos = projetos.data.filter((p) => !p.arquivado_em);
   estado.tarefas = tarefas.data.filter((t) => !t.arquivado_em && !foraP.has(t.projeto_id));
   const eu = estado.perfis.find((p) => p.id === estado.usuario.id);

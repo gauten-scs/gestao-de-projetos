@@ -1,11 +1,13 @@
 -- Takt: teste das regras das ideias.
 --
 -- Como usar: colar tudo no SQL Editor do Supabase e clicar em "Run".
--- O teste cria cinco usuários fictícios, dois projetos e algumas ideias, confere 54 regras
+-- O teste cria cinco usuários fictícios, dois projetos e algumas ideias, confere 83 regras
 -- e termina de propósito com um "erro" que começa com RESULTADO. Esse erro desfaz tudo:
 -- nenhum dado de teste fica gravado no banco.
 --
--- Resultado esperado: "RESULTADO: 54 verificações, 0 falhas."
+-- Resultado esperado: "RESULTADO: 83 verificações, 0 falhas."
+-- Antes de rodar este teste, rode uma vez o arquivo supabase/migrations/ideias_fluxo_de_status_executada.sql
+-- (libera o status Executada); sem ele, as verificações do fluxo de status falham.
 -- O teste apaga linhas (comentário, apoio e limpeza da lixeira). O Supabase pode pedir confirmação
 -- antes de rodar ("destructive operation"): pode confirmar, porque tudo é desfeito no fim.
 
@@ -26,6 +28,9 @@ declare
   i1 uuid := gen_random_uuid();   -- ideia avulsa de B
   i2 uuid := gen_random_uuid();   -- ideia de B dentro de P1
   i3 uuid := gen_random_uuid();   -- ideia avulsa de C
+  f1 uuid := gen_random_uuid();   -- fluxo: ideia avulsa de B
+  f2 uuid := gen_random_uuid();   -- fluxo: ideia de B em P1
+  f3 uuid := gen_random_uuid();   -- fluxo: ideia de B em P1, com tarefa
   cp uuid; ct uuid;
   sufixo text := replace(gen_random_uuid()::text, '-', '');
   total int := 0;
@@ -350,6 +355,175 @@ begin
   delete from public.ideias where id = i1;
   get diagnostics n = row_count;
   if n <> 0 then falhas := falhas || 'autor não deveria excluir de vez a ideia (só a limpeza apaga)'::text; end if;
+
+  -- ---------- Fluxo de status e histórico (etapa I6) ----------
+  -- Aqui o status "executada" precisa ter sido liberado pelo arquivo ideias_fluxo_de_status_executada.sql.
+  perform set_config('request.jwt.claims', jb, true);
+  insert into public.ideias (id, titulo) values (f1, 'Fluxo: ideia avulsa de B');
+  total := total + 1;
+  begin
+    update public.ideias set status = 'aprovada' where id = f1;
+    falhas := falhas || 'Nova não deveria pular direto para Aprovada'::text;
+  exception when raise_exception then
+    if sqlerrm not like 'Passo de status não permitido%' then falhas := falhas || ('pulo de status, erro inesperado: ' || sqlerrm); end if;
+  end;
+  total := total + 1;
+  update public.ideias set status = 'em_analise' where id = f1;
+  select count(*) into n from public.ideias where id = f1 and status = 'em_analise';
+  if n <> 1 then falhas := falhas || 'autor deveria levar a ideia de Nova para Em análise'::text; end if;
+  total := total + 1;
+  update public.ideias set status = 'aprovada' where id = f1;
+  select count(*) into n from public.ideias where id = f1 and status = 'aprovada';
+  if n <> 1 then falhas := falhas || 'autor da ideia avulsa deveria aprovar a própria ideia'::text; end if;
+  total := total + 1;
+  update public.ideias set status = 'executada' where id = f1;
+  select count(*) into n from public.ideias where id = f1 and status = 'executada';
+  if n <> 1 then falhas := falhas || 'autor da ideia avulsa deveria levar a ideia para Executada'::text; end if;
+  total := total + 1;
+  begin
+    update public.ideias set status = 'descartada' where id = f1;
+    falhas := falhas || 'Executada não deveria ir direto para Descartada'::text;
+  exception when raise_exception then
+    if sqlerrm not like 'Passo de status não permitido%' then falhas := falhas || ('Executada para Descartada, erro inesperado: ' || sqlerrm); end if;
+  end;
+  total := total + 1;
+  update public.ideias set status = 'aprovada' where id = f1;
+  select count(*) into n from public.ideias where id = f1 and status = 'aprovada';
+  if n <> 1 then falhas := falhas || 'Executada deveria voltar para Aprovada'::text; end if;
+  total := total + 1;
+  begin
+    update public.ideias set projeto_id = p1 where id = f1;
+    falhas := falhas || 'não deveria vincular a projeto uma ideia em Aprovada'::text;
+  exception when raise_exception then
+    if sqlerrm not like 'Só dá para vincular%' then falhas := falhas || ('vínculo em Aprovada, erro inesperado: ' || sqlerrm); end if;
+  end;
+  total := total + 1;
+  update public.ideias set status = 'descartada' where id = f1;
+  select count(*) into n from public.ideias where id = f1 and status = 'descartada';
+  if n <> 1 then falhas := falhas || 'ideia sem tarefa nem projeto deveria poder ser descartada'::text; end if;
+  total := total + 1;
+  begin
+    update public.ideias set status = 'aprovada' where id = f1;
+    falhas := falhas || 'Descartada não deveria voltar direto para Aprovada'::text;
+  exception when raise_exception then
+    if sqlerrm not like 'Passo de status não permitido%' then falhas := falhas || ('Descartada para Aprovada, erro inesperado: ' || sqlerrm); end if;
+  end;
+  total := total + 1;
+  update public.ideias set status = 'em_analise' where id = f1;
+  select count(*) into n from public.ideias where id = f1 and status = 'em_analise';
+  if n <> 1 then falhas := falhas || 'Descartada deveria voltar para Em análise'::text; end if;
+  total := total + 1;
+  select count(*) into n from public.ideia_historico where ideia_id = f1 and tipo = 'status';
+  if n <> 5 then falhas := falhas || ('o histórico da ideia avulsa deveria ter 5 mudanças de status, tem ' || n)::text; end if;
+
+  -- Ideia de B dentro de P1 (responsável: A)
+  insert into public.ideias (id, titulo, descricao, projeto_id) values (f2, 'Fluxo: ideia de B em P1', 'Texto inicial', p1);
+  total := total + 1;
+  update public.ideias set status = 'em_analise' where id = f2;
+  select count(*) into n from public.ideias where id = f2 and status = 'em_analise';
+  if n <> 1 then falhas := falhas || 'autor deveria levar a ideia do projeto de Nova para Em análise'::text; end if;
+  total := total + 1;
+  begin
+    update public.ideias set status = 'aprovada' where id = f2;
+    falhas := falhas || 'autor que não é o responsável não deveria aprovar a ideia do projeto'::text;
+  exception when raise_exception then
+    if sqlerrm not like 'Somente o responsável pelo projeto%' then falhas := falhas || ('aprovação pelo autor, erro inesperado: ' || sqlerrm); end if;
+  end;
+
+  perform set_config('request.jwt.claims', ja, true);
+  total := total + 1;
+  begin
+    update public.ideias set titulo = 'Título trocado por A' where id = f2;
+    falhas := falhas || 'responsável que não é o autor não deveria alterar o texto em Em análise'::text;
+  exception when raise_exception then
+    if sqlerrm not like 'Somente o autor pode alterar%' then falhas := falhas || ('texto pelo responsável em Em análise, erro inesperado: ' || sqlerrm); end if;
+  end;
+  total := total + 1;
+  update public.ideias set status = 'aprovada' where id = f2;
+  select count(*) into n from public.ideias where id = f2 and status = 'aprovada';
+  if n <> 1 then falhas := falhas || 'responsável deveria aprovar a ideia do projeto'::text; end if;
+  total := total + 1;
+  update public.ideias set titulo = 'Título ajustado pelo responsável', descricao = 'Texto ajustado' where id = f2;
+  select count(*) into n from public.ideias where id = f2 and titulo = 'Título ajustado pelo responsável';
+  if n <> 1 then falhas := falhas || 'responsável deveria alterar o texto da ideia Aprovada'::text; end if;
+  total := total + 1;
+  select count(*) into n from public.ideia_historico
+    where ideia_id = f2 and tipo = 'texto' and usuario_id = ua and titulo_antes = 'Fluxo: ideia de B em P1'
+      and titulo_depois = 'Título ajustado pelo responsável' and descricao_antes = 'Texto inicial' and descricao_depois = 'Texto ajustado';
+  if n <> 1 then falhas := falhas || 'a alteração do texto em Aprovada deveria ficar no histórico, com o antes e o depois'::text; end if;
+
+  perform set_config('request.jwt.claims', jb, true);
+  total := total + 1;
+  begin
+    update public.ideias set titulo = 'Título trocado por B' where id = f2;
+    falhas := falhas || 'autor não deveria alterar o texto com a ideia em Aprovada (projeto)'::text;
+  exception when raise_exception then
+    if sqlerrm not like 'Com a ideia em Aprovada%' then falhas := falhas || ('texto pelo autor em Aprovada, erro inesperado: ' || sqlerrm); end if;
+  end;
+  total := total + 1;
+  begin
+    update public.ideias set status = 'em_analise' where id = f2;
+    falhas := falhas || 'autor que não é o responsável não deveria tirar a ideia de Aprovada'::text;
+  exception when raise_exception then
+    if sqlerrm not like 'Somente o responsável pelo projeto%' then falhas := falhas || ('saída de Aprovada pelo autor, erro inesperado: ' || sqlerrm); end if;
+  end;
+
+  perform set_config('request.jwt.claims', ja, true);
+  update public.ideias set status = 'em_analise' where id = f2;
+  perform set_config('request.jwt.claims', jb, true);
+  total := total + 1;
+  update public.ideias set titulo = 'Título de volta, por B' where id = f2;
+  select count(*) into n from public.ideias where id = f2 and titulo = 'Título de volta, por B';
+  if n <> 1 then falhas := falhas || 'autor deveria alterar o texto com a ideia em Em análise'::text; end if;
+  total := total + 1;
+  select count(*) into n from public.ideia_historico where ideia_id = f2 and tipo = 'texto';
+  if n <> 1 then falhas := falhas || ('o texto alterado em Em análise não deveria entrar no histórico, mas há ' || n || ' registros de texto')::text; end if;
+  total := total + 1;
+  select count(*) into n from public.ideia_historico where ideia_id = f2;
+  if n <> 3 then falhas := falhas || ('o autor deveria ver 3 registros no histórico da ideia do projeto, vê ' || n)::text; end if;
+
+  perform set_config('request.jwt.claims', jc, true);
+  total := total + 1;
+  select count(*) into n from public.ideia_historico where ideia_id = f2;
+  if n <> 0 then falhas := falhas || 'quem está fora do projeto não deveria ver o histórico da ideia'::text; end if;
+  total := total + 1;
+  update public.ideias set status = 'nova' where id = f2;
+  get diagnostics n = row_count;
+  if n <> 0 then falhas := falhas || 'quem está fora do projeto não deveria mudar o status da ideia'::text; end if;
+
+  perform set_config('request.jwt.claims', jadm, true);
+  total := total + 1;
+  select count(*) into n from public.ideia_historico where ideia_id = f2;
+  if n <> 3 then falhas := falhas || ('o administrador deveria ler os 3 registros do histórico, lê ' || n)::text; end if;
+  total := total + 1;
+  select count(*) into n from public.ideia_historico where ideia_id = f1;
+  if n <> 0 then falhas := falhas || 'o administrador não deveria ler o histórico da ideia avulsa de outra pessoa'::text; end if;
+  total := total + 1;
+  begin
+    insert into public.ideia_historico (ideia_id, tipo) values (f2, 'status');
+    falhas := falhas || 'ninguém deveria gravar direto no histórico'::text;
+  exception when insufficient_privilege then null;
+  end;
+
+  -- Ideia que deu origem a uma tarefa não pode ser descartada
+  perform set_config('request.jwt.claims', jb, true);
+  insert into public.ideias (id, titulo, projeto_id) values (f3, 'Fluxo: ideia com tarefa', p1);
+  update public.ideias set status = 'em_analise' where id = f3;
+  perform set_config('request.jwt.claims', ja, true);
+  update public.ideias set status = 'aprovada' where id = f3;
+  insert into public.tarefas (titulo, coluna_id, responsavel_id, prazo, projeto_id, ideia_id)
+    values ('Tarefa da ideia do fluxo', ct, ua, current_date, p1, f3);
+  total := total + 1;
+  begin
+    update public.ideias set status = 'descartada' where id = f3;
+    falhas := falhas || 'ideia que deu origem a uma tarefa não deveria ser descartada'::text;
+  exception when raise_exception then
+    if sqlerrm not like 'Ideia que deu origem%' then falhas := falhas || ('descarte de ideia com tarefa, erro inesperado: ' || sqlerrm); end if;
+  end;
+  total := total + 1;
+  update public.ideias set status = 'executada' where id = f3;
+  select count(*) into n from public.ideias where id = f3 and status = 'executada';
+  if n <> 1 then falhas := falhas || 'ideia com tarefa deveria poder seguir para Executada'::text; end if;
 
   -- ---------- Limpeza diária ----------
   reset role;

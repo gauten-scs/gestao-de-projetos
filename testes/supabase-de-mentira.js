@@ -38,6 +38,22 @@
     D.tarefas.push({ ...base, id: "t7", titulo: "Tarefa do Bruno", descricao: "", coluna_id: "ct1", ordem: 3, responsavel_id: "u2", criado_por: "u2", prazo: "2099-01-01", prioridade: "media", projeto_id: "p7", concluida_em: null });
     D.ideias.push({ ...base, id: "i7", titulo: "Ideia do Bruno no projeto dele", projeto_id: "p7", status: "nova", criado_por: "u2", atualizado_por: "u2" });
   }
+  // ?fluxo=1 no endereço: ideias em vários status (etapa I6), um projeto do Bruno em que a Ana participa sem ser responsável
+  // e uma ideia que deu origem a uma tarefa
+  if (new URLSearchParams(location.search).has("fluxo")) {
+    D.projetos.push({ ...base, id: "p8", titulo: "Projeto do Bruno com a Ana", descricao: "", coluna_id: "cp1", ordem: 3, responsavel_id: "u2", criado_por: "u2", prazo: null, prioridade: "media" });
+    D.projeto_membros.push({ projeto_id: "p8", usuario_id: U });
+    D.ideias.push(
+      { ...base, id: "i10", titulo: "Ideia aprovada do Bruno", descricao: "Descrição aprovada.", projeto_id: "p1", status: "aprovada", criado_por: "u2", atualizado_por: "u2" },
+      { ...base, id: "i11", titulo: "Ideia executada de exemplo", projeto_id: "p1", status: "executada" },
+      { ...base, id: "i13", titulo: "Ideia da Ana no projeto do Bruno", projeto_id: "p8", status: "nova" },
+      { ...base, id: "i14", titulo: "Ideia aprovada da Ana no projeto do Bruno", projeto_id: "p8", status: "aprovada" },
+      { ...base, id: "i15", titulo: "Ideia que virou tarefa", projeto_id: "p1", status: "aprovada" });
+    D.tarefas.push({ ...base, id: "t10", titulo: "Tarefa vinda da ideia", descricao: "", coluna_id: "ct1", ordem: 10, responsavel_id: U, prazo: "2099-01-01", prioridade: "media", projeto_id: "p1", concluida_em: null, ideia_id: "i15" });
+    D.ideia_historico = [
+      { id: "h1", ideia_id: "i10", usuario_id: "u1", em: new Date(Date.now() - 7200000).toISOString(), tipo: "status", status_de: "em_analise", status_para: "aprovada" },
+      { id: "h2", ideia_id: "i10", usuario_id: "u1", em: new Date(Date.now() - 3600000).toISOString(), tipo: "texto", titulo_antes: "Ideia do Bruno", titulo_depois: "Ideia aprovada do Bruno", descricao_antes: null, descricao_depois: "Descrição aprovada." }];
+  }
   window.__gravacoes = [];
   function consulta(tabela) {
     let linhas = D[tabela] || [], unico = false, op = "select", filtro = null;

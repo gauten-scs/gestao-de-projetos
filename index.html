@@ -206,12 +206,13 @@
           <label>Projeto
             <select id="filtro-ideia-projeto"></select>
           </label>
-          <label>Status
+          <label id="filtro-ideia-status-campo">Status
             <select id="filtro-ideia-status"></select>
           </label>
           <button class="btn primario" type="button" id="ideia-nova"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Nova ideia</button>
         </div>
       </header>
+      <div class="abas" role="tablist" id="abas-ideias" aria-label="Situação das ideias"></div>
       <div id="lista-ideias" class="lista-datas"></div>
     </section>
 
@@ -294,6 +295,7 @@
     </section>
     <section class="grupo-datas ideias-do-projeto" id="lp-ideias">
       <h2>Ideias <span class="contagem" id="lp-ideias-contagem"></span></h2>
+      <div class="abas" role="tablist" id="lp-abas-ideias" aria-label="Situação das ideias"></div>
       <div id="lp-ideias-lista"></div>
       <div class="registro-linha">
         <button class="btn secundario" type="button" id="lp-ideia-nova">Nova ideia neste projeto</button>
@@ -346,6 +348,7 @@
     </div>
     <div id="p-ideias" class="subbloco ideias-do-projeto" hidden>
       <h3>Ideias deste projeto <span class="contagem" id="p-ideias-contagem"></span></h3>
+      <div class="abas" role="tablist" id="p-abas-ideias" aria-label="Situação das ideias"></div>
       <div id="p-ideias-lista"></div>
       <div class="registro-linha">
         <button class="btn secundario" type="button" id="p-ideia-nova">Nova ideia neste projeto</button>
@@ -431,10 +434,15 @@
     <p class="descricao" id="i-leitura" hidden></p>
     <p class="pessoa" id="i-autor"></p>
     <label id="i-campo-status">Status <select id="i-status"></select></label>
+    <p class="legenda" id="i-status-nota" hidden></p>
     <label id="i-campo-projeto">Projeto <select id="i-projeto"></select></label>
     <p class="legenda" id="i-destino-nota" hidden></p>
     <p class="legenda" id="i-projeto-nota" hidden>Esta ideia já recebeu comentário ou apoio e não pode mais sair do projeto.</p>
     <p class="legenda" id="i-historico"></p>
+    <section class="registro-status" id="i-registro" hidden>
+      <h3>Histórico de alterações</h3>
+      <ul id="i-registro-lista"></ul>
+    </section>
     <div class="acoes">
       <button class="btn primario" type="submit" id="i-salvar">Salvar</button>
       <button class="btn secundario" type="button" id="i-cancelar" data-fechar>Cancelar</button>

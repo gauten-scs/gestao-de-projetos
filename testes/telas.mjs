@@ -196,8 +196,8 @@ await fechaJanelas();
 // Ideias (etapa I2): tela, registro, janela, vincular, status e exclusão
 await pg.click("[data-visao='ideias']");
 confere("Ideias: abre a tela, com o resumo e o item marcado no menu", await pg.locator("#visao-ideias").isVisible() && (await txt("#resumo-ideias")) === "3 ideias · 1 avulsa" && (await pg.locator(".menu [data-visao='ideias']").getAttribute("aria-current")) === "page");
-confere("Ideias: lista da mais recente para a mais antiga", (await pg.locator("#lista-ideias .linha-tarefa .nome").allInnerTexts()).join("|") === "Ideia do Bruno no projeto|Ideia avulsa de exemplo|Ideia descartada no projeto");
-confere("Ideias: linha no modelo do cartão (texto e projeto, etiquetas de status e data, autor)", (await pg.locator("#lista-ideias .linha-tarefa").first().evaluate((c) => [...c.children].map((x) => x.className.split(" ")[0]).join("|"))) === "abrir|chips|avatar" && /^Em análise \d+ \w{3}$/.test((await pg.locator("#lista-ideias .linha-tarefa .chips").first().innerText()).replace(/\s+/g, " ").trim()) && (await pg.locator("#lista-ideias .linha-tarefa .origem").allInnerTexts()).join("|") === "Projeto Exemplo|Ideia avulsa|Projeto Exemplo" && (await pg.locator("#lista-ideias .linha-tarefa .avatar").first().innerText()) === "BS");
+confere("Ideias: lista da mais recente para a mais antiga", (await pg.locator("#lista-ideias .linha-tarefa .nome").allInnerTexts()).join("|") === "Ideia do Bruno no projeto|Ideia avulsa de exemplo");
+confere("Ideias: linha no modelo do cartão (texto e projeto, etiquetas de status e data, autor)", (await pg.locator("#lista-ideias .linha-tarefa").first().evaluate((c) => [...c.children].map((x) => x.className.split(" ")[0]).join("|"))) === "abrir|chips|avatar" && /^Em análise \d+ \w{3}$/.test((await pg.locator("#lista-ideias .linha-tarefa .chips").first().innerText()).replace(/\s+/g, " ").trim()) && (await pg.locator("#lista-ideias .linha-tarefa .origem").allInnerTexts()).join("|") === "Projeto Exemplo|Ideia avulsa" && (await pg.locator("#lista-ideias .linha-tarefa .avatar").first().innerText()) === "BS");
 await pg.selectOption("#filtro-ideia-projeto", "avulsas");
 confere("Ideias: filtro Somente avulsas", (await pg.locator("#lista-ideias .linha-tarefa .nome").allInnerTexts()).join("|") === "Ideia avulsa de exemplo");
 await pg.selectOption("#filtro-ideia-status", "aprovada");
@@ -251,10 +251,13 @@ confere("Ideias: a lixeira geral mostra a ideia de projeto excluída, e não a a
 // Ideias dentro do projeto (etapa I3)
 await pg.click("[data-visao='projetos']"); await pg.getByText("Projeto Exemplo").first().click();
 confere("I3: o projeto mostra o bloco Ideias deste projeto, com a contagem", await pg.locator("#p-ideias").isVisible() && (await txt("#p-ideias-contagem")) === "2");
-confere("I3: as ideias do projeto no modelo do cartão, sem a linha do projeto", (await pg.locator("#p-ideias-lista .linha-tarefa .nome").allInnerTexts()).join("|") === "Ideia do Bruno no projeto|Ideia descartada no projeto" && (await pg.locator("#p-ideias-lista .origem").count()) === 0 && (await pg.locator("#p-ideias-lista .linha-tarefa .avatar").count()) === 2);
-confere("I3: as descartadas ficam no fim, mesmo sendo as mais recentes", await pg.evaluate(() => Promise.all([import("./js/estado.js"), import("./js/ideias.js")]).then(([e, m]) => {
-  const d = e.estado.ideias.find((x) => x.id === "i3"), antes = d.criado_em; d.criado_em = new Date(Date.now() + 86400000).toISOString();
-  const ordem = m.ideiasDoProjeto("p1").map((x) => x.id).join("|"); d.criado_em = antes; return ordem === "i2|i3"; })));
+confere("I3: as ideias do projeto no modelo do cartão, sem a linha do projeto", (await pg.locator("#p-ideias-lista .linha-tarefa .nome").allInnerTexts()).join("|") === "Ideia do Bruno no projeto" && (await pg.locator("#p-ideias-lista .origem").count()) === 0 && (await pg.locator("#p-ideias-lista .linha-tarefa .avatar").count()) === 1);
+confere("I6: o projeto mostra as abas Abertas, Executadas e Descartadas, com a contagem de cada uma", (await pg.locator("#p-abas-ideias button").allInnerTexts()).join("|") === "Abertas (1)|Executadas (0)|Descartadas (1)" && (await pg.locator("#p-abas-ideias [aria-selected='true']").innerText()) === "Abertas (1)");
+await pg.locator("#p-abas-ideias button", { hasText: "Descartadas" }).click();
+confere("I6: a aba Descartadas do projeto mostra a ideia descartada", (await pg.locator("#p-ideias-lista .linha-tarefa .nome").allInnerTexts()).join("|") === "Ideia descartada no projeto");
+await pg.locator("#p-abas-ideias button", { hasText: "Executadas" }).click();
+confere("I6: a aba Executadas do projeto, sem ideias, avisa", (await txt("#p-ideias-lista")) === "Nenhuma ideia executada.");
+await pg.locator("#p-abas-ideias button", { hasText: "Abertas" }).click();
 await pg.click("#p-ideia-nova"); await pg.waitForTimeout(150);
 confere("I5: Nova ideia neste projeto abre a janela por cima do projeto, com o projeto escolhido e travado", await abertaPC("#dlg-ideia") && await abertaPC("#dlg-projeto") && (await pg.inputValue("#i-projeto")) === "p1" && await pg.locator("#i-projeto").isDisabled() && (await txt("#i-destino-nota")).startsWith("Todos que têm acesso ao projeto"));
 await pg.fill("#i-titulo", "Ideia de dentro do projeto"); await pg.fill("#i-descricao", "Detalhe"); await pg.mouse.click(20, 20); await pg.waitForTimeout(100);
@@ -265,7 +268,7 @@ await pg.locator("#p-ideias-lista .abrir", { hasText: "Ideia do Bruno no projeto
 confere("I3: clicar na ideia abre a janela dela por cima do projeto", await abertaPC("#dlg-ideia") && await abertaPC("#dlg-projeto") && (await txt("#i-titulo-leitura")) === "Ideia do Bruno no projeto");
 await pg.mouse.click(20, 20); await pg.waitForTimeout(100);
 confere("I3: clicar fora fecha só a ideia, e o projeto volta a ser o item em edição", !(await abertaPC("#dlg-ideia")) && await abertaPC("#dlg-projeto") && await pg.evaluate(() => import("./js/estado.js").then((m) => m.estado.editando?.tipo === "projeto" && m.estado.editando?.id === "p1")));
-await pg.locator("#p-ideias-lista .abrir", { hasText: "Ideia descartada no projeto" }).click(); await pg.locator("#dlg-ideia [data-fechar]").first().click();
+await pg.locator("#p-abas-ideias button", { hasText: "Descartadas" }).click(); await pg.locator("#p-ideias-lista .abrir", { hasText: "Ideia descartada no projeto" }).click(); await pg.locator("#dlg-ideia [data-fechar]").first().click();
 n3 = (await grav()).length; await pg.fill("#p-titulo", "Projeto Exemplo renomeado"); await pg.locator("#form-projeto [type='submit']").click(); await pg.waitForTimeout(200);
 confere("I3: depois de abrir e fechar uma ideia, Salvar grava o projeto certo", (await grav()).slice(n3).some((x) => x[0] === "projetos" && x[1] === "update" && x[2].titulo === "Projeto Exemplo renomeado"));
 await fechaJanelas(); await pg.click("#novo-projeto");
@@ -273,7 +276,10 @@ confere("I3: no projeto novo, ainda não salvo, o bloco de ideias não aparece",
 await fechaJanelas();
 // Apoios e comentários (etapa I4)
 await pg.click("[data-visao='ideias']");
-confere("I4: na lista, a ideia com participação mostra as etiquetas de apoios e de comentários", (await pg.locator("#lista-ideias .linha-tarefa", { hasText: "Ideia descartada no projeto" }).locator(".chips .chip[title]").evaluateAll((cs) => cs.map((c) => c.title).filter((t) => /apoio|coment/.test(t)).join("|"))) === "2 apoios|2 comentários" && (await pg.locator("#lista-ideias .linha-tarefa", { hasText: "Ideia do Bruno no projeto" }).locator(".chips .chip").count()) === 2);
+await pg.locator("#abas-ideias button", { hasText: "Descartadas" }).click();
+confere("I4: na lista, a ideia com participação mostra as etiquetas de apoios e de comentários", (await pg.locator("#lista-ideias .linha-tarefa", { hasText: "Ideia descartada no projeto" }).locator(".chips .chip[title]").evaluateAll((cs) => cs.map((c) => c.title).filter((t) => /apoio|coment/.test(t)).join("|"))) === "2 apoios|2 comentários");
+await pg.locator("#abas-ideias button", { hasText: "Abertas" }).click();
+confere("I4: a ideia sem participação mostra só as etiquetas de status e data", (await pg.locator("#lista-ideias .linha-tarefa", { hasText: "Ideia do Bruno no projeto" }).locator(".chips .chip").count()) === 2);
 await pg.locator("#lista-ideias .abrir", { hasText: "Ideia do Bruno no projeto" }).click();
 confere("I4: ideia de projeto sem participação: Apoiar, ninguém apoiou e nenhum comentário", await pg.locator("#i-participacao").isVisible() && (await txt("#i-apoiar")) === "Apoiar" && (await txt("#i-apoios")) === "Ninguém apoiou ainda" && (await txt("#i-comentarios-contagem")) === "0" && (await txt("#i-comentarios")) === "Nenhum comentário ainda." && !(await pg.locator("#i-sem-participacao").isVisible()));
 n3 = (await grav()).length; await pg.click("#i-apoiar"); await pg.waitForTimeout(200);
@@ -286,6 +292,7 @@ n3 = (await grav()).length; await pg.click("#i-comentar"); await pg.waitForTimeo
 confere("I4: Comentar com o campo vazio não grava nada", (await grav()).length === n3);
 await pg.mouse.click(20, 20); await pg.waitForTimeout(100);
 confere("I4: comentar não conta como alteração: clicar fora fecha a janela depois", !(await abertaPC("#dlg-ideia")));
+await pg.locator("#abas-ideias button", { hasText: "Descartadas" }).click();
 await pg.locator("#lista-ideias .abrir", { hasText: "Ideia descartada no projeto" }).click();
 confere("I4: ideia própria com participação: campo Projeto travado, com a explicação", await pg.locator("#i-projeto").isDisabled() && await pg.locator("#i-projeto-nota").isVisible());
 confere("I4: apoios com a contagem, os nomes e o botão marcado para quem já apoiou", (await txt("#i-apoiar")) === "Apoiada por você" && (await pg.locator("#i-apoiar").getAttribute("aria-pressed")) === "true" && (await txt("#i-apoios")) === "2 apoios" && /Bruno Silva/.test(await pg.locator("#i-apoios").getAttribute("title")) && /Ana Teste/.test(await pg.locator("#i-apoios").getAttribute("title")));
@@ -298,7 +305,7 @@ n3 = (await grav()).length; await pg.locator("#i-comentarios .excluir-comentario
 confere("I4: excluir o próprio comentário pede confirmação", await abertaPC("#dlg-confirma"));
 await pg.click("#confirma-sim"); await pg.waitForTimeout(200);
 confere("I4: confirmando, apaga o comentário certo", (await grav()).slice(n3).some((x) => x[0] === "ideia_comentarios" && x[1] === "delete" && x[2].id === "c2") && await abertaPC("#dlg-ideia"));
-await fechaJanelas();
+await fechaJanelas(); await pg.locator("#abas-ideias button", { hasText: "Abertas" }).click();
 await pg.locator("#lista-ideias .abrir", { hasText: "Ideia avulsa de exemplo" }).click();
 confere("I4: ideia avulsa não tem apoios nem comentários, só o aviso", !(await pg.locator("#i-participacao").isVisible()) && await pg.locator("#i-sem-participacao").isVisible() && !(await pg.locator("#i-projeto").isDisabled()));
 await fechaJanelas();
@@ -541,14 +548,14 @@ await pg.locator("#lista-ideias .abrir").first().click(); await pg.waitForTimeou
 confere("celular: a ideia abre em painel vindo de baixo", await deBaixo("#dlg-ideia"));
 await pg.locator("#dlg-ideia [data-fechar]").first().click();
 await pg.evaluate(() => import("./js/projetos.js").then((m) => m.abrirProjeto("p1"))); await pg.waitForTimeout(350);
-confere("celular: na leitura do projeto, as ideias vêm depois das tarefas, sem a linha do projeto", await pg.locator("#lp-ideias").isVisible() && (await pg.locator("#lp-ideias-lista .linha-tarefa").count()) === 2 && (await pg.locator("#lp-ideias-lista .origem").count()) === 0 && await pg.evaluate(() => document.getElementById("lp-tarefas").compareDocumentPosition(document.getElementById("lp-ideias")) & Node.DOCUMENT_POSITION_FOLLOWING));
+confere("celular: na leitura do projeto, as ideias vêm depois das tarefas, sem a linha do projeto", await pg.locator("#lp-ideias").isVisible() && (await pg.locator("#lp-ideias-lista .linha-tarefa").count()) === 1 && (await pg.locator("#lp-ideias-lista .origem").count()) === 0 && await pg.evaluate(() => document.getElementById("lp-tarefas").compareDocumentPosition(document.getElementById("lp-ideias")) & Node.DOCUMENT_POSITION_FOLLOWING));
 await pg.click("#lp-ideia-nova"); await pg.waitForTimeout(350);
 confere("celular: Nova ideia neste projeto abre de baixo, por cima do projeto, com o projeto escolhido e travado", await deBaixo("#dlg-ideia") && await pg.locator("#dlg-projeto").evaluate((d) => d.open) && (await pg.inputValue("#i-projeto")) === "p1" && await pg.locator("#i-projeto").isDisabled());
 { const antesP = (await grav()).length; await pg.fill("#i-titulo", "Ideia pelo celular"); await pg.press("#i-titulo", "Enter"); await pg.waitForTimeout(200);
 confere("celular: Enter no título grava a ideia no projeto e a janela volta para o projeto", (await grav()).slice(antesP).some((x) => x[0] === "ideias" && x[1] === "insert" && x[2].titulo === "Ideia pelo celular" && x[2].projeto_id === "p1") && !(await pg.locator("#dlg-ideia").evaluate((d) => d.open)) && await pg.locator("#dlg-projeto").evaluate((d) => d.open)); }
 await pg.locator("#lp-ideias-lista .abrir").first().click(); await pg.waitForTimeout(350);
 confere("celular: a ideia aberta de dentro do projeto sobe de baixo, por cima do projeto", await deBaixo("#dlg-ideia") && await pg.locator("#dlg-projeto").evaluate((d) => d.open));
-await pg.locator("#dlg-ideia [data-fechar]").first().click(); await pg.locator("#lp-ideias-lista .abrir", { hasText: "Ideia descartada no projeto" }).click(); await pg.waitForTimeout(350);
+await pg.locator("#dlg-ideia [data-fechar]").first().click(); await pg.locator("#lp-abas-ideias button", { hasText: "Descartadas" }).click(); await pg.locator("#lp-ideias-lista .abrir", { hasText: "Ideia descartada no projeto" }).click(); await pg.waitForTimeout(350);
 await pg.fill("#i-comentario-texto", "Comentário no celular"); await pg.press("#i-comentario-texto", "Enter");
 { const antesC = (await grav()).length; await pg.click("#i-comentar"); await pg.waitForTimeout(200);
 confere("celular: comentários e apoiar na janela da ideia; Enter quebra a linha e o botão Comentar grava", await pg.locator("#i-participacao").isVisible() && (await pg.locator("#i-comentarios .comentario").count()) === 2 && (await grav()).slice(antesC).some((x) => x[0] === "ideia_comentarios" && x[1] === "insert" && x[2].texto === "Comentário no celular") && await pg.evaluate(() => document.getElementById("dlg-ideia").scrollWidth <= document.getElementById("dlg-ideia").clientWidth)); }
@@ -619,6 +626,45 @@ await pg.locator("#lp-lista").getByText("Tarefa do Bruno").click(); await pg.wai
 confere("admin, celular: a leitura da tarefa de outra pessoa não deixa mudar nada", await pg.locator("#l-coluna").isDisabled() && await pg.locator("#l-concluir").isHidden() && (await txt("#l-editar")) === "Ver detalhes");
 await pg.locator("#dlg-tarefa [data-fechar]:visible").first().click();
 await pg.locator("#dlg-projeto [data-fechar]:visible, #dlg-projeto .voltar:visible").first().click();
+// Fluxo de status das ideias (etapa I6)
+await pg.setViewportSize({ width: 1440, height: 900 }); await pg.goto("http://localhost:8123/?fluxo=1"); await pg.waitForSelector("#app:not([hidden])"); await pg.waitForTimeout(300);
+await pg.click("[data-visao='ideias']");
+confere("I6: a aba Ideias tem as abas Abertas, Executadas e Descartadas, com a contagem de cada uma", (await pg.locator("#abas-ideias button").allInnerTexts()).join("|") === "Abertas (6)|Executadas (1)|Descartadas (1)" && await pg.locator("#filtro-ideia-status-campo").isVisible());
+await pg.locator("#abas-ideias button", { hasText: "Executadas" }).click();
+confere("I6: a aba Executadas mostra só a ideia executada, com a etiqueta Executada, e esconde o filtro de status", (await pg.locator("#lista-ideias .linha-tarefa .nome").allInnerTexts()).join("|") === "Ideia executada de exemplo" && (await pg.locator("#lista-ideias .chip.status-executada").innerText()) === "Executada" && !(await pg.locator("#filtro-ideia-status-campo").isVisible()));
+await pg.locator("#abas-ideias button", { hasText: "Abertas" }).click();
+const opcoes = async () => (await pg.locator("#i-status option").allInnerTexts()).join("|");
+// Responsável pelo projeto (Ana), ideia aprovada de outra pessoa
+await pg.locator("#lista-ideias .abrir", { hasText: "Ideia aprovada do Bruno" }).click();
+confere("I6: o responsável vê, na ideia Aprovada, os passos: voltar, executar ou descartar", (await opcoes()) === "Aprovada|Em análise|Executada|Descartada" && await pg.locator("#i-status").isEnabled());
+confere("I6: o responsável altera o texto com a ideia Aprovada, mesmo sem ser o autor", await pg.locator("#i-titulo").isVisible() && await pg.locator("#i-titulo").isEnabled());
+confere("I6: o histórico mostra a mudança de status e a de texto, com quem fez", (await pg.locator("#i-registro-lista li").count()) === 2 && /Status: Em análise → Aprovada/.test(await txt("#i-registro-lista")) && /Título: "Ideia do Bruno" → "Ideia aprovada do Bruno"/.test(await txt("#i-registro-lista")) && (await txt("#i-registro-lista")).includes("Ana Teste"));
+confere("I6: quem não é o autor não vê o campo Projeto", !(await pg.locator("#i-campo-projeto").isVisible()));
+await pg.selectOption("#i-status", "executada"); n3 = (await grav()).length; await pg.locator("#i-salvar").click(); await pg.waitForTimeout(200);
+confere("I6: Salvar manda só o novo status", (await grav()).slice(n3).some((x) => x[0] === "ideias" && x[1] === "update" && Object.keys(x[2]).join() === "status" && x[2].status === "executada"));
+// Ideia executada: só pode voltar para Aprovada
+await fechaJanelas();
+await pg.locator("#abas-ideias button", { hasText: "Executadas" }).click(); await pg.locator("#lista-ideias .abrir", { hasText: "Ideia executada de exemplo" }).click();
+confere("I6: a ideia Executada só volta para Aprovada (não pode ser descartada)", (await opcoes()) === "Executada|Aprovada");
+await fechaJanelas();
+// Descartada: só volta para Em análise
+await pg.locator("#abas-ideias button", { hasText: "Descartadas" }).click(); await pg.locator("#lista-ideias .abrir", { hasText: "Ideia descartada no projeto" }).click();
+confere("I6: a ideia Descartada só volta para Em análise", (await opcoes()) === "Descartada|Em análise");
+await fechaJanelas(); await pg.locator("#abas-ideias button", { hasText: "Abertas" }).click();
+// Ideia que deu origem a tarefa: não pode ser descartada
+await pg.locator("#lista-ideias .abrir", { hasText: "Ideia que virou tarefa" }).click();
+confere("I6: a ideia que deu origem a uma tarefa não oferece Descartada, e a tela explica", (await opcoes()) === "Aprovada|Em análise|Executada" && (await txt("#i-status-nota")).includes("não pode ser descartada"));
+await fechaJanelas();
+// Quem participa do projeto sem ser o responsável (Ana, no projeto do Bruno)
+await pg.locator("#lista-ideias .abrir", { hasText: "Ideia da Ana no projeto do Bruno" }).click();
+confere("I6: o autor que não é o responsável só passa entre Nova e Em análise, e a tela avisa", (await opcoes()) === "Nova|Em análise" && (await txt("#i-status-nota")).includes("só o responsável pelo projeto") && await pg.locator("#i-titulo").isEnabled());
+await fechaJanelas();
+await pg.locator("#lista-ideias .abrir", { hasText: "Ideia aprovada da Ana no projeto do Bruno" }).click();
+confere("I6: com a ideia Aprovada, o autor que não é o responsável não muda o status nem o texto", await pg.locator("#i-status").isDisabled() && !(await pg.locator("#i-titulo").isVisible()) && (await txt("#i-titulo-leitura")) === "Ideia aprovada da Ana no projeto do Bruno" && await pg.locator("#i-salvar").isHidden() && (await txt("#i-cancelar")) === "Fechar" && await pg.locator("#i-excluir").isVisible());
+confere("I6: com a ideia Aprovada, o campo Projeto do autor fica travado, com a explicação", await pg.locator("#i-projeto").isDisabled() && (await txt("#i-projeto-nota")).startsWith("Só dá para vincular ou desvincular"));
+await fechaJanelas();
+confere("I6: nada mais foi mandado gravar", (await grav()).length === n3 + 1);
+
 confere("nenhum erro no console", erros.length === 0); erros.forEach((e) => console.log("   " + e));
 console.log(`RESULTADO: ${ok} ok, ${falhas} falhas`); await b.close(); srv.close();
 process.exit(falhas ? 1 : 0);
