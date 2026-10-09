@@ -11,18 +11,36 @@ import { renderIdeiasDoProjeto } from "./ideias.js";
 $("#novo-projeto").addEventListener("click", () => abrirProjeto(null));
 
 let projetoAberto = null; // o projeto mostrado na janela, mesmo com a janela da tarefa por cima
+// Projeto que está nascendo de uma ideia (etapa I7): { ideia_id, titulo, descricao, aoFechar }.
+// Ao salvar, o projeto guarda a ideia de origem; ao fechar sem salvar, nada é criado. Nos dois casos volta-se para a ideia.
+let semente = null;
+// (o aviso de fechamento chega depois; se a janela já reabriu para outro projeto, não é com ele)
+$("#dlg-projeto").addEventListener("close", () => { if ($("#dlg-projeto").open) return; const s = semente; semente = null; s?.aoFechar?.(); });
+// Linha "Criado a partir da ideia": só para quem enxerga a ideia (a avulsa é privada do autor)
+function daIdeia(p, raiz) {
+  const i = p?.ideia_id ? estado.ideias.find((x) => x.id === p.ideia_id) : null;
+  raiz.hidden = !i;
+  raiz.replaceChildren(...(i ? ["Criado a partir da ideia: ", el("button", { class: "elo", type: "button", text: i.titulo, onclick: () => {
+    if ($("#dlg-projeto").dataset.alterado) { aviso("Salve ou cancele as alterações do projeto antes de abrir a ideia."); return; }
+    $("#dlg-projeto").close(); de.abrirIdeia(i.id);
+  } })] : []));
+}
 
-export function abrirProjeto(id, colunaId) {
+export function abrirProjeto(id, colunaId, daIdeiaAprovada) {
   const colunas = colunasDe("projetos");
   if (!colunas.length) { aviso("Crie ao menos uma coluna no quadro de projetos, em Configurações."); return; }
   const eu = estado.usuario.id;
   const p = id ? estado.projetos.find((x) => x.id === id) : null;
   estado.editando = { tipo: "projeto", id: p ? p.id : null };
   projetoAberto = estado.editando.id;
+  semente = p ? null : (daIdeiaAprovada ?? null);
   const ro = !!p && vejoComoAdmin(p.id); // administrador em projeto de que não faz parte: só lê
   $("#p-janela").textContent = ro ? "Projeto" : p ? "Editar projeto" : "Novo projeto";
-  $("#p-titulo").value = p?.titulo ?? "";
-  $("#p-descricao").value = p?.descricao ?? "";
+  $("#p-titulo").value = p?.titulo ?? semente?.titulo ?? "";
+  $("#p-descricao").value = p?.descricao ?? semente?.descricao ?? "";
+  $("#p-da-ideia").hidden = !semente && !p?.ideia_id;
+  if (semente) $("#p-da-ideia").textContent = "Este projeto nasce da ideia aprovada e fica ligado a ela.";
+  else daIdeia(p, $("#p-da-ideia"));
   preencherSelect($("#p-coluna"), colunas.map((c) => ({ v: c.id, t: c.nome })), p?.coluna_id ?? colunaId ?? colunas[0].id);
   $("#p-prioridade").value = p?.prioridade ?? "media";
   $("#p-prazo").value = p?.prazo ?? "";
@@ -58,6 +76,7 @@ function preencherLeitura(p) {
   $("#lp-responsavel").replaceChildren(avatar(p.responsavel_id), el("span", { text: nomePerfil(p.responsavel_id) || "Sem responsável" }));
   $("#lp-descricao").textContent = p.descricao || "";
   $("#lp-descricao").hidden = !p.descricao;
+  daIdeia(p, $("#lp-da-ideia"));
   preencherSelect($("#lp-coluna"), colunasDe("projetos").map((c) => ({ v: c.id, t: c.nome })), p.coluna_id);
   travarConclusao($("#lp-coluna"), meu, p.coluna_id); // só o responsável leva o projeto para a coluna concluída, ou tira de lá
   $("#lp-coluna").disabled = vejoComoAdmin(p.id);
@@ -218,9 +237,11 @@ $("#form-projeto").addEventListener("submit", async (e) => {
   const incluir = marcados.filter((u) => !antes.includes(u));
   const retirar = antes.filter((u) => !marcados.includes(u));
 
+  const origem = !id ? semente : null;
   if (!id) {
-    const { error } = await sb.from("projetos").insert({ id: projetoId, ...dados });
+    const { error } = await sb.from("projetos").insert({ id: projetoId, ...dados, ...(origem ? { ideia_id: origem.ideia_id } : {}) });
     if (error) { aviso("Não foi possível salvar o projeto: " + traduz(error)); return; }
+    semente = null; // a volta para a ideia acontece depois de os dados serem recarregados
   }
   if (estado.editando.gerencia) {
     if (incluir.length) {
@@ -239,6 +260,7 @@ $("#form-projeto").addEventListener("submit", async (e) => {
   }
   $("#dlg-projeto").close();
   await de.carregar();
+  if (origem) { aviso("Projeto criado a partir da ideia."); origem.aoFechar?.(); }
 });
 
 $("#p-excluir").addEventListener("click", async () => {

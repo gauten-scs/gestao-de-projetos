@@ -287,6 +287,7 @@
     <div id="lp-chips"></div>
     <p class="pessoa" id="lp-responsavel"></p>
     <p class="descricao" id="lp-descricao" hidden></p>
+    <p class="legenda" id="lp-da-ideia" hidden></p>
     <label>Coluna <select id="lp-coluna"></select></label>
     <div id="lp-andamento"></div>
     <section class="grupo-datas" id="lp-tarefas">
@@ -355,6 +356,7 @@
       </div>
       <p class="legenda">Quem tem acesso ao projeto vê as ideias dele.</p>
     </div>
+    <p class="legenda" id="p-da-ideia" hidden></p>
     <p class="legenda" id="p-historico" hidden></p>
     <div class="acoes">
       <button class="btn primario" type="submit">Salvar</button>
@@ -375,6 +377,7 @@
     <div id="l-chips"></div>
     <p class="pessoa" id="l-responsavel"></p>
     <p class="descricao" id="l-descricao" hidden></p>
+    <p class="legenda" id="l-da-ideia" hidden></p>
     <label>Coluna <select id="l-coluna"></select></label>
     <p class="legenda" id="l-historico"></p>
     <div class="acoes">
@@ -406,6 +409,7 @@
       <label>Data prevista para finalização <input type="date" id="t-prazo" required></label>
       <label>Responsável <select id="t-responsavel" required></select></label>
     </div>
+    <p class="legenda" id="t-da-ideia" hidden></p>
     <p class="legenda" id="t-historico" hidden></p>
     <p class="legenda" id="t-visivel"></p>
     <div class="acoes">
@@ -438,6 +442,15 @@
     <label id="i-campo-projeto">Projeto <select id="i-projeto"></select></label>
     <p class="legenda" id="i-destino-nota" hidden></p>
     <p class="legenda" id="i-projeto-nota" hidden>Esta ideia já recebeu comentário ou apoio e não pode mais sair do projeto.</p>
+    <!-- Etapa I7: só a ideia Aprovada vira tarefa ou projeto; a ideia continua na lista, marcada com o que gerou -->
+    <div class="converter" id="i-converter" hidden>
+      <button class="btn secundario" type="button" id="i-virar-tarefa">Converter em tarefa</button>
+      <button class="btn secundario" type="button" id="i-virar-projeto">Converter em projeto</button>
+    </div>
+    <section class="registro-status gerou" id="i-gerou" hidden>
+      <h3>O que esta ideia gerou</h3>
+      <ul id="i-gerou-lista"></ul>
+    </section>
     <p class="legenda" id="i-historico"></p>
     <section class="registro-status" id="i-registro" hidden>
       <h3>Histórico de alterações</h3>

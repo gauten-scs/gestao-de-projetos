@@ -5,6 +5,8 @@
 // Aprovada, Executada e Descartada (entrar ou sair) só pelo responsável pelo projeto (na avulsa, o autor); entre Nova e Em análise,
 // o autor ou o responsável. Título e descrição: o autor, em Nova e Em análise; nos demais status, o responsável (na avulsa, o autor).
 // Só o autor vincula, desvincula (em Nova e Em análise) e exclui. Quem garante tudo isso é o banco; aqui a tela só oferece o que vale.
+// Converter (etapa I7): só a ideia Aprovada vira tarefa ou projeto, por quem participa do projeto dela (na avulsa, o autor).
+// A ideia continua na lista, marcada com o que gerou, e pode gerar mais de um item.
 import { sb } from "./supabase.js";
 import { de } from "./ligacoes.js";
 import { $, el, celular, plural, dataCurta, dataHora, dois, ICONES, aviso, traduz, preencherSelect, confirmar } from "./util.js";
@@ -33,7 +35,16 @@ const respondoPeloProjeto = (i) => !!i.projeto_id && estado.projetos.find((p) =>
 const PASSOS = { nova: ["em_analise", "descartada"], em_analise: ["nova", "aprovada", "descartada"], aprovada: ["em_analise", "executada", "descartada"], executada: ["aprovada"], descartada: ["em_analise"] };
 const alto = (s) => ["aprovada", "executada", "descartada"].includes(s);
 const dono = (i) => (i.projeto_id ? respondoPeloProjeto(i) : souAutor(i));
-const geraOrigem = (i) => estado.tarefas.some((t) => t.ideia_id === i.id) || estado.projetos.some((p) => p.ideia_id === i.id);
+// O que a ideia gerou. Os números vêm do banco e contam também o que a pessoa não enxerga (tarefa avulsa de outra pessoa,
+// projeto de que não participa) e o que está na lixeira; os nomes, só do que ela enxerga.
+function geradoPor(i) {
+  const tarefas = estado.tarefas.filter((t) => t.ideia_id === i.id), projetos = estado.projetos.filter((p) => p.ideia_id === i.id);
+  const o = estado.origens.find((x) => x.ideia_id === i.id);
+  return { tarefas, projetos, nTarefas: Math.max(o?.tarefas ?? 0, tarefas.length), nProjetos: Math.max(o?.projetos ?? 0, projetos.length) };
+}
+const geraOrigem = (i) => { const g = geradoPor(i); return g.nTarefas + g.nProjetos > 0; };
+// Converter é gravar: quem só lê o projeto (administrador de fora) não converte; a avulsa, só o autor
+const podeConverter = (i) => i.status === "aprovada" && !vejoComoAdmin(i.projeto_id) && (!!i.projeto_id || souAutor(i));
 // Para quais status a pessoa pode levar esta ideia agora
 function statusPermitidos(i) {
   if (vejoComoAdmin(i.projeto_id)) return [];
@@ -87,8 +98,10 @@ export function chipsDaIdeia(i) {
   const data = el("span", { class: "chip", title: "Registrada em " + dataHora(i.criado_em) });
   data.innerHTML = ICONES.data;
   data.append(dataCurta(diaDe(i.criado_em)));
-  const na = apoiosDa(i).length, nc = comentariosDa(i).length;
+  const na = apoiosDa(i).length, nc = comentariosDa(i).length, g = geradoPor(i);
   return el("div", { class: "chips" }, el("span", { class: "chip status-" + i.status, text: STATUS_IDEIA[i.status] ?? i.status }), data,
+    g.nTarefas ? el("span", { class: "chip gerou", text: "Virou tarefa", title: plural(g.nTarefas, "tarefa criada", "tarefas criadas") + " a partir desta ideia" }) : null,
+    g.nProjetos ? el("span", { class: "chip gerou", text: "Virou projeto", title: plural(g.nProjetos, "projeto criado", "projetos criados") + " a partir desta ideia" }) : null,
     na ? chipComIcone(SVG_APOIO, na, plural(na, "apoio", "apoios")) : null,
     nc ? chipComIcone(SVG_COMENTARIO, nc, plural(nc, "comentário", "comentários")) : null);
 }
@@ -138,10 +151,11 @@ for (const pre of ["p", "lp"]) $(`#${pre}-ideia-nova`).addEventListener("click",
 // ---------- Janela da ideia ----------
 // A ideia pode abrir por cima da janela do projeto. Ao fechar, a edição do projeto é retomada (como na tarefa).
 let projetoPorBaixo = null;
-$("#dlg-ideia").addEventListener("close", () => {
+function retomarProjeto() {
   if (projetoPorBaixo && $("#dlg-projeto").open) estado.editando = projetoPorBaixo;
   projetoPorBaixo = null;
-});
+}
+$("#dlg-ideia").addEventListener("close", retomarProjeto);
 
 // Título e descrição: campos para quem edita; para os demais, o título em destaque e a descrição, se houver
 function camposDeTexto(edita, titulo, descricao) {
@@ -158,7 +172,7 @@ export function novaIdeia(projetoId) {
   estado.editando = { tipo: "ideia", id: null, novo: true };
   $("#i-janela").textContent = "Nova ideia";
   $("#i-origem").hidden = $("#i-autor").hidden = $("#i-historico").hidden = $("#i-campo-status").hidden = true;
-  $("#i-status-nota").hidden = $("#i-registro").hidden = true;
+  $("#i-status-nota").hidden = $("#i-registro").hidden = $("#i-converter").hidden = $("#i-gerou").hidden = true;
   $("#i-titulo").value = $("#i-descricao").value = "";
   camposDeTexto(true);
   preencherSelect($("#i-projeto"), projetoId ? [{ v: projetoId, t: tituloDoProjeto(projetoId) }] : [{ v: "", t: "Ideia avulsa (só você vê)" }, ...projetosParaGravar()], projetoId ?? "");
@@ -243,6 +257,45 @@ function renderRegistro(i) {
       : [h.titulo_antes !== h.titulo_depois ? el("span", { text: `Título: "${resumoDeTexto(h.titulo_antes)}" → "${resumoDeTexto(h.titulo_depois)}"` }) : null,
          (h.descricao_antes ?? "") !== (h.descricao_depois ?? "") ? el("span", { text: `Descrição: "${resumoDeTexto(h.descricao_antes)}" → "${resumoDeTexto(h.descricao_depois)}"` }) : null]))));
 }
+// ---------- Converter em tarefa ou em projeto (etapa I7) ----------
+// O que a ideia já gerou: os itens que a pessoa enxerga, pelo nome (clicar abre); os demais, só a quantidade
+function renderGerou(i) {
+  const g = geradoPor(i);
+  $("#i-converter").hidden = !podeConverter(i);
+  $("#i-gerou").hidden = g.nTarefas + g.nProjetos === 0;
+  const linha = (rotulo, titulo, abrir, fechaProjeto) => el("li", {}, el("span", { class: "legenda", text: rotulo }),
+    el("button", { class: "elo", type: "button", text: titulo, onclick: () => sairDaIdeia(abrir, fechaProjeto) }));
+  const fora = (n, um, varios) => (n > 0 ? el("li", {}, el("span", { text: plural(n, um, varios) + " que você não vê ou que está na lixeira" })) : null);
+  $("#i-gerou-lista").replaceChildren(...[
+    ...g.tarefas.map((t) => linha("Tarefa", t.titulo, () => de.abrirTarefa(t.id))),
+    fora(g.nTarefas - g.tarefas.length, "tarefa", "tarefas"),
+    ...g.projetos.map((p) => linha("Projeto", p.titulo, () => de.abrirProjeto(p.id), true)),
+    fora(g.nProjetos - g.projetos.length, "projeto", "projetos"),
+  ].filter(Boolean));
+}
+// Sai da janela da ideia para abrir outra coisa (a tarefa ou o projeto). Com alteração por salvar, a pessoa resolve antes.
+// Quando o destino é um projeto e há um projeto aberto por baixo, ele também precisa fechar.
+function sairDaIdeia(abrir, fechaProjeto) {
+  if ($("#dlg-ideia").dataset.alterado) { aviso("Salve ou cancele as alterações da ideia antes."); return false; }
+  if (fechaProjeto && $("#dlg-projeto").open) {
+    if ($("#dlg-projeto").dataset.alterado) { aviso("Salve ou cancele as alterações do projeto aberto antes."); return false; }
+    $("#dlg-ideia").close(); $("#dlg-projeto").close();
+  } else $("#dlg-ideia").close();
+  retomarProjeto(); // já, e não só quando o aviso de fechamento chegar: a janela seguinte precisa saber o que ficou por baixo
+  abrir();
+  return true;
+}
+function converter(tipo) {
+  const i = estado.ideias.find((x) => x.id === estado.editando?.id);
+  if (!i || estado.editando?.tipo !== "ideia" || !podeConverter(i)) return;
+  // A janela da tarefa ou do projeto abre com o título e a descrição da ideia; ao salvar ou cancelar, volta-se para a ideia
+  const semente = { ideia_id: i.id, titulo: i.titulo, descricao: i.descricao ?? "", projeto_id: i.projeto_id ?? null, aoFechar: () => abrirIdeia(i.id) };
+  if (tipo === "tarefa") sairDaIdeia(() => de.abrirTarefa(null, null, i.projeto_id ?? null, semente));
+  else sairDaIdeia(() => de.abrirProjeto(null, null, semente), true);
+}
+$("#i-virar-tarefa").addEventListener("click", () => converter("tarefa"));
+$("#i-virar-projeto").addEventListener("click", () => converter("projeto"));
+
 // Por que o campo Projeto está travado (null se não está)
 const motivoDaTravaDoProjeto = (i) => alto(i.status) ? "Só dá para vincular ou desvincular a ideia quando ela está em Nova ou Em análise."
   : (i.projeto_id && teveParticipacao(i) ? "Esta ideia já recebeu comentário ou apoio e não pode mais sair do projeto." : null);
@@ -262,6 +315,7 @@ export function renderParticipacao() {
   $("#i-projeto-nota").hidden = !motivo;
   if (motivo) $("#i-projeto").value = i.projeto_id ?? "";
   renderRegistro(i);
+  renderGerou(i);
   if (!deProjeto) return;
   // Administrador em projeto de que não faz parte: lê os apoios e os comentários, sem apoiar nem comentar
   const ro = vejoComoAdmin(i.projeto_id);

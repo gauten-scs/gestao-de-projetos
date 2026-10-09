@@ -54,6 +54,15 @@
       { id: "h1", ideia_id: "i10", usuario_id: "u1", em: new Date(Date.now() - 7200000).toISOString(), tipo: "status", status_de: "em_analise", status_para: "aprovada" },
       { id: "h2", ideia_id: "i10", usuario_id: "u1", em: new Date(Date.now() - 3600000).toISOString(), tipo: "texto", titulo_antes: "Ideia do Bruno", titulo_depois: "Ideia aprovada do Bruno", descricao_antes: null, descricao_depois: "Descrição aprovada." }];
   }
+  // ?converte=1 no endereço, junto com ?fluxo=1 (etapa I7): uma ideia avulsa aprovada da Ana; a ideia que virou tarefa
+  // gerou também um projeto que a Ana não enxerga (dele só chega o número); e um projeto que nasceu da ideia aprovada do Bruno
+  if (new URLSearchParams(location.search).has("converte")) {
+    D.ideias.push({ ...base, id: "i16", titulo: "Ideia avulsa aprovada", descricao: "Descrição da avulsa.", projeto_id: null, status: "aprovada" });
+    D.origens_extra = [{ ideia_id: "i15", tarefas: 0, projetos: 1 }];
+    // com ?visao=1: uma ideia aprovada no projeto do Bruno, de que a Ana (administradora) não faz parte
+    if (new URLSearchParams(location.search).has("visao")) D.ideias.push({ ...base, id: "i17", titulo: "Ideia aprovada no projeto do Bruno", projeto_id: "p7", status: "aprovada", criado_por: "u2", atualizado_por: "u2" });
+    D.projetos.push({ ...base, id: "p9", titulo: "Projeto vindo da ideia", descricao: "", coluna_id: "cp1", ordem: 4, responsavel_id: U, prazo: null, prioridade: "media", ideia_id: "i10" });
+  }
   window.__gravacoes = [];
   function consulta(tabela) {
     let linhas = D[tabela] || [], unico = false, op = "select", filtro = null;
@@ -73,7 +82,17 @@
   window.supabase = { createClient: () => ({
     auth: { getSession: async () => ({ data: { session: { user: usuario } } }), getUser: async () => ({ data: { user: usuario }, error: null }),
             signOut: async () => ({}), verifyOtp: async () => ({ error: null }), signInWithPassword: async () => ({ error: null }), updateUser: async () => { sessionStorage.removeItem("teste-pendente"); D.perfis[0].senha_pendente = false; return { error: null }; } },
-    from: consulta, rpc: async (n, p) => { window.__gravacoes.push(["rpc", n, p]); return { error: null }; },
+    from: consulta, rpc: async (n, p) => {
+      // O que cada ideia gerou: conta as tarefas e os projetos com ideia_id e soma o que a pessoa não enxergaria (origens_extra)
+      if (n === "origens_das_ideias") {
+        const m = {};
+        const soma = (id, campo, q) => { if (!id) return; (m[id] ??= { ideia_id: id, tarefas: 0, projetos: 0 })[campo] += q; };
+        for (const t of D.tarefas) soma(t.ideia_id, "tarefas", 1);
+        for (const pr of D.projetos) soma(pr.ideia_id, "projetos", 1);
+        for (const o of D.origens_extra || []) { soma(o.ideia_id, "tarefas", o.tarefas); soma(o.ideia_id, "projetos", o.projetos); }
+        return { data: Object.values(m), error: null };
+      }
+      window.__gravacoes.push(["rpc", n, p]); return { error: null }; },
     functions: { invoke: async (n, o) => { window.__gravacoes.push(["funcao", n, o.body]); return { data: { token: "tok123", tipo: o.body.acao === "convidar" ? "invite" : "recovery" }, error: null }; } },
     channel: () => { const c = { on: () => c, subscribe: () => c }; return c; },
   }) };

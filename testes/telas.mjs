@@ -665,6 +665,116 @@ confere("I6: com a ideia Aprovada, o campo Projeto do autor fica travado, com a 
 await fechaJanelas();
 confere("I6: nada mais foi mandado gravar", (await grav()).length === n3 + 1);
 
+// ---------- Etapa I7: converter a ideia Aprovada em tarefa ou em projeto ----------
+await pg.goto("http://localhost:8123/?fluxo=1&converte=1"); await pg.waitForSelector("#app:not([hidden])"); await pg.waitForTimeout(300);
+await pg.click("[data-visao='ideias']");
+const abreIdeia = async (nome) => { await pg.locator("#lista-ideias .abrir", { hasText: nome }).first().click(); await pg.waitForTimeout(80); };
+const chipsDe = async (nome) => (await pg.locator("#lista-ideias .linha-tarefa", { hasText: nome }).first().locator(".chip.gerou").allInnerTexts()).join("|");
+
+confere("I7: a ideia que gerou tarefa e projeto mostra as duas etiquetas na lista", (await chipsDe("Ideia que virou tarefa")) === "Virou tarefa|Virou projeto");
+confere("I7: a ideia que gerou só projeto mostra só essa etiqueta, e a que não gerou nada não mostra nenhuma", (await chipsDe("Ideia aprovada do Bruno")) === "Virou projeto" && (await chipsDe("Ideia avulsa aprovada")) === "");
+// Só a Aprovada oferece a conversão
+await abreIdeia("Ideia avulsa de exemplo");
+confere("I7: a ideia Nova não oferece a conversão", !(await pg.locator("#i-converter").isVisible()) && !(await pg.locator("#i-gerou").isVisible()));
+await fechaJanelas();
+await pg.locator("#abas-ideias button", { hasText: "Executadas" }).click(); await abreIdeia("Ideia executada de exemplo");
+confere("I7: a ideia Executada não oferece a conversão", !(await pg.locator("#i-converter").isVisible()));
+await fechaJanelas(); await pg.locator("#abas-ideias button", { hasText: "Abertas" }).click();
+// Ideia de projeto, Aprovada: vira tarefa do mesmo projeto
+await abreIdeia("Ideia aprovada da Ana no projeto do Bruno");
+confere("I7: a ideia Aprovada oferece converter em tarefa e em projeto a quem participa do projeto", await pg.locator("#i-virar-tarefa").isVisible() && await pg.locator("#i-virar-projeto").isVisible());
+const c1 = (await grav()).length;
+await pg.click("#i-virar-tarefa"); await pg.waitForTimeout(100);
+confere("I7: converter em tarefa abre a janela de nova tarefa com o título da ideia, no projeto da ideia, travado", await abertaPC("#dlg-tarefa") && !(await abertaPC("#dlg-ideia")) && (await txt("#t-janela")) === "Nova tarefa" && (await pg.inputValue("#t-titulo")) === "Ideia aprovada da Ana no projeto do Bruno" && (await pg.inputValue("#t-projeto")) === "p8" && await pg.locator("#t-projeto").isDisabled() && (await txt("#t-da-ideia")).includes("nasce da ideia aprovada"));
+await pg.click("#form-tarefa .acoes [data-fechar]"); await pg.waitForTimeout(150);
+confere("I7: cancelar a tarefa não grava nada e volta para a ideia", (await grav()).length === c1 && await abertaPC("#dlg-ideia") && !(await abertaPC("#dlg-tarefa")) && (await txt("#i-titulo-leitura")) === "Ideia aprovada da Ana no projeto do Bruno");
+await pg.click("#i-virar-tarefa"); await pg.waitForTimeout(100);
+await pg.fill("#t-prazo", "2030-05-10"); await pg.click("#form-tarefa button[type=submit]"); await pg.waitForTimeout(250);
+const gt = (await grav()).slice(c1);
+confere("I7: salvar grava a tarefa com a ideia de origem, no projeto da ideia", gt.length === 1 && gt[0][0] === "tarefas" && gt[0][1] === "insert" && gt[0][2].ideia_id === "i14" && gt[0][2].projeto_id === "p8" && gt[0][2].titulo === "Ideia aprovada da Ana no projeto do Bruno" && gt[0][2].prazo === "2030-05-10");
+confere("I7: depois de salvar, avisa e volta para a ideia", await abertaPC("#dlg-ideia") && (await txt("#aviso")) === "Tarefa criada a partir da ideia.");
+await fechaJanelas();
+confere("I7: a janela de tarefa comum volta a ter o campo Projeto livre e sem a nota da ideia", await (async () => { await pg.click("#nova-ideia, #ideia-nova").catch(() => {}); await fechaJanelas(); await pg.evaluate(() => import("./js/tarefas.js").then((m) => m.abrirTarefa(null))); const r = !(await pg.locator("#t-projeto").isDisabled()) && !(await pg.locator("#t-da-ideia").isVisible()) && (await pg.inputValue("#t-titulo")) === ""; const g = (await grav()).length; await pg.fill("#t-titulo", "Tarefa comum"); await pg.fill("#t-prazo", "2030-05-11"); await pg.click("#form-tarefa button[type=submit]"); await pg.waitForTimeout(200); const ult = (await grav()).slice(g); return r && ult.length === 1 && !("ideia_id" in ult[0][2]) && !(await abertaPC("#dlg-ideia")); })());
+await fechaJanelas();
+// Ideia avulsa, Aprovada: vira tarefa avulsa ou projeto novo
+await abreIdeia("Ideia avulsa aprovada");
+await pg.click("#i-virar-tarefa"); await pg.waitForTimeout(100);
+confere("I7: a ideia avulsa vira tarefa avulsa, com a descrição da ideia", (await pg.inputValue("#t-projeto")) === "" && await pg.locator("#t-projeto").isDisabled() && (await pg.inputValue("#t-descricao")) === "Descrição da avulsa.");
+await pg.click("#form-tarefa .acoes [data-fechar]"); await pg.waitForTimeout(150);
+const g2 = (await grav()).length;
+await pg.click("#i-virar-projeto"); await pg.waitForTimeout(100);
+confere("I7: converter em projeto abre a janela de novo projeto com o título e a descrição da ideia", await abertaPC("#dlg-projeto") && !(await abertaPC("#dlg-ideia")) && (await txt("#p-janela")) === "Novo projeto" && (await pg.inputValue("#p-titulo")) === "Ideia avulsa aprovada" && (await pg.inputValue("#p-descricao")) === "Descrição da avulsa." && (await pg.inputValue("#p-responsavel")) === "u1" && (await txt("#p-da-ideia")).includes("nasce da ideia aprovada"));
+await pg.click("#form-projeto .acoes [data-fechar]"); await pg.waitForTimeout(150);
+confere("I7: cancelar o projeto não grava nada e volta para a ideia", (await grav()).length === g2 && await abertaPC("#dlg-ideia") && !(await abertaPC("#dlg-projeto")));
+await pg.click("#i-virar-projeto"); await pg.waitForTimeout(100);
+await pg.click("#form-projeto button[type=submit]"); await pg.waitForTimeout(250);
+const gp = (await grav()).slice(g2);
+confere("I7: salvar grava o projeto com a ideia de origem", gp.length === 1 && gp[0][0] === "projetos" && gp[0][1] === "insert" && gp[0][2].ideia_id === "i16" && gp[0][2].titulo === "Ideia avulsa aprovada" && gp[0][2].responsavel_id === "u1");
+confere("I7: depois de salvar o projeto, avisa e volta para a ideia", await abertaPC("#dlg-ideia") && !(await abertaPC("#dlg-projeto")) && (await txt("#aviso")) === "Projeto criado a partir da ideia.");
+await fechaJanelas();
+await pg.click("[data-visao='projetos']"); await pg.click("#novo-projeto"); await pg.waitForTimeout(80);
+const g3 = (await grav()).length;
+confere("I7: a janela de projeto comum abre vazia e sem a nota da ideia", (await pg.inputValue("#p-titulo")) === "" && !(await pg.locator("#p-da-ideia").isVisible()));
+await pg.fill("#p-titulo", "Projeto comum"); await pg.click("#form-projeto button[type=submit]"); await pg.waitForTimeout(200);
+confere("I7: o projeto comum é gravado sem ideia de origem e não abre ideia nenhuma", (await grav()).slice(g3).some((x) => x[0] === "projetos" && x[1] === "insert" && !("ideia_id" in x[2])) && !(await abertaPC("#dlg-ideia")));
+await fechaJanelas(); await pg.click("[data-visao='ideias']");
+// O que a ideia gerou, e os elos de ida e volta
+await abreIdeia("Ideia que virou tarefa");
+confere("I7: a janela lista o que a ideia gerou: a tarefa pelo nome e o projeto que a pessoa não vê só pela quantidade", (await pg.locator("#i-gerou-lista li").allInnerTexts()).map((t) => t.replace(/\s+/g, " ").trim()).join("|") === "Tarefa Tarefa vinda da ideia|1 projeto que você não vê ou que está na lixeira");
+await pg.fill("#i-titulo", "Título mexido"); await pg.locator("#i-gerou-lista .elo").first().click(); await pg.waitForTimeout(100);
+confere("I7: com alteração por salvar na ideia, o elo não sai da janela e avisa", await abertaPC("#dlg-ideia") && !(await abertaPC("#dlg-tarefa")) && (await txt("#aviso")).startsWith("Salve ou cancele"));
+await fechaJanelas(); await abreIdeia("Ideia que virou tarefa");
+await pg.locator("#i-gerou-lista .elo").first().click(); await pg.waitForTimeout(100);
+confere("I7: clicar na tarefa gerada fecha a ideia e abre a tarefa, que mostra a ideia de origem", await abertaPC("#dlg-tarefa") && !(await abertaPC("#dlg-ideia")) && (await pg.inputValue("#t-titulo")) === "Tarefa vinda da ideia" && (await txt("#t-da-ideia")).replace(/\s+/g, " ") === "Criada a partir da ideia: Ideia que virou tarefa");
+await pg.locator("#t-da-ideia .elo").click(); await pg.waitForTimeout(100);
+confere("I7: da tarefa, o elo volta para a ideia", await abertaPC("#dlg-ideia") && !(await abertaPC("#dlg-tarefa")) && (await pg.inputValue("#i-titulo")) === "Ideia que virou tarefa");
+await fechaJanelas();
+await abreIdeia("Ideia aprovada do Bruno");
+confere("I7: a ideia que gerou projeto lista o projeto pelo nome e não oferece Descartada", (await pg.locator("#i-gerou-lista li").allInnerTexts()).map((t) => t.replace(/\s+/g, " ").trim()).join("|") === "Projeto Projeto vindo da ideia" && !(await opcoes()).includes("Descartada"));
+await pg.locator("#i-gerou-lista .elo").first().click(); await pg.waitForTimeout(100);
+confere("I7: clicar no projeto gerado abre o projeto, que mostra a ideia de origem", await abertaPC("#dlg-projeto") && !(await abertaPC("#dlg-ideia")) && (await pg.inputValue("#p-titulo")) === "Projeto vindo da ideia" && (await txt("#p-da-ideia")).replace(/\s+/g, " ") === "Criado a partir da ideia: Ideia aprovada do Bruno");
+await pg.locator("#p-da-ideia .elo").click(); await pg.waitForTimeout(100);
+confere("I7: do projeto, o elo volta para a ideia", await abertaPC("#dlg-ideia") && !(await abertaPC("#dlg-projeto")));
+await fechaJanelas();
+// De dentro do projeto: a tarefa nasce por cima do projeto e, ao cancelar, volta para a ideia por cima do projeto
+await pg.click("[data-visao='projetos']"); await pg.locator("#quadro-projetos .cartao", { hasText: "Projeto Exemplo" }).first().click(); await pg.waitForTimeout(100);
+await pg.locator("#p-ideias-lista .abrir", { hasText: "Ideia aprovada do Bruno" }).click(); await pg.waitForTimeout(100);
+await pg.click("#i-virar-tarefa"); await pg.waitForTimeout(100);
+confere("I7: de dentro do projeto, a tarefa da ideia abre por cima do projeto", await abertaPC("#dlg-tarefa") && await abertaPC("#dlg-projeto") && !(await abertaPC("#dlg-ideia")) && (await pg.inputValue("#t-projeto")) === "p1");
+const g4 = (await grav()).length;
+await pg.fill("#t-prazo", "2030-06-01"); await pg.click("#form-tarefa button[type=submit]"); await pg.waitForTimeout(250);
+const g5 = (await grav()).slice(g4);
+confere("I7: de dentro do projeto, a tarefa é gravada como tarefa nova (e não por cima do projeto), com a ideia de origem", g5.length === 1 && g5[0][0] === "tarefas" && g5[0][1] === "insert" && g5[0][2].ideia_id === "i10" && g5[0][2].projeto_id === "p1");
+confere("I7: depois, volta para a ideia, com o projeto ainda aberto por baixo", await abertaPC("#dlg-ideia") && await abertaPC("#dlg-projeto"));
+await pg.click("#i-cancelar"); await pg.waitForTimeout(100);
+const g6 = (await grav()).length;
+await pg.fill("#p-descricao", "Descrição nova do projeto"); await pg.click("#form-projeto button[type=submit]"); await pg.waitForTimeout(200);
+confere("I7: fechada a ideia, o Salvar do projeto continua gravando o projeto certo", (await grav()).slice(g6).some((x) => x[0] === "projetos" && x[1] === "update" && x[2].descricao === "Descrição nova do projeto"));
+await fechaJanelas();
+await pg.locator("#quadro-projetos .cartao", { hasText: "Projeto Exemplo" }).first().click(); await pg.waitForTimeout(100);
+await pg.fill("#p-descricao", "mexido"); await pg.locator("#p-ideias-lista .abrir", { hasText: "Ideia aprovada do Bruno" }).click(); await pg.waitForTimeout(100);
+await pg.click("#i-virar-projeto"); await pg.waitForTimeout(100);
+confere("I7: com o projeto de baixo alterado, converter em projeto não descarta o que foi digitado e avisa", await abertaPC("#dlg-ideia") && await abertaPC("#dlg-projeto") && (await pg.inputValue("#p-descricao")) === "mexido" && (await txt("#aviso")).startsWith("Salve ou cancele as alterações do projeto"));
+await fechaJanelas();
+// Administrador em projeto de que não faz parte: vê o que a ideia gerou, sem converter
+await pg.goto("http://localhost:8123/?visao=1&converte=1"); await pg.waitForSelector("#app:not([hidden])"); await pg.waitForTimeout(300);
+await pg.click("[data-visao='ideias']"); await abreIdeia("Ideia aprovada no projeto do Bruno");
+confere("I7: o administrador, no projeto de que não faz parte, não vê os botões de converter", !(await pg.locator("#i-converter").isVisible()) && (await txt("#i-historico")).includes("somente para leitura"));
+await fechaJanelas();
+// Celular
+await pg.setViewportSize({ width: 390, height: 844 }); await pg.goto("http://localhost:8123/?fluxo=1&converte=1"); await pg.waitForSelector("#app:not([hidden])"); await pg.waitForTimeout(300);
+await pg.locator(".barra-baixo [data-visao='ideias'], [data-visao='ideias']:visible").first().click(); await pg.waitForTimeout(100);
+await abreIdeia("Ideia que virou tarefa");
+confere("I7, celular: os botões de converter cabem na largura do painel e o bloco do que a ideia gerou aparece", await pg.locator("#i-converter").evaluate((c) => { const r = c.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth && [...c.children].every((b) => b.getBoundingClientRect().right <= innerWidth); }) && await pg.locator("#i-gerou").isVisible());
+await pg.locator("#i-gerou-lista .elo").first().click(); await pg.waitForTimeout(150);
+confere("I7, celular: a tarefa gerada abre em leitura, com o elo para a ideia", await pg.locator("#t-leitura").isVisible() && (await txt("#l-da-ideia")).replace(/\s+/g, " ") === "Criada a partir da ideia: Ideia que virou tarefa");
+await pg.locator("#l-da-ideia .elo").click(); await pg.waitForTimeout(150);
+confere("I7, celular: o elo da leitura volta para a ideia", await abertaPC("#dlg-ideia") && !(await abertaPC("#dlg-tarefa")));
+await pg.click("#i-virar-tarefa"); await pg.waitForTimeout(150);
+confere("I7, celular: converter abre a tarefa nova direto no formulário", await pg.locator("#form-tarefa").isVisible() && !(await pg.locator("#t-leitura").isVisible()) && (await pg.inputValue("#t-titulo")) === "Ideia que virou tarefa");
+await fechaJanelas(); await pg.waitForTimeout(150); await fechaJanelas();
+await pg.setViewportSize({ width: 1440, height: 900 });
+
 confere("nenhum erro no console", erros.length === 0); erros.forEach((e) => console.log("   " + e));
 console.log(`RESULTADO: ${ok} ok, ${falhas} falhas`); await b.close(); srv.close();
 process.exit(falhas ? 1 : 0);

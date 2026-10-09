@@ -139,25 +139,41 @@ $("#t-concluir").addEventListener("click", async () => {
 
 // A janela da tarefa pode abrir por cima da janela do projeto. Ao fechar, a edição do projeto é retomada.
 let projetoPorBaixo = null;
+// Tarefa que está nascendo de uma ideia (etapa I7): { ideia_id, titulo, descricao, projeto_id, aoFechar }.
+// Ao salvar, a tarefa guarda a ideia de origem; ao fechar sem salvar, nada é criado. Nos dois casos volta-se para a ideia.
+let semente = null;
 function fecharTarefa() {
   if ($("#dlg-tarefa").open) $("#dlg-tarefa").close();
   if (projetoPorBaixo && $("#dlg-projeto").open) estado.editando = projetoPorBaixo;
   projetoPorBaixo = null;
+  const s = semente; semente = null;
+  s?.aoFechar?.();
+}
+// Linha "Criada a partir da ideia": só para quem enxerga a ideia (a avulsa é privada do autor)
+function daIdeia(t, raiz) {
+  const i = t?.ideia_id ? estado.ideias.find((x) => x.id === t.ideia_id) : null;
+  raiz.hidden = !i;
+  raiz.replaceChildren(...(i ? ["Criada a partir da ideia: ", el("button", { class: "elo", type: "button", text: i.titulo, onclick: () => {
+    if ($("#dlg-tarefa").dataset.alterado) { aviso("Salve ou cancele as alterações da tarefa antes de abrir a ideia."); return; }
+    fecharTarefa(); de.abrirIdeia(i.id);
+  } })] : []));
 }
 $("#dlg-tarefa").addEventListener("close", fecharTarefa); // cobre o Cancelar, o X e a tecla Esc
 
-export function abrirTarefa(id, colunaId, projetoId) {
+export function abrirTarefa(id, colunaId, projetoId, daIdeiaAprovada) {
   const colunas = colunasDe("tarefas");
   if (!colunas.length) { aviso("Crie ao menos uma coluna no quadro de tarefas, em Configurações."); return; }
   const t = id ? estado.tarefas.find((x) => x.id === id) : null;
   projetoPorBaixo = $("#dlg-projeto").open && estado.editando?.tipo === "projeto" ? estado.editando : null;
   estado.editando = { tipo: "tarefa", id: t ? t.id : null };
+  semente = t ? null : (daIdeiaAprovada ?? null);
   const ro = !!t && vejoComoAdmin(t.projeto_id); // administrador em tarefa de projeto de que não faz parte: só lê
   $("#t-janela").textContent = ro ? "Tarefa" : t ? "Editar tarefa" : "Nova tarefa";
-  $("#t-titulo").value = t?.titulo ?? "";
-  $("#t-descricao").value = t?.descricao ?? "";
+  $("#t-titulo").value = t?.titulo ?? semente?.titulo ?? "";
+  $("#t-descricao").value = t?.descricao ?? semente?.descricao ?? "";
   const filtro = estado.filtroProjeto;
-  const projetoPadrao = projetoId ?? (filtro !== "todos" && filtro !== "avulsas" ? filtro : "");
+  // Tarefa que nasce de uma ideia fica no projeto da ideia (ou avulsa, se a ideia é avulsa)
+  const projetoPadrao = semente ? (semente.projeto_id ?? "") : projetoId ?? (filtro !== "todos" && filtro !== "avulsas" ? filtro : "");
   preencherSelect($("#t-projeto"), [{ v: "", t: "Tarefa avulsa (sem projeto)" },
     ...(ro ? estado.projetos : projetosQueGravo()).slice().sort((a, b) => a.titulo.localeCompare(b.titulo)).map((p) => ({ v: p.id, t: p.titulo }))],
     t ? (t.projeto_id ?? "") : projetoPadrao);
@@ -173,6 +189,10 @@ export function abrirTarefa(id, colunaId, projetoId) {
   $("#t-concluir").textContent = t?.concluida_em ? "Reabrir tarefa" : "Marcar como concluída";
   soLer(ro, [$("#t-titulo"), $("#t-descricao"), $("#t-projeto"), $("#t-coluna"), $("#t-prioridade"), $("#t-prazo"), $("#t-responsavel")],
     [$("#form-tarefa button[type=submit]")]);
+  if (semente) $("#t-projeto").disabled = true; // o banco exige o mesmo projeto da ideia
+  $("#t-da-ideia").hidden = !semente && !t?.ideia_id;
+  if (semente) $("#t-da-ideia").textContent = "Esta tarefa nasce da ideia aprovada e fica ligada a ela.";
+  else daIdeia(t, $("#t-da-ideia"));
   $("#form-tarefa .acoes [data-fechar]").textContent = ro ? "Fechar" : "Cancelar";
   $("#l-editar").textContent = ro ? "Ver detalhes" : "Editar";
   if (ro) $("#t-visivel").textContent = NOTA_ADMIN;
@@ -194,6 +214,7 @@ function preencherLeitura(t) {
   $("#l-responsavel").replaceChildren(avatar(t.responsavel_id), el("span", { text: nomePerfil(t.responsavel_id) || "Sem responsável" }));
   $("#l-descricao").textContent = t.descricao || "";
   $("#l-descricao").hidden = !t.descricao;
+  daIdeia(t, $("#l-da-ideia"));
   preencherSelect($("#l-coluna"), colunasDe("tarefas").map((c) => ({ v: c.id, t: c.nome })), t.coluna_id);
   travarConclusao($("#l-coluna"), meu, t.coluna_id); // só o responsável leva para a coluna concluída, ou tira de lá
   $("#l-coluna").disabled = vejoComoAdmin(t.projeto_id);
@@ -242,10 +263,14 @@ $("#form-tarefa").addEventListener("submit", async (e) => {
   };
   if (!dados.titulo || !dados.prazo || !dados.responsavel_id) return;
   if (!atual || atual.coluna_id !== dados.coluna_id) dados.ordem = proximaOrdem("tarefas", dados.coluna_id);
+  const origem = !id ? semente : null;
+  if (origem) dados.ideia_id = origem.ideia_id;
   const { error } = id ? await sb.from("tarefas").update(dados).eq("id", id) : await sb.from("tarefas").insert(dados);
   if (error) { aviso("Não foi possível salvar a tarefa: " + traduz(error)); return; }
+  semente = null; // a volta para a ideia acontece depois de os dados serem recarregados
   fecharTarefa();
   await de.carregar();
+  if (origem) { aviso("Tarefa criada a partir da ideia."); origem.aoFechar?.(); return; }
   if (!id && dados.responsavel_id !== estado.usuario.id && dados.projeto_id) {
     aviso("Tarefa criada. Ela aparece dentro do projeto e no quadro de " + (nomePerfil(dados.responsavel_id) || "quem é responsável") + ".");
   }

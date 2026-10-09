@@ -1,11 +1,11 @@
 -- Takt: teste das regras das ideias.
 --
 -- Como usar: colar tudo no SQL Editor do Supabase e clicar em "Run".
--- O teste cria cinco usuários fictícios, dois projetos e algumas ideias, confere 83 regras
+-- O teste cria cinco usuários fictícios, dois projetos e algumas ideias, confere 90 regras
 -- e termina de propósito com um "erro" que começa com RESULTADO. Esse erro desfaz tudo:
 -- nenhum dado de teste fica gravado no banco.
 --
--- Resultado esperado: "RESULTADO: 83 verificações, 0 falhas."
+-- Resultado esperado: "RESULTADO: 90 verificações, 0 falhas."
 -- Antes de rodar este teste, rode uma vez o arquivo supabase/migrations/ideias_fluxo_de_status_executada.sql
 -- (libera o status Executada); sem ele, as verificações do fluxo de status falham.
 -- O teste apaga linhas (comentário, apoio e limpeza da lixeira). O Supabase pode pedir confirmação
@@ -275,7 +275,28 @@ begin
   get diagnostics n = row_count;
   if n <> 0 then falhas := falhas || 'não deveria apagar o comentário de outra pessoa'::text; end if;
 
-  -- ---------- Ideia de origem de tarefa e de projeto ----------
+  -- ---------- Ideia de origem de tarefa e de projeto (só a ideia Aprovada converte, etapa I7) ----------
+  total := total + 1;
+  begin
+    insert into public.tarefas (titulo, coluna_id, responsavel_id, prazo, projeto_id, ideia_id)
+      values ('Tarefa de ideia ainda nova', ct, ub, current_date, p1, i2);
+    falhas := falhas || 'ideia que não está Aprovada não deveria virar tarefa'::text;
+  exception when raise_exception then
+    if sqlerrm not like 'Só uma ideia aprovada%' then falhas := falhas || ('tarefa de ideia nova, erro inesperado: ' || sqlerrm); end if;
+  end;
+  total := total + 1;
+  begin
+    insert into public.projetos (titulo, coluna_id, responsavel_id, ideia_id) values ('Projeto de ideia ainda nova', cp, ub, i1);
+    falhas := falhas || 'ideia que não está Aprovada não deveria virar projeto'::text;
+  exception when raise_exception then
+    if sqlerrm not like 'Só uma ideia aprovada%' then falhas := falhas || ('projeto de ideia nova, erro inesperado: ' || sqlerrm); end if;
+  end;
+  -- As duas ideias são aprovadas: a avulsa pelo autor (B); a do projeto pelo responsável (A)
+  update public.ideias set status = 'em_analise' where id in (i1, i2);
+  update public.ideias set status = 'aprovada' where id = i1;
+  perform set_config('request.jwt.claims', ja, true);
+  update public.ideias set status = 'aprovada' where id = i2;
+  perform set_config('request.jwt.claims', jb, true);
   total := total + 1;
   insert into public.tarefas (titulo, coluna_id, responsavel_id, prazo, projeto_id, ideia_id)
     values ('Tarefa da ideia', ct, ub, current_date, p1, i2);
@@ -310,6 +331,26 @@ begin
   exception when raise_exception then
     if sqlerrm not like 'Ideia de origem não encontrada%' then falhas := falhas || ('ideia alheia, erro inesperado: ' || sqlerrm); end if;
   end;
+
+  -- O que cada ideia gerou (origens_das_ideias): só números, e só das ideias que a pessoa enxerga
+  total := total + 1;
+  select count(*) into n from public.origens_das_ideias() o
+   where (o.ideia_id = i2 and o.tarefas = 1 and o.projetos = 1) or (o.ideia_id = i1 and o.tarefas = 1 and o.projetos = 1);
+  if n <> 2 then falhas := falhas || 'o autor deveria ver quantas tarefas e projetos as ideias dele geraram'::text; end if;
+  perform set_config('request.jwt.claims', ja, true);
+  total := total + 1;
+  select count(*) into n from public.projetos where ideia_id = i2;
+  if n <> 0 then falhas := falhas || 'A não deveria ver o projeto novo de B (preparo do teste)'::text; end if;
+  select count(*) into n from public.origens_das_ideias() o where o.ideia_id = i2 and o.tarefas = 1 and o.projetos = 1;
+  if n <> 1 then falhas := falhas || 'quem vê a ideia deveria saber que ela virou projeto, mesmo sem ver o projeto'::text; end if;
+  total := total + 1;
+  select count(*) into n from public.origens_das_ideias() o where o.ideia_id = i1;
+  if n <> 0 then falhas := falhas || 'não deveria saber o que gerou uma ideia avulsa de outra pessoa'::text; end if;
+  perform set_config('request.jwt.claims', jc, true);
+  total := total + 1;
+  select count(*) into n from public.origens_das_ideias() o where o.ideia_id in (i1, i2);
+  if n <> 0 then falhas := falhas || 'quem está fora do projeto não deveria saber o que as ideias dele geraram'::text; end if;
+  perform set_config('request.jwt.claims', jb, true);
 
   -- ---------- Lixeira ----------
   total := total + 1;
@@ -524,6 +565,14 @@ begin
   update public.ideias set status = 'executada' where id = f3;
   select count(*) into n from public.ideias where id = f3 and status = 'executada';
   if n <> 1 then falhas := falhas || 'ideia com tarefa deveria poder seguir para Executada'::text; end if;
+  total := total + 1;
+  begin
+    insert into public.tarefas (titulo, coluna_id, responsavel_id, prazo, projeto_id, ideia_id)
+      values ('Tarefa de ideia executada', ct, ua, current_date, p1, f3);
+    falhas := falhas || 'ideia Executada não deveria virar tarefa'::text;
+  exception when raise_exception then
+    if sqlerrm not like 'Só uma ideia aprovada%' then falhas := falhas || ('tarefa de ideia executada, erro inesperado: ' || sqlerrm); end if;
+  end;
 
   -- ---------- Limpeza diária ----------
   reset role;

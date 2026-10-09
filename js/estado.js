@@ -4,7 +4,7 @@ import { el, celular, porOrdem, hoje, dataHora } from "./util.js";
 
 export const estado = {
   usuario: null, perfil: null,
-  perfis: [], colunas: [], projetos: [], tarefas: [], ideias: [], comentarios: [], apoios: [], historico: [],
+  perfis: [], colunas: [], projetos: [], tarefas: [], ideias: [], comentarios: [], apoios: [], historico: [], origens: [],
   visao: "projetos", filtroProjeto: "todos", modoTarefas: celular() ? "lista" : "quadro", busca: "", periodo: "todos", minhaLixeira: [],
   arrastando: null, pendente: false, canal: null, editando: null,
   lixeira: { projetos: [], tarefas: [], ideias: [] }, membros: [],
