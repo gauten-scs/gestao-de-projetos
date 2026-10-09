@@ -51,7 +51,7 @@ begin
   -- 1. Todo usuário nasce sem acesso e como membro.
   total := total + 1;
   select count(*) into n from public.perfis where id in (ua, ub, uc, uadm, ui) and not ativo and papel = 'membro';
-  if n <> 5 then falhas := falhas || 'usuário novo deveria nascer sem acesso e como membro'; end if;
+  if n <> 5 then falhas := falhas || 'usuário novo deveria nascer sem acesso e como membro'::text; end if;
 
   -- Os usuários de teste nascem sem senha, e por isso com a senha pendente; aqui a trava é desligada.
   update public.perfis set ativo = true, senha_pendente = false where id in (ua, ub, uc);
@@ -63,20 +63,20 @@ begin
   perform set_config('request.jwt.claims', ji, true);
   total := total + 1;
   select count(*) into n from public.colunas;
-  if n <> 0 then falhas := falhas || 'usuário sem acesso não deveria ver as colunas'; end if;
+  if n <> 0 then falhas := falhas || 'usuário sem acesso não deveria ver as colunas'::text; end if;
   total := total + 1;
   select count(*) into n from public.perfis;
-  if n <> 1 then falhas := falhas || 'usuário sem acesso deveria ver só o próprio perfil'; end if;
+  if n <> 1 then falhas := falhas || 'usuário sem acesso deveria ver só o próprio perfil'::text; end if;
   total := total + 1;
   begin
     insert into public.projetos (titulo, coluna_id, responsavel_id) values ('Teste', cp, ui);
-    falhas := falhas || 'usuário sem acesso não deveria criar projeto';
+    falhas := falhas || 'usuário sem acesso não deveria criar projeto'::text;
   exception when insufficient_privilege then null;
   end;
   total := total + 1;
   begin
     perform public.restaurar_item('projetos', p1);
-    falhas := falhas || 'usuário sem acesso não deveria usar a restauração';
+    falhas := falhas || 'usuário sem acesso não deveria usar a restauração'::text;
   exception when raise_exception then
     if sqlerrm not like 'Sem acesso%' then falhas := falhas || ('restauração sem acesso, erro inesperado: ' || sqlerrm); end if;
   end;
@@ -85,41 +85,41 @@ begin
   total := total + 1;
   begin
     update public.perfis set papel = 'admin' where id = ua;
-    falhas := falhas || 'membro não deveria virar admin por conta própria';
+    falhas := falhas || 'membro não deveria virar admin por conta própria'::text;
   exception when raise_exception then
     if sqlerrm not like 'Somente o administrador%' then falhas := falhas || ('papel próprio, erro inesperado: ' || sqlerrm); end if;
   end;
   total := total + 1;
   update public.perfis set nome = 'Outro nome' where id = ub;
   get diagnostics n = row_count;
-  if n <> 0 then falhas := falhas || 'membro não deveria alterar o nome de outra pessoa'; end if;
+  if n <> 0 then falhas := falhas || 'membro não deveria alterar o nome de outra pessoa'::text; end if;
   total := total + 1;
   update public.perfis set nome = 'Teste A alterado' where id = ua;
   get diagnostics n = row_count;
-  if n <> 1 then falhas := falhas || 'membro deveria alterar o próprio nome'; end if;
+  if n <> 1 then falhas := falhas || 'membro deveria alterar o próprio nome'::text; end if;
   total := total + 1;
   begin
     insert into public.colunas (quadro, nome) values ('tarefas', 'Coluna de teste');
-    falhas := falhas || 'membro não deveria criar coluna';
+    falhas := falhas || 'membro não deveria criar coluna'::text;
   exception when insufficient_privilege then null;
   end;
   total := total + 1;
   update public.colunas set nome = 'Alterada' where id = ct;
   get diagnostics n = row_count;
-  if n <> 0 then falhas := falhas || 'membro não deveria alterar coluna'; end if;
+  if n <> 0 then falhas := falhas || 'membro não deveria alterar coluna'::text; end if;
 
   perform set_config('request.jwt.claims', jadm, true);
   total := total + 1;
   begin
     update public.perfis set ativo = false where id = uadm;
-    falhas := falhas || 'admin não deveria alterar o próprio acesso';
+    falhas := falhas || 'admin não deveria alterar o próprio acesso'::text;
   exception when raise_exception then
     if sqlerrm not like 'Você não pode alterar o próprio%' then falhas := falhas || ('acesso próprio do admin, erro inesperado: ' || sqlerrm); end if;
   end;
   total := total + 1;
   update public.perfis set ativo = true where id = ui;
   get diagnostics n = row_count;
-  if n <> 1 then falhas := falhas || 'admin deveria liberar o acesso de outro usuário'; end if;
+  if n <> 1 then falhas := falhas || 'admin deveria liberar o acesso de outro usuário'::text; end if;
   update public.perfis set ativo = false where id = ui;
 
   -- ---------- Projetos: quem vê e quem altera ----------
@@ -128,40 +128,40 @@ begin
   insert into public.projeto_membros (projeto_id, usuario_id) values (p1, ub);
   total := total + 1;
   select count(*) into n from public.projetos where id = p1 and criado_por = ua;
-  if n <> 1 then falhas := falhas || 'responsável deveria ver o projeto, com ele como criador'; end if;
+  if n <> 1 then falhas := falhas || 'responsável deveria ver o projeto, com ele como criador'::text; end if;
 
   perform set_config('request.jwt.claims', jb, true);
   total := total + 1;
   select count(*) into n from public.projetos where id = p1;
-  if n <> 1 then falhas := falhas || 'participante deveria ver o projeto'; end if;
+  if n <> 1 then falhas := falhas || 'participante deveria ver o projeto'::text; end if;
   total := total + 1;
   update public.projetos set titulo = 'Projeto alterado por B' where id = p1;
   get diagnostics n = row_count;
-  if n <> 1 then falhas := falhas || 'participante deveria alterar o projeto'; end if;
+  if n <> 1 then falhas := falhas || 'participante deveria alterar o projeto'::text; end if;
   total := total + 1;
   begin
     update public.projetos set responsavel_id = ub where id = p1;
-    falhas := falhas || 'participante não deveria trocar o responsável do projeto';
+    falhas := falhas || 'participante não deveria trocar o responsável do projeto'::text;
   exception when raise_exception then
     if sqlerrm not like 'Somente o responsável pode trocar%' then falhas := falhas || ('troca de responsável, erro inesperado: ' || sqlerrm); end if;
   end;
   total := total + 1;
   begin
     insert into public.projeto_membros (projeto_id, usuario_id) values (p1, uc);
-    falhas := falhas || 'participante não deveria definir a equipe do projeto';
+    falhas := falhas || 'participante não deveria definir a equipe do projeto'::text;
   exception when insufficient_privilege then null;
   end;
   total := total + 1;
   begin
     update public.projetos set coluna_id = cpc where id = p1;
-    falhas := falhas || 'participante não deveria concluir o projeto';
+    falhas := falhas || 'participante não deveria concluir o projeto'::text;
   exception when raise_exception then
     if sqlerrm not like 'Somente o responsável pode concluir ou reabrir o projeto%' then falhas := falhas || ('conclusão de projeto, erro inesperado: ' || sqlerrm); end if;
   end;
   total := total + 1;
   begin
     update public.projetos set coluna_id = ct where id = p1;
-    falhas := falhas || 'projeto não deveria ir para coluna do quadro de tarefas';
+    falhas := falhas || 'projeto não deveria ir para coluna do quadro de tarefas'::text;
   exception when raise_exception then
     if sqlerrm not like 'A coluna escolhida não pertence%' then falhas := falhas || ('coluna de outro quadro, erro inesperado: ' || sqlerrm); end if;
   end;
@@ -169,28 +169,28 @@ begin
   perform set_config('request.jwt.claims', jc, true);
   total := total + 1;
   select count(*) into n from public.projetos where id = p1;
-  if n <> 0 then falhas := falhas || 'quem não está no projeto não deveria vê-lo'; end if;
+  if n <> 0 then falhas := falhas || 'quem não está no projeto não deveria vê-lo'::text; end if;
   total := total + 1;
   update public.projetos set titulo = 'Invadido' where id = p1;
   get diagnostics n = row_count;
-  if n <> 0 then falhas := falhas || 'quem não está no projeto não deveria alterá-lo'; end if;
+  if n <> 0 then falhas := falhas || 'quem não está no projeto não deveria alterá-lo'::text; end if;
   total := total + 1;
   select count(*) into n from public.projeto_membros where projeto_id = p1;
-  if n <> 0 then falhas := falhas || 'quem não está no projeto não deveria ver a equipe'; end if;
+  if n <> 0 then falhas := falhas || 'quem não está no projeto não deveria ver a equipe'::text; end if;
 
   perform set_config('request.jwt.claims', jadm, true);
   total := total + 1;
   select count(*) into n from public.projetos where id = p1;
-  if n <> 1 then falhas := falhas || 'admin deveria ver o projeto dos outros'; end if;
+  if n <> 1 then falhas := falhas || 'admin deveria ver o projeto dos outros'::text; end if;
 
   perform set_config('request.jwt.claims', ja, true);
   total := total + 1;
   select count(*) into n from public.projetos where id = p1 and atualizado_por = ub;
-  if n <> 1 then falhas := falhas || 'histórico deveria registrar B como autor da última alteração'; end if;
+  if n <> 1 then falhas := falhas || 'histórico deveria registrar B como autor da última alteração'::text; end if;
   total := total + 1;
   update public.projetos set coluna_id = cpc where id = p1;
   get diagnostics n = row_count;
-  if n <> 1 then falhas := falhas || 'responsável deveria concluir o projeto'; end if;
+  if n <> 1 then falhas := falhas || 'responsável deveria concluir o projeto'::text; end if;
   update public.projetos set coluna_id = cp where id = p1;
 
   -- ---------- Tarefas de projeto ----------
@@ -202,50 +202,50 @@ begin
   begin
     insert into public.tarefas (titulo, projeto_id, coluna_id, responsavel_id, prazo)
     values ('Intrusa', p1, ct, uc, current_date);
-    falhas := falhas || 'quem não está no projeto não deveria criar tarefa nele';
+    falhas := falhas || 'quem não está no projeto não deveria criar tarefa nele'::text;
   exception when insufficient_privilege then null;
   end;
   total := total + 1;
   select count(*) into n from public.tarefas where id = t1;
-  if n <> 0 then falhas := falhas || 'quem não está no projeto não deveria ver as tarefas dele'; end if;
+  if n <> 0 then falhas := falhas || 'quem não está no projeto não deveria ver as tarefas dele'::text; end if;
 
   perform set_config('request.jwt.claims', jadm, true);
   total := total + 1;
   select count(*) into n from public.tarefas where id = t1;
-  if n <> 1 then falhas := falhas || 'admin deveria ver a tarefa de projeto dos outros'; end if;
+  if n <> 1 then falhas := falhas || 'admin deveria ver a tarefa de projeto dos outros'::text; end if;
 
   perform set_config('request.jwt.claims', ja, true);
   total := total + 1;
   begin
     update public.tarefas set concluida_em = now() where id = t1;
-    falhas := falhas || 'quem não é responsável pela tarefa não deveria concluí-la';
+    falhas := falhas || 'quem não é responsável pela tarefa não deveria concluí-la'::text;
   exception when raise_exception then
     if sqlerrm not like 'Somente o responsável pode concluir ou reabrir a tarefa%' then falhas := falhas || ('conclusão de tarefa, erro inesperado: ' || sqlerrm); end if;
   end;
   total := total + 1;
   begin
     update public.tarefas set coluna_id = ctc where id = t1;
-    falhas := falhas || 'quem não é responsável não deveria concluir arrastando para a coluna concluída';
+    falhas := falhas || 'quem não é responsável não deveria concluir arrastando para a coluna concluída'::text;
   exception when raise_exception then
     if sqlerrm not like 'Somente o responsável pode concluir ou reabrir a tarefa%' then falhas := falhas || ('conclusão por arrasto, erro inesperado: ' || sqlerrm); end if;
   end;
   total := total + 1;
   update public.tarefas set titulo = 'Tarefa alterada por A' where id = t1;
   get diagnostics n = row_count;
-  if n <> 1 then falhas := falhas || 'quem acessa o projeto deveria alterar a tarefa'; end if;
+  if n <> 1 then falhas := falhas || 'quem acessa o projeto deveria alterar a tarefa'::text; end if;
 
   perform set_config('request.jwt.claims', jb, true);
   total := total + 1;
   update public.tarefas set concluida_em = '2000-01-01' where id = t1;
   select count(*) into n from public.tarefas
    where id = t1 and concluida_por = ub and coluna_id = ctc and concluida_em > now() - interval '1 minute';
-  if n <> 1 then falhas := falhas || 'concluir deveria registrar autor, data do banco e levar o cartão para a coluna concluída'; end if;
+  if n <> 1 then falhas := falhas || 'concluir deveria registrar autor, data do banco e levar o cartão para a coluna concluída'::text; end if;
 
   perform set_config('request.jwt.claims', ja, true);
   total := total + 1;
   begin
     update public.tarefas set coluna_id = ct where id = t1;
-    falhas := falhas || 'quem não é responsável não deveria reabrir a tarefa';
+    falhas := falhas || 'quem não é responsável não deveria reabrir a tarefa'::text;
   exception when raise_exception then
     if sqlerrm not like 'Somente o responsável pode concluir ou reabrir a tarefa%' then falhas := falhas || ('reabertura, erro inesperado: ' || sqlerrm); end if;
   end;
@@ -254,15 +254,15 @@ begin
   total := total + 1;
   update public.tarefas set coluna_id = ct where id = t1;
   select count(*) into n from public.tarefas where id = t1 and concluida_em is null and concluida_por is null;
-  if n <> 1 then falhas := falhas || 'tirar o cartão da coluna concluída deveria reabrir a tarefa'; end if;
+  if n <> 1 then falhas := falhas || 'tirar o cartão da coluna concluída deveria reabrir a tarefa'::text; end if;
   total := total + 1;
   update public.tarefas set coluna_id = ctc where id = t1;
   select count(*) into n from public.tarefas where id = t1 and concluida_em is not null and concluida_por = ub;
-  if n <> 1 then falhas := falhas || 'arrastar para a coluna concluída deveria concluir a tarefa'; end if;
+  if n <> 1 then falhas := falhas || 'arrastar para a coluna concluída deveria concluir a tarefa'::text; end if;
   total := total + 1;
   begin
     update public.tarefas set coluna_id = cp where id = t1;
-    falhas := falhas || 'tarefa não deveria ir para coluna do quadro de projetos';
+    falhas := falhas || 'tarefa não deveria ir para coluna do quadro de projetos'::text;
   exception when raise_exception then
     if sqlerrm not like 'A coluna escolhida não pertence%' then falhas := falhas || ('coluna de outro quadro (tarefa), erro inesperado: ' || sqlerrm); end if;
   end;
@@ -273,62 +273,62 @@ begin
   insert into public.tarefas (id, titulo, coluna_id, responsavel_id, prazo) values (t3, 'Avulsa de A', ct, ua, current_date);
   total := total + 1;
   select count(*) into n from public.tarefas where id in (t2, t3);
-  if n <> 2 then falhas := falhas || 'quem criou deveria ver as tarefas avulsas'; end if;
+  if n <> 2 then falhas := falhas || 'quem criou deveria ver as tarefas avulsas'::text; end if;
 
   perform set_config('request.jwt.claims', jb, true);
   total := total + 1;
   select count(*) into n from public.tarefas where id in (t2, t3);
-  if n <> 1 then falhas := falhas || 'responsável deveria ver só a tarefa avulsa que é dele'; end if;
+  if n <> 1 then falhas := falhas || 'responsável deveria ver só a tarefa avulsa que é dele'::text; end if;
 
   perform set_config('request.jwt.claims', jc, true);
   total := total + 1;
   select count(*) into n from public.tarefas where id in (t2, t3);
-  if n <> 0 then falhas := falhas || 'terceiro não deveria ver tarefa avulsa'; end if;
+  if n <> 0 then falhas := falhas || 'terceiro não deveria ver tarefa avulsa'::text; end if;
 
   perform set_config('request.jwt.claims', jadm, true);
   total := total + 1;
   select count(*) into n from public.tarefas where id in (t2, t3);
-  if n <> 0 then falhas := falhas || 'admin não deveria ver tarefa avulsa dos outros'; end if;
+  if n <> 0 then falhas := falhas || 'admin não deveria ver tarefa avulsa dos outros'::text; end if;
 
   -- ---------- Administrador nos projetos dos outros: vê tudo, em somente leitura ----------
   total := total + 1;
   select count(*) into n from public.projeto_membros where projeto_id = p1;
-  if n < 1 then falhas := falhas || 'admin deveria ver quem pode ver o projeto'; end if;
+  if n < 1 then falhas := falhas || 'admin deveria ver quem pode ver o projeto'::text; end if;
   total := total + 1;
   update public.projetos set descricao = 'Alterado pelo admin' where id = p1;
   get diagnostics n = row_count;
-  if n <> 0 then falhas := falhas || 'admin não deveria alterar o projeto dos outros'; end if;
+  if n <> 0 then falhas := falhas || 'admin não deveria alterar o projeto dos outros'::text; end if;
   total := total + 1;
   update public.tarefas set descricao = 'Alterada pelo admin' where id = t1;
   get diagnostics n = row_count;
-  if n <> 0 then falhas := falhas || 'admin não deveria alterar a tarefa de projeto dos outros'; end if;
+  if n <> 0 then falhas := falhas || 'admin não deveria alterar a tarefa de projeto dos outros'::text; end if;
   total := total + 1;
   update public.projetos set coluna_id = case when coluna_id = cp then cpc else cp end where id = p1;
   get diagnostics n = row_count;
-  if n <> 0 then falhas := falhas || 'admin não deveria concluir nem reabrir o projeto dos outros'; end if;
+  if n <> 0 then falhas := falhas || 'admin não deveria concluir nem reabrir o projeto dos outros'::text; end if;
   total := total + 1;
   update public.tarefas set concluida_em = case when concluida_em is null then now() end where id = t1;
   get diagnostics n = row_count;
-  if n <> 0 then falhas := falhas || 'admin não deveria concluir nem reabrir a tarefa dos outros'; end if;
+  if n <> 0 then falhas := falhas || 'admin não deveria concluir nem reabrir a tarefa dos outros'::text; end if;
   total := total + 1;
   update public.projetos set arquivado_em = now() where id = p1;
   get diagnostics n = row_count;
-  if n <> 0 then falhas := falhas || 'admin não deveria excluir o projeto dos outros'; end if;
+  if n <> 0 then falhas := falhas || 'admin não deveria excluir o projeto dos outros'::text; end if;
   total := total + 1;
   update public.tarefas set arquivado_em = now() where id = t1;
   get diagnostics n = row_count;
-  if n <> 0 then falhas := falhas || 'admin não deveria excluir a tarefa dos outros'; end if;
+  if n <> 0 then falhas := falhas || 'admin não deveria excluir a tarefa dos outros'::text; end if;
   total := total + 1;
   begin
     insert into public.projeto_membros (projeto_id, usuario_id) values (p1, uadm);
-    falhas := falhas || 'admin não deveria definir quem pode ver o projeto dos outros';
+    falhas := falhas || 'admin não deveria definir quem pode ver o projeto dos outros'::text;
   exception when insufficient_privilege then null;
   end;
   total := total + 1;
   begin
     insert into public.tarefas (titulo, projeto_id, coluna_id, responsavel_id, prazo)
     values ('Do admin', p1, ct, uadm, current_date);
-    falhas := falhas || 'admin não deveria criar tarefa no projeto dos outros';
+    falhas := falhas || 'admin não deveria criar tarefa no projeto dos outros'::text;
   exception when insufficient_privilege then null;
   end;
 
@@ -337,7 +337,7 @@ begin
   total := total + 1;
   begin
     update public.projetos set arquivado_em = now() where id = p1;
-    falhas := falhas || 'participante não deveria excluir o projeto';
+    falhas := falhas || 'participante não deveria excluir o projeto'::text;
   exception when raise_exception then
     if sqlerrm not like 'Somente o responsável pode excluir ou restaurar%' then falhas := falhas || ('exclusão de projeto, erro inesperado: ' || sqlerrm); end if;
   end;
@@ -346,7 +346,7 @@ begin
   total := total + 1;
   begin
     update public.tarefas set arquivado_em = now() where id = t1;
-    falhas := falhas || 'quem não é responsável não deveria excluir a tarefa';
+    falhas := falhas || 'quem não é responsável não deveria excluir a tarefa'::text;
   exception when raise_exception then
     if sqlerrm not like 'Somente o responsável pode excluir ou restaurar%' then falhas := falhas || ('exclusão de tarefa, erro inesperado: ' || sqlerrm); end if;
   end;
@@ -355,13 +355,13 @@ begin
   total := total + 1;
   update public.tarefas set arquivado_em = '2000-01-01' where id = t1;
   select count(*) into n from public.tarefas where id = t1 and arquivado_por = ub and arquivado_em > now() - interval '1 minute';
-  if n <> 1 then falhas := falhas || 'excluir deveria registrar autor e data do banco'; end if;
+  if n <> 1 then falhas := falhas || 'excluir deveria registrar autor e data do banco'::text; end if;
 
   perform set_config('request.jwt.claims', jc, true);
   total := total + 1;
   begin
     perform public.restaurar_item('tarefas', t1);
-    falhas := falhas || 'terceiro não deveria restaurar tarefa';
+    falhas := falhas || 'terceiro não deveria restaurar tarefa'::text;
   exception when raise_exception then
     if sqlerrm not like 'Você não pode restaurar%' then falhas := falhas || ('restauração por terceiro, erro inesperado: ' || sqlerrm); end if;
   end;
@@ -369,7 +369,7 @@ begin
   perform set_config('request.jwt.claims', jadm, true);
   total := total + 1;
   select count(*) into n from public.tarefas where id = t1;
-  if n <> 1 then falhas := falhas || 'admin deveria ver tarefa de projeto na lixeira'; end if;
+  if n <> 1 then falhas := falhas || 'admin deveria ver tarefa de projeto na lixeira'::text; end if;
   total := total + 1;
   begin
     perform public.restaurar_item('tarefas', t1);
@@ -379,7 +379,7 @@ begin
   total := total + 1;
   begin
     perform public.restaurar_item('outra', t1);
-    falhas := falhas || 'restauração deveria recusar tipo desconhecido';
+    falhas := falhas || 'restauração deveria recusar tipo desconhecido'::text;
   exception when raise_exception then
     if sqlerrm not like 'Tipo de item desconhecido%' then falhas := falhas || ('tipo desconhecido, erro inesperado: ' || sqlerrm); end if;
   end;
@@ -387,17 +387,17 @@ begin
   perform set_config('request.jwt.claims', jb, true);
   total := total + 1;
   select count(*) into n from public.tarefas where id = t1 and arquivado_em is null and arquivado_por is null;
-  if n <> 1 then falhas := falhas || 'tarefa restaurada deveria sair da lixeira'; end if;
+  if n <> 1 then falhas := falhas || 'tarefa restaurada deveria sair da lixeira'::text; end if;
   update public.tarefas set arquivado_em = now() where id = t2;
 
   perform set_config('request.jwt.claims', jadm, true);
   total := total + 1;
   select count(*) into n from public.tarefas where id = t2;
-  if n <> 0 then falhas := falhas || 'admin não deveria ver tarefa avulsa na lixeira'; end if;
+  if n <> 0 then falhas := falhas || 'admin não deveria ver tarefa avulsa na lixeira'::text; end if;
   total := total + 1;
   begin
     perform public.restaurar_item('tarefas', t2);
-    falhas := falhas || 'admin não deveria restaurar tarefa avulsa dos outros';
+    falhas := falhas || 'admin não deveria restaurar tarefa avulsa dos outros'::text;
   exception when raise_exception then
     if sqlerrm not like 'Você não pode restaurar%' then falhas := falhas || ('restauração de avulsa pelo admin, erro inesperado: ' || sqlerrm); end if;
   end;
@@ -406,7 +406,7 @@ begin
   total := total + 1;
   begin
     perform public.restaurar_item('tarefas', t2);
-    falhas := falhas || 'quem criou mas não é responsável não deveria restaurar a tarefa avulsa';
+    falhas := falhas || 'quem criou mas não é responsável não deveria restaurar a tarefa avulsa'::text;
   exception when raise_exception then
     if sqlerrm not like 'Você não pode restaurar%' then falhas := falhas || ('restauração pelo criador, erro inesperado: ' || sqlerrm); end if;
   end;
@@ -423,18 +423,18 @@ begin
   total := total + 1;
   update public.projetos set arquivado_em = now() where id = p1;
   get diagnostics n = row_count;
-  if n <> 1 then falhas := falhas || 'responsável deveria excluir o projeto'; end if;
+  if n <> 1 then falhas := falhas || 'responsável deveria excluir o projeto'::text; end if;
 
   perform set_config('request.jwt.claims', jadm, true);
   total := total + 1;
   select count(*) into n from public.projetos where id = p1;
-  if n <> 1 then falhas := falhas || 'admin deveria ver projeto na lixeira'; end if;
+  if n <> 1 then falhas := falhas || 'admin deveria ver projeto na lixeira'::text; end if;
 
   perform set_config('request.jwt.claims', jc, true);
   total := total + 1;
   begin
     perform public.restaurar_item('projetos', p1);
-    falhas := falhas || 'terceiro não deveria restaurar projeto';
+    falhas := falhas || 'terceiro não deveria restaurar projeto'::text;
   exception when raise_exception then
     if sqlerrm not like 'Você não pode restaurar%' then falhas := falhas || ('restauração de projeto por terceiro, erro inesperado: ' || sqlerrm); end if;
   end;
@@ -462,7 +462,7 @@ begin
   total := total + 1;
   begin
     perform public.restaurar_item('tarefas', t2);
-    falhas := falhas || 'responsável não deveria restaurar após 30 dias';
+    falhas := falhas || 'responsável não deveria restaurar após 30 dias'::text;
   exception when raise_exception then
     if sqlerrm not like 'Você não pode restaurar%' then falhas := falhas || ('restauração após 30 dias, erro inesperado: ' || sqlerrm); end if;
   end;

@@ -61,7 +61,7 @@ begin
   total := total + 1;
   begin
     insert into public.ideias (texto) values ('Ideia de quem não tem acesso');
-    falhas := falhas || 'usuário sem acesso não deveria criar ideia';
+    falhas := falhas || 'usuário sem acesso não deveria criar ideia'::text;
   exception when insufficient_privilege then null;
   end;
 
@@ -69,64 +69,64 @@ begin
   total := total + 1;
   insert into public.ideias (id, texto) values (i1, 'Ideia avulsa de B');
   select count(*) into n from public.ideias where id = i1 and criado_por = ub and status = 'nova' and projeto_id is null;
-  if n <> 1 then falhas := falhas || 'ideia avulsa deveria nascer com o autor, status Nova e sem projeto'; end if;
+  if n <> 1 then falhas := falhas || 'ideia avulsa deveria nascer com o autor, status Nova e sem projeto'::text; end if;
   total := total + 1;
   insert into public.ideias (id, texto, projeto_id, criado_por) values (i2, 'Ideia de B em P1', p1, ub);
   select count(*) into n from public.ideias where id = i2;
-  if n <> 1 then falhas := falhas || 'participante deveria criar ideia no projeto'; end if;
+  if n <> 1 then falhas := falhas || 'participante deveria criar ideia no projeto'::text; end if;
   total := total + 1;
   begin
     insert into public.ideias (texto, projeto_id) values ('Ideia em projeto alheio', p2);
-    falhas := falhas || 'não deveria criar ideia em projeto que não acessa';
+    falhas := falhas || 'não deveria criar ideia em projeto que não acessa'::text;
   exception when insufficient_privilege then null;
   end;
   total := total + 1;
   begin
     insert into public.ideias (texto, criado_por) values ('Ideia em nome de outro', ua);
     select count(*) into n from public.ideias where texto = 'Ideia em nome de outro' and criado_por = ua;
-    if n <> 0 then falhas := falhas || 'não deveria criar ideia em nome de outra pessoa'; end if;
+    if n <> 0 then falhas := falhas || 'não deveria criar ideia em nome de outra pessoa'::text; end if;
   exception when insufficient_privilege then null;
   end;
 
   perform set_config('request.jwt.claims', ja, true);
   total := total + 1;
   select count(*) into n from public.ideias where id = i2;
-  if n <> 1 then falhas := falhas || 'responsável deveria ver a ideia do projeto'; end if;
+  if n <> 1 then falhas := falhas || 'responsável deveria ver a ideia do projeto'::text; end if;
   total := total + 1;
   select count(*) into n from public.ideias where id = i1;
-  if n <> 0 then falhas := falhas || 'ideia avulsa não deveria ser vista por outra pessoa'; end if;
+  if n <> 0 then falhas := falhas || 'ideia avulsa não deveria ser vista por outra pessoa'::text; end if;
 
   perform set_config('request.jwt.claims', jc, true);
   total := total + 1;
   select count(*) into n from public.ideias where id in (i1, i2);
-  if n <> 0 then falhas := falhas || 'quem está fora do projeto não deveria ver as ideias dele'; end if;
+  if n <> 0 then falhas := falhas || 'quem está fora do projeto não deveria ver as ideias dele'::text; end if;
   insert into public.ideias (id, texto) values (i3, 'Ideia avulsa de C');
 
   perform set_config('request.jwt.claims', jadm, true);
   total := total + 1;
-  select count(*) into n from public.ideias where id in (i1, i2);
-  if n <> 2 then falhas := falhas || 'administrador deveria ver as ideias de projeto dos outros'; end if;
+  select count(*) into n from public.ideias where id = i2;
+  if n <> 1 then falhas := falhas || 'administrador deveria ver as ideias de projeto dos outros'::text; end if;
   total := total + 1;
-  select count(*) into n from public.ideias where id = i3;
-  if n <> 0 then falhas := falhas || 'administrador não deveria ver ideia avulsa dos outros'; end if;
+  select count(*) into n from public.ideias where id in (i1, i3);
+  if n <> 0 then falhas := falhas || 'administrador não deveria ver ideia avulsa dos outros'::text; end if;
   total := total + 1;
-  update public.ideias set arquivado_em = now() where id in (i1, i2);
+  update public.ideias set arquivado_em = now() where id = i2;
   get diagnostics n = row_count;
-  if n <> 0 then falhas := falhas || 'administrador não deveria excluir ideia dos outros'; end if;
+  if n <> 0 then falhas := falhas || 'administrador não deveria excluir ideia dos outros'::text; end if;
   total := total + 1;
-  update public.ideias set status = 'aprovada' where id in (i1, i2);
+  update public.ideias set status = 'aprovada' where id = i2;
   get diagnostics n = row_count;
-  if n <> 0 then falhas := falhas || 'administrador não deveria alterar ideia dos outros'; end if;
+  if n <> 0 then falhas := falhas || 'administrador não deveria alterar ideia dos outros'::text; end if;
   total := total + 1;
   begin
-    insert into public.ideia_comentarios (ideia_id, texto) values (i1, 'Comentário do administrador');
-    falhas := falhas || 'administrador não deveria comentar ideia de projeto dos outros';
+    insert into public.ideia_comentarios (ideia_id, texto) values (i2, 'Comentário do administrador');
+    falhas := falhas || 'administrador não deveria comentar ideia de projeto dos outros'::text;
   exception when insufficient_privilege then null;
   end;
   total := total + 1;
   begin
-    insert into public.ideia_apoios (ideia_id) values (i1);
-    falhas := falhas || 'administrador não deveria apoiar ideia de projeto dos outros';
+    insert into public.ideia_apoios (ideia_id) values (i2);
+    falhas := falhas || 'administrador não deveria apoiar ideia de projeto dos outros'::text;
   exception when insufficient_privilege then null;
   end;
 
@@ -135,25 +135,25 @@ begin
   total := total + 1;
   begin
     update public.ideias set texto = 'Texto trocado pelo responsável' where id = i2;
-    falhas := falhas || 'responsável do projeto não deveria alterar o texto da ideia de outro';
+    falhas := falhas || 'responsável do projeto não deveria alterar o texto da ideia de outro'::text;
   exception when raise_exception then
     if sqlerrm not like 'Somente o autor pode alterar o texto%' then falhas := falhas || ('texto por outro, erro inesperado: ' || sqlerrm); end if;
   end;
   total := total + 1;
   update public.ideias set status = 'em_analise' where id = i2;
   select count(*) into n from public.ideias where id = i2 and status = 'em_analise' and atualizado_por = ua;
-  if n <> 1 then falhas := falhas || 'responsável do projeto deveria mudar o status e ficar no histórico'; end if;
+  if n <> 1 then falhas := falhas || 'responsável do projeto deveria mudar o status e ficar no histórico'::text; end if;
   total := total + 1;
   begin
     update public.ideias set projeto_id = null where id = i2;
-    falhas := falhas || 'responsável do projeto não deveria desvincular a ideia de outro';
+    falhas := falhas || 'responsável do projeto não deveria desvincular a ideia de outro'::text;
   exception when raise_exception then
     if sqlerrm not like 'Somente o autor pode vincular%' then falhas := falhas || ('desvincular por outro, erro inesperado: ' || sqlerrm); end if;
   end;
   total := total + 1;
   begin
     update public.ideias set arquivado_em = now() where id = i2;
-    falhas := falhas || 'responsável do projeto não deveria excluir a ideia de outro';
+    falhas := falhas || 'responsável do projeto não deveria excluir a ideia de outro'::text;
   exception when raise_exception then
     if sqlerrm not like 'Somente o autor pode excluir%' then falhas := falhas || ('excluir por outro, erro inesperado: ' || sqlerrm); end if;
   end;
@@ -162,11 +162,11 @@ begin
   total := total + 1;
   update public.ideias set texto = 'Ideia de B em P1, revista', status = 'aprovada' where id = i2;
   get diagnostics n = row_count;
-  if n <> 1 then falhas := falhas || 'autor deveria alterar o texto e o status da própria ideia'; end if;
+  if n <> 1 then falhas := falhas || 'autor deveria alterar o texto e o status da própria ideia'::text; end if;
   total := total + 1;
   begin
     update public.ideias set criado_por = ua where id = i2;
-    falhas := falhas || 'autor da ideia não deveria poder ser trocado';
+    falhas := falhas || 'autor da ideia não deveria poder ser trocado'::text;
   exception when raise_exception then
     if sqlerrm not like 'O autor e a data%' then falhas := falhas || ('troca de autor, erro inesperado: ' || sqlerrm); end if;
   end;
@@ -175,43 +175,43 @@ begin
   total := total + 1;
   update public.ideias set projeto_id = null where id = i2;
   select count(*) into n from public.ideias where id = i2 and projeto_id is null;
-  if n <> 1 then falhas := falhas || 'autor deveria desvincular ideia sem comentário nem apoio'; end if;
+  if n <> 1 then falhas := falhas || 'autor deveria desvincular ideia sem comentário nem apoio'::text; end if;
   perform set_config('request.jwt.claims', ja, true);
   total := total + 1;
   select count(*) into n from public.ideias where id = i2;
-  if n <> 0 then falhas := falhas || 'ideia desvinculada deveria voltar a ser privada'; end if;
+  if n <> 0 then falhas := falhas || 'ideia desvinculada deveria voltar a ser privada'::text; end if;
   perform set_config('request.jwt.claims', jb, true);
   total := total + 1;
   begin
     update public.ideias set projeto_id = p2 where id = i2;
-    falhas := falhas || 'não deveria vincular ideia a projeto que não acessa';
+    falhas := falhas || 'não deveria vincular ideia a projeto que não acessa'::text;
   exception when insufficient_privilege then null;
   end;
   total := total + 1;
   update public.ideias set projeto_id = p1 where id = i2;
   perform set_config('request.jwt.claims', ja, true);
   select count(*) into n from public.ideias where id = i2;
-  if n <> 1 then falhas := falhas || 'ideia vinculada deveria ser vista por quem acessa o projeto'; end if;
+  if n <> 1 then falhas := falhas || 'ideia vinculada deveria ser vista por quem acessa o projeto'::text; end if;
 
   -- ---------- Comentários e apoios ----------
   total := total + 1;
   insert into public.ideia_comentarios (ideia_id, texto) values (i2, 'Comentário de A');
   select count(*) into n from public.ideia_comentarios where ideia_id = i2 and criado_por = ua;
-  if n <> 1 then falhas := falhas || 'quem acessa o projeto deveria comentar'; end if;
+  if n <> 1 then falhas := falhas || 'quem acessa o projeto deveria comentar'::text; end if;
   total := total + 1;
   insert into public.ideia_apoios (ideia_id) values (i2);
   select count(*) into n from public.ideia_apoios where ideia_id = i2 and usuario_id = ua;
-  if n <> 1 then falhas := falhas || 'quem acessa o projeto deveria apoiar'; end if;
+  if n <> 1 then falhas := falhas || 'quem acessa o projeto deveria apoiar'::text; end if;
   total := total + 1;
   begin
     insert into public.ideia_apoios (ideia_id, usuario_id) values (i2, ub);
-    falhas := falhas || 'não deveria apoiar em nome de outra pessoa';
+    falhas := falhas || 'não deveria apoiar em nome de outra pessoa'::text;
   exception when insufficient_privilege then null;
   end;
   total := total + 1;
   begin
     insert into public.ideia_apoios (ideia_id) values (i2);
-    falhas := falhas || 'não deveria apoiar duas vezes';
+    falhas := falhas || 'não deveria apoiar duas vezes'::text;
   exception when unique_violation then null;
   end;
 
@@ -219,22 +219,22 @@ begin
   total := total + 1;
   begin
     insert into public.ideia_comentarios (ideia_id, texto) values (i2, 'Comentário de fora');
-    falhas := falhas || 'quem está fora do projeto não deveria comentar';
+    falhas := falhas || 'quem está fora do projeto não deveria comentar'::text;
   exception when insufficient_privilege then null;
   end;
   total := total + 1;
   begin
     insert into public.ideia_apoios (ideia_id) values (i2);
-    falhas := falhas || 'quem está fora do projeto não deveria apoiar';
+    falhas := falhas || 'quem está fora do projeto não deveria apoiar'::text;
   exception when insufficient_privilege then null;
   end;
   total := total + 1;
   select (select count(*) from public.ideia_comentarios where ideia_id = i2) + (select count(*) from public.ideia_apoios where ideia_id = i2) into n;
-  if n <> 0 then falhas := falhas || 'quem está fora do projeto não deveria ver comentários e apoios'; end if;
+  if n <> 0 then falhas := falhas || 'quem está fora do projeto não deveria ver comentários e apoios'::text; end if;
   total := total + 1;
   begin
     insert into public.ideia_comentarios (ideia_id, texto) values (i3, 'Comentário em ideia avulsa');
-    falhas := falhas || 'ideia avulsa não deveria receber comentário';
+    falhas := falhas || 'ideia avulsa não deveria receber comentário'::text;
   exception when insufficient_privilege then null;
   end;
 
@@ -242,26 +242,26 @@ begin
   total := total + 1;
   begin
     update public.ideias set projeto_id = null where id = i2;
-    falhas := falhas || 'ideia com comentário ou apoio não deveria sair do projeto';
+    falhas := falhas || 'ideia com comentário ou apoio não deveria sair do projeto'::text;
   exception when raise_exception then
     if sqlerrm not like 'Esta ideia já recebeu%' then falhas := falhas || ('desvincular com interação, erro inesperado: ' || sqlerrm); end if;
   end;
   total := total + 1;
   delete from public.ideia_comentarios where ideia_id = i2;
   get diagnostics n = row_count;
-  if n <> 0 then falhas := falhas || 'não deveria apagar o comentário de outra pessoa'; end if;
+  if n <> 0 then falhas := falhas || 'não deveria apagar o comentário de outra pessoa'::text; end if;
 
   -- ---------- Ideia de origem de tarefa e de projeto ----------
   total := total + 1;
   insert into public.tarefas (titulo, coluna_id, responsavel_id, prazo, projeto_id, ideia_id)
     values ('Tarefa da ideia', ct, ub, current_date, p1, i2);
   select count(*) into n from public.tarefas where ideia_id = i2;
-  if n <> 1 then falhas := falhas || 'participante deveria criar tarefa a partir da ideia do projeto'; end if;
+  if n <> 1 then falhas := falhas || 'participante deveria criar tarefa a partir da ideia do projeto'::text; end if;
   total := total + 1;
   begin
     insert into public.tarefas (titulo, coluna_id, responsavel_id, prazo, ideia_id)
       values ('Tarefa avulsa de ideia de projeto', ct, ub, current_date, i2);
-    falhas := falhas || 'tarefa de ideia de projeto não deveria nascer fora do projeto';
+    falhas := falhas || 'tarefa de ideia de projeto não deveria nascer fora do projeto'::text;
   exception when raise_exception then
     if sqlerrm not like 'A tarefa criada de uma ideia%' then falhas := falhas || ('tarefa fora do projeto, erro inesperado: ' || sqlerrm); end if;
   end;
@@ -269,20 +269,20 @@ begin
   insert into public.tarefas (titulo, coluna_id, responsavel_id, prazo, ideia_id)
     values ('Tarefa avulsa da ideia avulsa', ct, ub, current_date, i1);
   select count(*) into n from public.tarefas where ideia_id = i1 and projeto_id is null;
-  if n <> 1 then falhas := falhas || 'ideia avulsa deveria gerar tarefa avulsa'; end if;
+  if n <> 1 then falhas := falhas || 'ideia avulsa deveria gerar tarefa avulsa'::text; end if;
   total := total + 1;
   x := gen_random_uuid();
   insert into public.projetos (id, titulo, coluna_id, responsavel_id, ideia_id) values (x, 'Projeto da ideia avulsa', cp, ub, i1);
   select count(*) into n from public.projetos where id = x and ideia_id = i1;
-  if n <> 1 then falhas := falhas || 'ideia avulsa deveria gerar projeto'; end if;
+  if n <> 1 then falhas := falhas || 'ideia avulsa deveria gerar projeto'::text; end if;
   total := total + 1;
   insert into public.projetos (titulo, coluna_id, responsavel_id, ideia_id) values ('Projeto da ideia de projeto', cp, ub, i2);
   select count(*) into n from public.projetos where ideia_id = i2;
-  if n <> 1 then falhas := falhas || 'ideia de projeto deveria gerar projeto novo'; end if;
+  if n <> 1 then falhas := falhas || 'ideia de projeto deveria gerar projeto novo'::text; end if;
   total := total + 1;
   begin
     insert into public.projetos (titulo, coluna_id, responsavel_id, ideia_id) values ('Projeto de ideia alheia', cp, ub, i3);
-    falhas := falhas || 'não deveria apontar para ideia que não enxerga';
+    falhas := falhas || 'não deveria apontar para ideia que não enxerga'::text;
   exception when raise_exception then
     if sqlerrm not like 'Ideia de origem não encontrada%' then falhas := falhas || ('ideia alheia, erro inesperado: ' || sqlerrm); end if;
   end;
@@ -291,18 +291,18 @@ begin
   total := total + 1;
   update public.ideias set arquivado_em = now() where id = i2;
   select count(*) into n from public.ideias where id = i2 and arquivado_em is not null and arquivado_por = ub;
-  if n <> 1 then falhas := falhas || 'autor deveria excluir a própria ideia (lixeira)'; end if;
+  if n <> 1 then falhas := falhas || 'autor deveria excluir a própria ideia (lixeira)'::text; end if;
   perform set_config('request.jwt.claims', ja, true);
   total := total + 1;
   begin
     insert into public.ideia_comentarios (ideia_id, texto) values (i2, 'Comentário em ideia excluída');
-    falhas := falhas || 'ideia na lixeira não deveria receber comentário';
+    falhas := falhas || 'ideia na lixeira não deveria receber comentário'::text;
   exception when insufficient_privilege then null;
   end;
   total := total + 1;
   begin
     perform public.restaurar_item('ideias', i2);
-    falhas := falhas || 'quem não é o autor não deveria restaurar a ideia';
+    falhas := falhas || 'quem não é o autor não deveria restaurar a ideia'::text;
   exception when raise_exception then
     if sqlerrm not like 'Você não pode restaurar%' then falhas := falhas || ('restaurar por outro, erro inesperado: ' || sqlerrm); end if;
   end;
@@ -310,27 +310,27 @@ begin
   total := total + 1;
   perform public.restaurar_item('ideias', i2);
   select count(*) into n from public.ideias where id = i2 and arquivado_em is null and arquivado_por is null;
-  if n <> 1 then falhas := falhas || 'autor deveria restaurar a própria ideia'; end if;
+  if n <> 1 then falhas := falhas || 'autor deveria restaurar a própria ideia'::text; end if;
 
   update public.ideias set arquivado_em = now() where id in (i1, i2);
   perform set_config('request.jwt.claims', jadm, true);
   total := total + 1;
   select count(*) into n from public.ideias where id in (i1, i2);
-  if n <> 1 then falhas := falhas || 'administrador deveria ver na lixeira só a ideia de projeto, e não a avulsa'; end if;
+  if n <> 1 then falhas := falhas || 'administrador deveria ver na lixeira só a ideia de projeto, e não a avulsa'::text; end if;
   total := total + 1;
   delete from public.ideias where id = i1;
   get diagnostics n = row_count;
-  if n <> 0 then falhas := falhas || 'administrador não deveria excluir de vez ideia avulsa'; end if;
+  if n <> 0 then falhas := falhas || 'administrador não deveria excluir de vez ideia avulsa'::text; end if;
   total := total + 1;
   perform public.restaurar_item('ideias', i2);
   select count(*) into n from public.ideias where id = i2 and arquivado_em is not null;
-  if n <> 0 then falhas := falhas || 'administrador deveria restaurar ideia de projeto'; end if;
+  if n <> 0 then falhas := falhas || 'administrador deveria restaurar ideia de projeto'::text; end if;
 
   perform set_config('request.jwt.claims', jb, true);
   total := total + 1;
   delete from public.ideias where id = i1;
   get diagnostics n = row_count;
-  if n <> 0 then falhas := falhas || 'autor não deveria excluir de vez a ideia (só a limpeza apaga)'; end if;
+  if n <> 0 then falhas := falhas || 'autor não deveria excluir de vez a ideia (só a limpeza apaga)'::text; end if;
 
   -- ---------- Limpeza diária ----------
   reset role;
@@ -344,7 +344,7 @@ begin
   total := total + 1;
   begin
     perform public.restaurar_item('ideias', i1);
-    falhas := falhas || 'autor não deveria restaurar após 30 dias';
+    falhas := falhas || 'autor não deveria restaurar após 30 dias'::text;
   exception when raise_exception then
     if sqlerrm not like 'Você não pode restaurar%' then falhas := falhas || ('restauração após 30 dias, erro inesperado: ' || sqlerrm); end if;
   end;
@@ -353,10 +353,10 @@ begin
   total := total + 1;
   perform private.limpa_lixeira();
   select count(*) into n from public.ideias where id in (i1, i2);
-  if n <> 1 then falhas := falhas || 'a limpeza diária deveria apagar só a ideia excluída há mais de 30 dias'; end if;
+  if n <> 1 then falhas := falhas || 'a limpeza diária deveria apagar só a ideia excluída há mais de 30 dias'::text; end if;
   total := total + 1;
   select count(*) into n from public.tarefas where titulo = 'Tarefa avulsa da ideia avulsa' and ideia_id is null;
-  if n <> 1 then falhas := falhas || 'a tarefa deveria continuar existindo depois de a ideia de origem ser apagada'; end if;
+  if n <> 1 then falhas := falhas || 'a tarefa deveria continuar existindo depois de a ideia de origem ser apagada'::text; end if;
 
   -- ---------- Fim: desfaz tudo ----------
   raise exception E'RESULTADO: % verificações, % falhas.%', total, coalesce(array_length(falhas, 1), 0),

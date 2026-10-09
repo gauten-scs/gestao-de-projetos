@@ -80,7 +80,7 @@ begin
 
   total := total + 1;
   select count(*) into n from public.tarefas where id in (t4, t5, t6, t7, t8) and arquivado_em is not null;
-  if n <> 5 then falhas := falhas || 'preparação: as cinco tarefas deveriam estar na lixeira'; end if;
+  if n <> 5 then falhas := falhas || 'preparação: as cinco tarefas deveriam estar na lixeira'::text; end if;
 
   -- ---------- Exclusão definitiva ----------
   -- 1. Quem não é admin não apaga de vez, nem o que é dele e está na lixeira.
@@ -91,10 +91,10 @@ begin
   reset role;
   total := total + 1;
   select count(*) into n from public.tarefas where id in (t5, t6);
-  if n <> 2 then falhas := falhas || 'responsável (não admin) não deveria apagar tarefa de vez'; end if;
+  if n <> 2 then falhas := falhas || 'responsável (não admin) não deveria apagar tarefa de vez'::text; end if;
   total := total + 1;
   select count(*) into n from public.projetos where id = p2;
-  if n <> 1 then falhas := falhas || 'responsável (não admin) não deveria apagar projeto de vez'; end if;
+  if n <> 1 then falhas := falhas || 'responsável (não admin) não deveria apagar projeto de vez'::text; end if;
 
   -- 2. O admin não apaga o que está ativo.
   set local role authenticated;
@@ -104,10 +104,10 @@ begin
   reset role;
   total := total + 1;
   select count(*) into n from public.tarefas where id = t1;
-  if n <> 1 then falhas := falhas || 'admin não deveria apagar tarefa que não está na lixeira'; end if;
+  if n <> 1 then falhas := falhas || 'admin não deveria apagar tarefa que não está na lixeira'::text; end if;
   total := total + 1;
   select count(*) into n from public.projetos where id = p1;
-  if n <> 1 then falhas := falhas || 'admin não deveria apagar projeto que não está na lixeira'; end if;
+  if n <> 1 then falhas := falhas || 'admin não deveria apagar projeto que não está na lixeira'::text; end if;
 
   -- 3. O admin não apaga tarefa avulsa dos outros, mesmo na lixeira.
   set local role authenticated;
@@ -116,7 +116,7 @@ begin
   reset role;
   total := total + 1;
   select count(*) into n from public.tarefas where id = t5;
-  if n <> 1 then falhas := falhas || 'admin não deveria apagar tarefa avulsa de outra pessoa'; end if;
+  if n <> 1 then falhas := falhas || 'admin não deveria apagar tarefa avulsa de outra pessoa'::text; end if;
 
   -- 4. O admin apaga de vez tarefa de projeto que está na lixeira.
   set local role authenticated;
@@ -125,7 +125,7 @@ begin
   reset role;
   total := total + 1;
   select count(*) into n from public.tarefas where id = t6;
-  if n <> 0 then falhas := falhas || 'admin deveria apagar de vez tarefa de projeto que está na lixeira'; end if;
+  if n <> 0 then falhas := falhas || 'admin deveria apagar de vez tarefa de projeto que está na lixeira'::text; end if;
 
   -- 5. O admin apaga de vez projeto na lixeira; tarefas e equipe dele vão junto.
   set local role authenticated;
@@ -134,16 +134,16 @@ begin
   reset role;
   total := total + 1;
   select count(*) into n from public.projetos where id = p2;
-  if n <> 0 then falhas := falhas || 'admin deveria apagar de vez projeto que está na lixeira'; end if;
+  if n <> 0 then falhas := falhas || 'admin deveria apagar de vez projeto que está na lixeira'::text; end if;
   total := total + 1;
   select count(*) into n from public.tarefas where projeto_id = p2 or id = t2;
-  if n <> 0 then falhas := falhas || 'as tarefas do projeto apagado deveriam ser apagadas junto'; end if;
+  if n <> 0 then falhas := falhas || 'as tarefas do projeto apagado deveriam ser apagadas junto'::text; end if;
   total := total + 1;
   select count(*) into n from public.projeto_membros where projeto_id = p2;
-  if n <> 0 then falhas := falhas || 'a equipe do projeto apagado deveria ser apagada junto'; end if;
+  if n <> 0 then falhas := falhas || 'a equipe do projeto apagado deveria ser apagada junto'::text; end if;
   total := total + 1;
   select count(*) into n from public.projetos where id = p1;
-  if n <> 1 then falhas := falhas || 'apagar um projeto não deveria afetar outro projeto'; end if;
+  if n <> 1 then falhas := falhas || 'apagar um projeto não deveria afetar outro projeto'::text; end if;
 
   -- ---------- Limpeza diária da lixeira ----------
   -- 6. Ninguém logado no site consegue chamar a limpeza, nem o admin.
@@ -152,7 +152,7 @@ begin
   total := total + 1;
   begin
     perform private.limpa_lixeira();
-    falhas := falhas || 'usuário logado não deveria conseguir chamar a limpeza da lixeira';
+    falhas := falhas || 'usuário logado não deveria conseguir chamar a limpeza da lixeira'::text;
   exception when insufficient_privilege then null;
   end;
   reset role;
@@ -162,28 +162,28 @@ begin
   perform private.limpa_lixeira();
   total := total + 1;
   select count(*) into n from public.tarefas where id in (t4, t7);
-  if n <> 0 then falhas := falhas || 'a limpeza deveria apagar tarefas na lixeira há mais de 30 dias (avulsa e de projeto)'; end if;
+  if n <> 0 then falhas := falhas || 'a limpeza deveria apagar tarefas na lixeira há mais de 30 dias (avulsa e de projeto)'::text; end if;
   total := total + 1;
   select count(*) into n from public.projetos where id = p3;
-  if n <> 0 then falhas := falhas || 'a limpeza deveria apagar projeto na lixeira há mais de 30 dias'; end if;
+  if n <> 0 then falhas := falhas || 'a limpeza deveria apagar projeto na lixeira há mais de 30 dias'::text; end if;
   total := total + 1;
   select count(*) into n from public.tarefas where id = t3;
-  if n <> 0 then falhas := falhas || 'a limpeza deveria apagar junto as tarefas do projeto apagado'; end if;
+  if n <> 0 then falhas := falhas || 'a limpeza deveria apagar junto as tarefas do projeto apagado'::text; end if;
   total := total + 1;
   select count(*) into n from public.tarefas where id in (t5, t8) and arquivado_em is not null;
-  if n <> 2 then falhas := falhas || 'a limpeza não deveria apagar o que está na lixeira há menos de 30 dias'; end if;
+  if n <> 2 then falhas := falhas || 'a limpeza não deveria apagar o que está na lixeira há menos de 30 dias'::text; end if;
   total := total + 1;
   select count(*) into n from public.tarefas where id = t1 and arquivado_em is null;
-  if n <> 1 then falhas := falhas || 'a limpeza não deveria apagar tarefa ativa'; end if;
+  if n <> 1 then falhas := falhas || 'a limpeza não deveria apagar tarefa ativa'::text; end if;
   total := total + 1;
   select count(*) into n from public.projetos where id = p1 and arquivado_em is null;
-  if n <> 1 then falhas := falhas || 'a limpeza não deveria apagar projeto ativo'; end if;
+  if n <> 1 then falhas := falhas || 'a limpeza não deveria apagar projeto ativo'::text; end if;
 
   -- 8. A limpeza está agendada e ligada: todos os dias às 03h15 de Brasília (06h15 UTC).
   total := total + 1;
   select count(*) into n from cron.job
    where jobname = 'limpa-lixeira' and active and schedule = '15 6 * * *' and command ilike '%private.limpa_lixeira()%';
-  if n <> 1 then falhas := falhas || 'a limpeza diária deveria estar agendada e ligada (limpa-lixeira, 15 6 * * *)'; end if;
+  if n <> 1 then falhas := falhas || 'a limpeza diária deveria estar agendada e ligada (limpa-lixeira, 15 6 * * *)'::text; end if;
 
   -- ---------- Fim: desfaz tudo ----------
   raise exception E'RESULTADO: % verificações, % falhas.%', total, coalesce(array_length(falhas, 1), 0),

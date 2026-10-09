@@ -45,10 +45,10 @@ begin
   -- 1 e 2. Quem nasce sem senha nasce com a senha pendente; quem nasce com senha, não.
   total := total + 1;
   select senha_pendente into b from public.perfis where id = un;
-  if not b then falhas := falhas || 'usuário criado sem senha deveria nascer com a senha pendente'; end if;
+  if not b then falhas := falhas || 'usuário criado sem senha deveria nascer com a senha pendente'::text; end if;
   total := total + 1;
   select count(*) into n from public.perfis where id in (ua, uadm) and not senha_pendente;
-  if n <> 2 then falhas := falhas || 'usuário criado com senha não deveria nascer com a senha pendente'; end if;
+  if n <> 2 then falhas := falhas || 'usuário criado com senha não deveria nascer com a senha pendente'::text; end if;
 
   -- O convite libera o acesso (ativo), mas a senha continua pendente.
   update public.perfis set ativo = true where id in (ua, un);
@@ -63,48 +63,48 @@ begin
   perform set_config('request.jwt.claims', jn, true);
   total := total + 1;
   select count(*) into n from public.projetos where id = p1;
-  if n <> 0 then falhas := falhas || 'com a senha pendente, não deveria ver o projeto de que participa'; end if;
+  if n <> 0 then falhas := falhas || 'com a senha pendente, não deveria ver o projeto de que participa'::text; end if;
   total := total + 1;
   select count(*) into n from public.tarefas where id = t1;
-  if n <> 0 then falhas := falhas || 'com a senha pendente, não deveria ver a tarefa de que é responsável'; end if;
+  if n <> 0 then falhas := falhas || 'com a senha pendente, não deveria ver a tarefa de que é responsável'::text; end if;
   total := total + 1;
   select count(*) into n from public.colunas;
-  if n <> 0 then falhas := falhas || 'com a senha pendente, não deveria ver as colunas'; end if;
+  if n <> 0 then falhas := falhas || 'com a senha pendente, não deveria ver as colunas'::text; end if;
   total := total + 1;
   select count(*) into n from public.perfis;
-  if n <> 1 then falhas := falhas || 'com a senha pendente, deveria ver só o próprio perfil'; end if;
+  if n <> 1 then falhas := falhas || 'com a senha pendente, deveria ver só o próprio perfil'::text; end if;
   total := total + 1;
   begin
     insert into public.tarefas (titulo, coluna_id, responsavel_id, prazo) values ('Não deveria entrar', ct, un, current_date);
-    falhas := falhas || 'com a senha pendente, não deveria criar tarefa';
+    falhas := falhas || 'com a senha pendente, não deveria criar tarefa'::text;
   exception when insufficient_privilege then null;
   end;
   total := total + 1;
   update public.tarefas set titulo = 'Alterada' where id = t1;
   get diagnostics n = row_count;
-  if n <> 0 then falhas := falhas || 'com a senha pendente, não deveria alterar tarefa'; end if;
+  if n <> 0 then falhas := falhas || 'com a senha pendente, não deveria alterar tarefa'::text; end if;
   total := total + 1;
   update public.perfis set senha_pendente = false where id = un;
   get diagnostics n = row_count;
-  if n <> 0 then falhas := falhas || 'com a senha pendente, não deveria desligar a própria trava'; end if;
+  if n <> 0 then falhas := falhas || 'com a senha pendente, não deveria desligar a própria trava'::text; end if;
   total := total + 1;
   update public.perfis set nome = 'Outro nome' where id = un;
   get diagnostics n = row_count;
-  if n <> 0 then falhas := falhas || 'com a senha pendente, não deveria alterar o próprio perfil'; end if;
+  if n <> 0 then falhas := falhas || 'com a senha pendente, não deveria alterar o próprio perfil'::text; end if;
 
   -- ---------- Ninguém mexe na trava pelo site ----------
   perform set_config('request.jwt.claims', jadm, true);
   total := total + 1;
   begin
     update public.perfis set senha_pendente = false where id = un;
-    falhas := falhas || 'admin não deveria desligar a trava de outro usuário';
+    falhas := falhas || 'admin não deveria desligar a trava de outro usuário'::text;
   exception when raise_exception then
     if sqlerrm not like 'A situação da senha%' then falhas := falhas || ('trava alterada pelo admin, erro inesperado: ' || sqlerrm); end if;
   end;
   total := total + 1;
   begin
     perform public.preparar_novo_link(ua);
-    falhas := falhas || 'usuário logado (nem o admin) deveria chamar preparar_novo_link';
+    falhas := falhas || 'usuário logado (nem o admin) deveria chamar preparar_novo_link'::text;
   exception when insufficient_privilege then null;
   end;
 
@@ -114,20 +114,20 @@ begin
   total := total + 1;
   update auth.users set encrypted_password = '' where id = un;
   select senha_pendente into b from public.perfis where id = un;
-  if not b then falhas := falhas || 'gravação sem senha não deveria desligar a trava'; end if;
+  if not b then falhas := falhas || 'gravação sem senha não deveria desligar a trava'::text; end if;
   total := total + 1;
   update auth.users set encrypted_password = 'senha-criada-agora' where id = un;
   select senha_pendente into b from public.perfis where id = un;
-  if b then falhas := falhas || 'gravar a senha deveria desligar a trava'; end if;
+  if b then falhas := falhas || 'gravar a senha deveria desligar a trava'::text; end if;
 
   set local role authenticated;
   perform set_config('request.jwt.claims', jn, true);
   total := total + 1;
   select count(*) into n from public.projetos where id = p1;
-  if n <> 1 then falhas := falhas || 'depois de criar a senha, deveria ver o projeto de que participa'; end if;
+  if n <> 1 then falhas := falhas || 'depois de criar a senha, deveria ver o projeto de que participa'::text; end if;
   total := total + 1;
   select count(*) into n from public.tarefas where id = t1;
-  if n <> 1 then falhas := falhas || 'depois de criar a senha, deveria ver a tarefa de que é responsável'; end if;
+  if n <> 1 then falhas := falhas || 'depois de criar a senha, deveria ver a tarefa de que é responsável'::text; end if;
 
   -- ---------- "Gerar novo link": liga a trava e encerra as sessões ----------
   reset role;
@@ -137,13 +137,13 @@ begin
   perform public.preparar_novo_link(ua);
   total := total + 1;
   select senha_pendente into b from public.perfis where id = ua;
-  if not b then falhas := falhas || 'gerar novo link deveria ligar a senha pendente'; end if;
+  if not b then falhas := falhas || 'gerar novo link deveria ligar a senha pendente'::text; end if;
   total := total + 1;
   select count(*) into n from auth.sessions where user_id = ua;
-  if n <> 0 then falhas := falhas || 'gerar novo link deveria encerrar as sessões da conta'; end if;
+  if n <> 0 then falhas := falhas || 'gerar novo link deveria encerrar as sessões da conta'::text; end if;
   total := total + 1;
   select count(*) into n from auth.sessions where user_id = uadm;
-  if n <> 1 then falhas := falhas || 'gerar novo link não deveria encerrar sessões de outra conta'; end if;
+  if n <> 1 then falhas := falhas || 'gerar novo link não deveria encerrar sessões de outra conta'::text; end if;
 
   -- Administrador com a senha pendente deixa de valer como administrador.
   perform public.preparar_novo_link(uadm);
@@ -152,7 +152,7 @@ begin
   total := total + 1;
   update public.perfis set ativo = false where id = un;
   get diagnostics n = row_count;
-  if n <> 0 then falhas := falhas || 'admin com a senha pendente não deveria alterar o acesso de ninguém'; end if;
+  if n <> 0 then falhas := falhas || 'admin com a senha pendente não deveria alterar o acesso de ninguém'::text; end if;
 
   -- ---------- Fim: desfaz tudo ----------
   reset role;
