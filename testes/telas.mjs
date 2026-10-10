@@ -569,7 +569,18 @@ confere("versao.js traz a versão no formato ano.mês.dia-ordem", !!versaoNoArqu
 confere("com #diag, a caixa mostra a versão do site", (await txt("#diagnostico")).includes("versão do site      " + versaoNoArquivo));
 await pg.goto("http://localhost:8123/"); await pg.reload(); await pg.waitForSelector("#app:not([hidden])"); await pg.waitForTimeout(300);
 confere("com a mesma versão publicada, a página não avisa nem recarrega", (await pg.locator("#aviso-versao").count()) === 0 && (await pg.evaluate(() => sessionStorage.getItem("gp-atualizou-para"))) === null);
+// Diagnóstico pelo link em "Minha conta" (o site instalado não tem barra de endereço para o #diag)
 await pg.click("#menu-mais"); await pg.click("#mais-conta");
+const linkDiag = await pg.locator("#abrir-diagnostico").evaluate((b) => { const q = b.getBoundingClientRect(), v = document.querySelector("#versao-do-site").getBoundingClientRect(); return { texto: b.innerText, alt: q.height, mesmaLinha: q.top < v.bottom && q.bottom > v.top, aDireita: q.left >= v.right, cabe: q.right <= innerWidth }; });
+confere("Minha conta: link Diagnóstico na linha da versão, à direita, com altura para o dedo", linkDiag.texto === "Diagnóstico" && linkDiag.alt >= 36 && linkDiag.mesmaLinha && linkDiag.aDireita && linkDiag.cabe);
+await pg.click("#abrir-diagnostico"); await pg.waitForSelector("#diagnostico");
+confere("link Diagnóstico: fecha Minha conta e mostra a caixa com as medidas e a versão", !(await pg.locator("#dlg-conta").isVisible()) && await pg.locator("#diagnostico").isVisible() && /janela \(inner\)/.test(await txt("#diagnostico")) && (await txt("#diagnostico")).includes(versaoNoArquivo) && (await pg.locator("#diagnostico").count()) === 1);
+await pg.click("#menu-mais"); await pg.click("#mais-conta");
+confere("com a caixa à vista, o link vira Fechar diagnóstico", (await txt("#abrir-diagnostico")) === "Fechar diagnóstico");
+await pg.click("#abrir-diagnostico"); await pg.waitForTimeout(150);
+confere("Fechar diagnóstico: esconde a caixa e fecha Minha conta, sem criar outra", !(await pg.locator("#diagnostico").isVisible()) && (await pg.locator("#diagnostico").count()) === 1 && !(await pg.locator("#dlg-conta").isVisible()));
+await pg.click("#menu-mais"); await pg.click("#mais-conta");
+confere("com a caixa escondida, o link volta a ser Diagnóstico", (await txt("#abrir-diagnostico")) === "Diagnóstico");
 confere("Minha conta mostra a versão do site", (await txt("#versao-do-site")) === "Versão do site: " + versaoNoArquivo);
 // Daqui em diante o servidor "publica" outra versão: só a consulta de versão (com ?t=) recebe o arquivo novo
 await pg.route(/\/js\/versao\.js\?t=/, (r) => r.fulfill({ contentType: "text/javascript", body: 'export const VERSAO = "2099.01.01-1";' }));

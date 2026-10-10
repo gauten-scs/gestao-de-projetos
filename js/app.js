@@ -249,14 +249,22 @@ $("#novo-item-projeto").addEventListener("click", () => abrirProjeto(null));
 addEventListener("pointerdown", () => document.documentElement.classList.add("pelo-toque"), true);
 addEventListener("keydown", (e) => { if (e.key === "Tab") document.documentElement.classList.remove("pelo-toque"); }, true);
 
-// ---------- Diagnóstico de tela: só com #diag no fim do endereço ----------
+// ---------- Diagnóstico de tela: com #diag no fim do endereço ou pelo link em "Minha conta" ----------
+// O link existe porque o site instalado não tem barra de endereço. Ele mostra a caixa e, da segunda vez, esconde.
 if (location.hash === "#diag") import("./diagnostico.js");
+const diagnosticoAVista = () => { const c = document.getElementById("diagnostico"); return !!c && !c.hidden; };
+$("#abrir-diagnostico").addEventListener("click", async () => {
+  const caixa = document.getElementById("diagnostico");
+  if (caixa) caixa.hidden = !caixa.hidden; else await import("./diagnostico.js");
+  $("#dlg-conta").close();
+});
 
 // ---------- Minha conta ----------
 $("#btn-conta").addEventListener("click", () => {
   $("#m-nome").value = estado.perfil.nome;
   $("#m-senha").value = "";
   $("#versao-do-site").textContent = "Versão do site: " + VERSAO;
+  $("#abrir-diagnostico").textContent = diagnosticoAVista() ? "Fechar diagnóstico" : "Diagnóstico";
   mensagem("#conta-msg", "");
   marcarTema();
   $("#dlg-conta").showModal();
