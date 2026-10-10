@@ -452,10 +452,21 @@ dialog.folha { padding: 0; width: 100%; max-width: 100%; margin: auto 0 0; borde
   .botao-novo svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
   #visao-projetos, #visao-tarefas { padding-bottom: 96px; } /* o último cartão não fica debaixo do botão */
   .entrada { flex-direction: column; }
-  .entrada-marca { flex: none; max-width: none; padding: 28px 20px; gap: 28px; }
-  .entrada-marca .marca-takt { width: 160px; }
+  /* Entrada no celular: bloco escuro baixo, para o formulário caber sem rolar. Logo do Takt à esquerda e a assinatura
+     à direita, na mesma linha; embaixo, só o nome do módulo. A frase de apoio fica para o computador. */
+  .entrada-marca { flex: none; max-width: none; padding: 16px 20px; gap: 18px; }
+  .entrada-topo { flex-direction: row; align-items: center; justify-content: space-between; gap: 16px; }
+  .entrada-marca .marca-takt { width: 118px; }
+  .entrada-marca .assinatura { align-items: flex-end; gap: 4px; }
+  .entrada-marca .assinatura span { font-size: 12px; line-height: 16px; }
+  .entrada-marca .assinatura img { width: 104px; }
+  .entrada-marca h1 { font-size: 24px; }
+  .entrada-marca p { display: none; }
   .entrada > .espinha { flex-direction: row; width: auto; height: 4px; }
-  .entrada-form { padding: 32px 20px; align-items: flex-start; }
+  .entrada-form { padding: 28px 20px; align-items: flex-start; }
+  .entrada-caixa h2 { font-size: 28px; }
+  #tela-sem-acesso { padding: 20px; }
+  .entrada-caixa.centro { padding: 28px 20px; }
   dialog { padding: 20px; }
   /* Painéis que sobem de baixo. A janela da tarefa é um deles: ocupa a largura, encosta no rodapé e rola por dentro. */
   dialog[open] { animation: subir 0.22s ease-out; }

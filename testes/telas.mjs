@@ -890,6 +890,29 @@ for (const [onde, larg, alt] of [["computador", 1440, 900], ["celular", 390, 844
   await saudeNosDoisTemas(`${onde}, Editar coluna`, "#dlg-coluna label.com-caixa, #dlg-coluna #c-nome, #dlg-coluna .acoes .btn");
   await pg.locator("#dlg-coluna [data-fechar]").last().click(); await pg.waitForTimeout(200); if (await pg.locator("#confirma-sim").isVisible()) await pg.click("#confirma-sim");
 }
+
+// Telas de entrada no celular: bloco escuro baixo (logo e assinatura na mesma linha, nome do módulo embaixo) e formulário sem rolar
+const abreTela = async (tela, larg, alt, fim = "") => { await pg.setViewportSize({ width: larg, height: alt }); await pg.goto("http://localhost:8123/" + fim); await pg.waitForSelector("#app:not([hidden]), #tela-senha:not([hidden])"); await pg.waitForTimeout(300);
+  await pg.evaluate((t) => import("./js/util.js").then((m) => m.mostrar(t)), tela); await pg.waitForTimeout(200); };
+const medeEntrada = (id) => pg.locator(id).evaluate((t) => { const q = (s) => t.querySelector(s), r = (s) => q(s).getBoundingClientRect();
+  const logo = r(".marca-takt"), ass = r(".assinatura"), marca = r(".entrada-marca"), h1 = r("h1"), botao = r("form button"), espinha = r(".espinha");
+  return { mesmaLinha: logo.top < ass.bottom && logo.bottom > ass.top, logoEsquerda: logo.left - marca.left <= 21 && logo.right < ass.left, assDireita: marca.right - ass.right <= 21, assAbaixo: ass.top >= logo.bottom,
+    titulo: q("h1").innerText.trim(), tituloLetra: parseFloat(getComputedStyle(q("h1")).fontSize), tituloAbaixo: h1.top >= logo.bottom && h1.top >= ass.bottom, frase: getComputedStyle(q(".entrada-marca p")).display,
+    alturaMarca: marca.height, espinhaAbaixo: espinha.top >= marca.bottom - 1 && espinha.height <= 5, h2: parseFloat(getComputedStyle(q(".entrada-caixa h2")).fontSize), fimBotao: botao.bottom, larguraBotao: botao.width,
+    campos: [...t.querySelectorAll("form input")].map((i) => parseFloat(getComputedStyle(i).fontSize)).join("|"), semRolagem: document.documentElement.scrollWidth <= innerWidth }; });
+for (const [id, nome, fim, campos] of [["#tela-login", "entrada", "", "16|16"], ["#tela-senha", "criar a senha", "", "16|16"]]) {
+  await abreTela(id.slice(1), 390, 844, fim); const e = await medeEntrada(id);
+  confere(`celular, ${nome}: logo do Takt à esquerda e a assinatura à direita, na mesma linha`, e.mesmaLinha && e.logoEsquerda && e.assDireita);
+  confere(`celular, ${nome}: nome do módulo em letra de 24 px abaixo do logo, sem a frase de apoio`, e.titulo === "Gestão de Projetos" && e.tituloLetra === 24 && e.tituloAbaixo && e.frase === "none");
+  confere(`celular, ${nome}: bloco escuro baixo, com a linha de cores logo abaixo`, e.alturaMarca <= 130 && e.espinhaAbaixo);
+  confere(`celular, ${nome}: título do formulário em 28 px, campos com 16 px e o botão inteiro na metade de cima da tela`, e.h2 === 28 && e.campos === campos && e.fimBotao <= 500 && e.larguraBotao >= 340 && e.semRolagem);
+  await saudeNosDoisTemas(`celular, ${nome}`, `${id} .marca-takt, ${id} .assinatura, ${id} h1, ${id} .entrada-caixa h2, ${id} .apoio, ${id} label, ${id} form button`);
+}
+await abreTela("tela-sem-acesso", 390, 844);
+const sa = await pg.locator("#tela-sem-acesso .entrada-caixa").evaluate((c) => { const q = c.getBoundingClientRect(); return { esq: q.left, dir: innerWidth - q.right, semRolagem: document.documentElement.scrollWidth <= innerWidth }; });
+confere("celular, Sem acesso: a caixa não encosta nas bordas da tela", sa.esq >= 20 && sa.dir >= 20 && sa.semRolagem);
+await abreTela("tela-login", 1440, 900); const ePC = await medeEntrada("#tela-login");
+confere("computador, entrada: continua com o título grande, a frase de apoio e a assinatura abaixo do logo", ePC.tituloLetra >= 40 && ePC.frase !== "none" && ePC.assAbaixo && ePC.h2 === 38);
 await pg.setViewportSize({ width: 1440, height: 900 });
 
 confere("nenhum erro no console", erros.length === 0); erros.forEach((e) => console.log("   " + e));
