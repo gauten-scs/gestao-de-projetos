@@ -1,7 +1,7 @@
 // Configurações (somente admin): usuários, colunas dos quadros, lixeira geral e convites.
 import { sb } from "./supabase.js";
 import { de } from "./ligacoes.js";
-import { $, el, dataComHora, aviso, mensagem, traduz, confirmar } from "./util.js";
+import { $, el, dataComHora, aviso, mensagem, traduz, confirmar, celular } from "./util.js";
 import { estado, colunasDe, nomePerfil, avatar } from "./estado.js";
 import { restaurar } from "./lixeira.js";
 
@@ -10,22 +10,24 @@ export function renderConfig() {
 
   // Usuários
   const usuarios = $("#tabela-usuarios");
-  usuarios.replaceChildren(el("tr", {}, ...["Nome", "E-mail", "Tipo", "Acesso", ""].map((t) => el("th", { text: t, scope: "col" }))));
+  usuarios.replaceChildren(el("tr", { class: "linha-titulos" }, ...["Nome", "E-mail", "Tipo", "Acesso", ""].map((t) => el("th", { text: t, scope: "col" }))));
   for (const p of estado.perfis) {
     const eu = p.id === estado.usuario.id;
     const tipo = el("select", { disabled: eu, "aria-label": "Tipo de usuário de " + (p.nome || p.email) },
-      el("option", { value: "membro", text: "Usuário" }), el("option", { value: "admin", text: "Administrador" }));
+      el("option", { value: "membro", text: "Usuário" }), el("option", { value: "admin", text: celular() ? "Admin" : "Administrador" }));   // no celular, "Admin", para caber na linha dos botões
     tipo.value = p.papel;
     tipo.addEventListener("change", () => alterarPerfil(p.id, { papel: tipo.value }));
     usuarios.append(el("tr", {},
-      el("td", { class: "pessoa" }, avatar(p.id), (p.nome || "(sem nome)") + (eu ? " (você)" : "")),
-      el("td", { text: p.email }),
-      el("td", {}, tipo),
+      el("td", { class: "c-nome pessoa" }, avatar(p.id), (p.nome || "(sem nome)") + (eu ? " (você)" : "")),
+      el("td", { class: "c-linha", text: p.email }),
+      el("td", { class: "c-campo" }, tipo),
       // Quem recebeu o link e ainda não criou a senha aparece como "Aguardando senha"
-      el("td", {}, el("span", { class: "selo" + (!p.ativo ? "" : p.senha_pendente ? " espera" : " sim"), text: !p.ativo ? "Bloqueado" : p.senha_pendente ? "Aguardando senha" : "Liberado" })),
-      el("td", {}, el("div", { class: "acoes" },
+      el("td", { class: "c-selo" }, el("span", { class: "selo" + (!p.ativo ? "" : p.senha_pendente ? " espera" : " sim"), text: !p.ativo ? "Bloqueado" : p.senha_pendente ? "Aguardando senha" : "Liberado" })),
+      el("td", { class: "c-acoes" }, el("div", { class: "acoes" },
         mini(p.ativo ? "Bloquear" : "Liberar", () => alterarPerfil(p.id, { ativo: !p.ativo }), eu),
-        mini("Gerar novo link", () => novoLink(p), eu)))));
+        // No celular o botão diz só "Novo link", para caber na linha com o campo "Tipo"
+        el("button", { class: "btn secundario mini", type: "button", disabled: eu, "aria-label": "Gerar novo link", onclick: () => novoLink(p) },
+          el("span", { class: "so-computador", text: "Gerar novo link" }), el("span", { class: "texto-celular", text: "Novo link" }))))));
   }
 
   // Colunas
@@ -33,12 +35,12 @@ export function renderConfig() {
     const tabela = $("#tabela-colunas-" + quadro);
     const colunas = colunasDe(quadro);
     const titulos = ["Coluna", "Conta como concluído", ""];
-    tabela.replaceChildren(el("tr", {}, ...titulos.map((t) => el("th", { text: t, scope: "col" }))));
+    tabela.replaceChildren(el("tr", { class: "linha-titulos" }, ...titulos.map((t) => el("th", { text: t, scope: "col" }))));
     colunas.forEach((c, n) => {
       tabela.append(el("tr", {},
-        el("td", { text: c.nome }),
-        el("td", {}, el("span", { class: "selo" + (c.concluida ? " sim" : ""), text: c.concluida ? "Sim" : "Não" })),
-        el("td", {}, el("div", { class: "acoes" },
+        el("td", { class: "c-nome", text: c.nome }),
+        el("td", { class: "c-dado", "data-rotulo": "Conta como concluído" }, el("span", { class: "selo" + (c.concluida ? " sim" : ""), text: c.concluida ? "Sim" : "Não" })),
+        el("td", { class: "c-acoes c-cheia" }, el("div", { class: "acoes" },
           mini("Subir", () => reordenarColuna(quadro, n, -1), n === 0),
           mini("Descer", () => reordenarColuna(quadro, n, 1), n === colunas.length - 1),
           mini("Editar", () => abrirColuna(quadro, c.id)),

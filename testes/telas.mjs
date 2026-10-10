@@ -386,7 +386,7 @@ confere("senha pendente no banco: o site pede a senha e não abre os dados, mesm
 await pg.fill("#senha-nova", "Senha-de-teste-2"); await pg.fill("#senha-repete", "Senha-de-teste-2"); await pg.locator("#form-senha [type='submit']").click(); await pg.waitForSelector("#app:not([hidden])");
 confere("senha pendente no banco: gravada a senha, o site entra", await pg.locator("#app").isVisible());
 await pg.goto("http://localhost:8123/#config"); await pg.waitForSelector("#app:not([hidden])");
-confere("Configurações: \"Gerar novo link\" fica desligado na própria linha e ligado nas demais", await pg.locator("#tabela-usuarios tr").evaluateAll((l) => l.slice(1).map((r) => [...r.querySelectorAll("button")].find((x) => x.textContent === "Gerar novo link").disabled).join()) === "true,false,false");
+confere("Configurações: \"Gerar novo link\" fica desligado na própria linha e ligado nas demais", await pg.locator("#tabela-usuarios tr").evaluateAll((l) => l.slice(1).map((r) => [...r.querySelectorAll("button")].find((x) => x.getAttribute("aria-label") === "Gerar novo link").disabled).join()) === "true,false,false");
 // Celular: moldura fixa, barra de baixo e painel "Mais"
 await pg.setViewportSize({ width: 390, height: 844 }); await pg.goto("http://localhost:8123/"); await pg.waitForSelector("#app:not([hidden])");
 confere("celular: a página não rola nem para os lados nem para baixo", await pg.evaluate(() => document.documentElement.scrollWidth === innerWidth && document.documentElement.scrollHeight === innerHeight));
@@ -797,7 +797,7 @@ const saude = (sel) => pg.evaluate((sel) => {
     if (!topo || !(e.contains(topo))) r.coberto.push(nome(e));
     for (const x of [e, ...e.querySelectorAll("*")]) {
       const comTexto = [...x.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()) || getComputedStyle(x, "::before").content.replace(/^none$|^normal$|"/g, "").trim();
-      if (!comTexto || x.disabled) continue;
+      if (!comTexto || x.closest(":disabled")) continue;   // desligado (ou opção de campo desligado) não entra na conta do contraste
       const st = getComputedStyle(x), c = cor(st.color); if (!c) { r.contraste.push("cor não lida: " + nome(x)); continue; }
       const a = luz(c.c), b = luz(fundo(x)), razao = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
       const grande = parseFloat(st.fontSize) >= 24 || (parseFloat(st.fontSize) >= 18.66 && +st.fontWeight >= 700);
@@ -844,7 +844,37 @@ lx = await linhaDaLixeira("#tabela-lixeira");
 confere("celular, lixeira geral: sem cabeçalho de tabela, em três linhas (nome sozinho; tipo, quem e quando; botões)", lx.cabecalho === "none" && lx.linha === "flex" && lx.ordem === "c-nome|c-tipo|c-dado|c-dado|c-acoes" && lx.tops[0] < lx.tops[1] - 8 && Math.abs(lx.tops[1] - lx.tops[2]) < 8 && Math.abs(lx.tops[2] - lx.tops[3]) < 8 && lx.tops[4] > lx.tops[3] + 8 && lx.rotulos === "Por|Em");
 confere("celular, lixeira geral: Restaurar e Excluir de vez lado a lado, com altura de toque", lx.botoes === "Restaurar:44|Excluir de vez:44" && await pg.locator("#tabela-lixeira tr:not(.linha-titulos) .acoes").first().evaluate((a) => { const [x, y] = [...a.children].map((b) => b.getBoundingClientRect()); return Math.abs(x.top - y.top) < 2 && y.right <= innerWidth; }));
 await saudeNosDoisTemas("celular, lixeira geral", "#tabela-lixeira tr:not(.linha-titulos) td");
-await pg.setViewportSize({ width: 1440, height: 900 });
+
+// Configurações como lista no celular: usuários e colunas dos quadros (no computador continuam tabelas)
+const linhaDaConfig = (id, n = 0) => pg.locator(id + " tr:not(.linha-titulos)").nth(n).evaluate((tr) => { const q = (s) => tr.querySelector(s)?.getBoundingClientRect(); const larg = tr.getBoundingClientRect();
+  return { linha: getComputedStyle(tr).display, cabecalho: getComputedStyle(tr.parentElement.querySelector("tr.linha-titulos")).display, ordem: [...tr.children].map((c) => c.className).join("|"),
+    nome: q(".c-nome"), selo: q(".c-selo"), email: q(".c-linha"), campo: q(".c-campo"), dado: q(".c-dado"), acoes: q(".c-acoes"), dir: larg.right, larg: larg.width,
+    rotulo: tr.querySelector(".c-dado") ? getComputedStyle(tr.querySelector(".c-dado"), "::before").content.replace(/"/g, "").trim() : "", opcoes: [...tr.querySelectorAll("option")].map((o) => o.textContent).join("|"),
+    campoAlt: Math.round(tr.querySelector("select")?.getBoundingClientRect().height || 0), campoLarg: Math.round(tr.querySelector("select")?.getBoundingClientRect().width || 0),
+    botoes: [...tr.querySelectorAll("button")].map((b) => b.innerText.trim() + ":" + Math.round(b.getBoundingClientRect().height)).join("|"), nomes: [...tr.querySelectorAll("button")].map((b) => b.getAttribute("aria-label") || b.textContent).join("|"),
+    larguras: [...tr.querySelectorAll("button")].map((b) => Math.round(b.getBoundingClientRect().width)), fimBotoes: Math.max(0, ...[...tr.querySelectorAll("button")].map((b) => b.getBoundingClientRect().right)) }; });
+let cf = await linhaDaConfig("#tabela-usuarios", 1);
+confere("celular, usuários: sem cabeçalho de tabela, em três linhas (nome com o selo à direita; e-mail sozinho; campo Tipo e botões)", cf.cabecalho === "none" && cf.linha === "flex" && cf.ordem === "c-nome pessoa|c-linha|c-campo|c-selo|c-acoes"
+  && cf.selo.top < cf.nome.bottom && cf.selo.bottom > cf.nome.top && cf.selo.left >= cf.nome.right && cf.dir - cf.selo.right < 2
+  && cf.email.top >= cf.nome.bottom && cf.email.width > cf.larg - 2 && cf.campo.top >= cf.email.bottom && Math.abs(cf.campo.top - cf.acoes.top) < 2 && cf.acoes.left >= cf.campo.right);
+confere("celular, usuários: campo Tipo com \"Admin\", altura de toque e largura para o texto", cf.opcoes === "Usuário|Admin" && cf.campoAlt === 44 && cf.campoLarg >= 110);
+confere("celular, usuários: Bloquear e Novo link com altura de toque, dentro da largura, e o nome completo para leitor de tela", cf.botoes === "Bloquear:44|Novo link:44" && cf.nomes === "Bloquear|Gerar novo link" && cf.fimBotoes <= cf.dir + 0.5);
+confere("celular, usuários: e-mail comprido termina em reticências, em uma linha", await pg.locator("#tabela-usuarios td.c-linha").nth(1).evaluate((n) => { const antes = n.textContent; n.textContent = "um.endereco.de.email.bem.comprido.para.nao.caber@exemplo-de-dominio-longo.com.br"; const r = n.scrollWidth > n.clientWidth && getComputedStyle(n).textOverflow === "ellipsis" && n.getBoundingClientRect().height < 26; n.textContent = antes; return r; }));
+confere("celular, usuários: quem ainda não criou a senha aparece como Aguardando senha, na linha do nome", await pg.locator("#tabela-usuarios tr", { hasText: "Abel Costa" }).evaluate((tr) => { const s = tr.querySelector(".c-selo"), n = tr.querySelector(".c-nome"); return s.innerText.trim() === "Aguardando senha" && s.getBoundingClientRect().top < n.getBoundingClientRect().bottom && s.getBoundingClientRect().right <= innerWidth; }));
+await saudeNosDoisTemas("celular, usuários", "#tabela-usuarios tr:not(.linha-titulos) td");
+n3 = (await grav()).length; await pg.locator("#tabela-usuarios tr", { hasText: "Bruno Silva" }).locator("select").selectOption("admin"); await pg.waitForTimeout(200);
+confere("celular, usuários: o campo Tipo continua gravando o tipo", (await grav()).slice(n3).some((x) => JSON.stringify(x).includes("\"papel\":\"admin\"")));
+for (const quadro of ["projetos", "tarefas"]) {
+  cf = await linhaDaConfig("#tabela-colunas-" + quadro);
+  confere(`celular, colunas de ${quadro}: sem cabeçalho de tabela, em três linhas (nome; Conta como concluído; botões)`, cf.cabecalho === "none" && cf.linha === "flex" && cf.ordem === "c-nome|c-dado|c-acoes c-cheia" && cf.nome.width > cf.larg - 2 && cf.dado.top >= cf.nome.bottom && cf.acoes.top >= cf.dado.bottom && cf.rotulo === "Conta como concluído");
+  confere(`celular, colunas de ${quadro}: os quatro botões na mesma linha, de largura igual, com altura de toque e dentro da largura`, cf.botoes === "Subir:44|Descer:44|Editar:44|Excluir:44" && Math.max(...cf.larguras) - Math.min(...cf.larguras) <= 1 && cf.fimBotoes <= cf.dir + 0.5);
+  await saudeNosDoisTemas("celular, colunas de " + quadro, `#tabela-colunas-${quadro} tr:not(.linha-titulos) td`);
+}
+await pg.setViewportSize({ width: 1440, height: 900 }); await pg.goto("http://localhost:8123/"); await pg.waitForSelector("#app:not([hidden])"); await pg.waitForTimeout(300); await pg.click("[data-visao='config']");
+cf = await linhaDaConfig("#tabela-usuarios", 1);
+confere("computador: usuários continuam tabela, com o cabeçalho, Administrador e Gerar novo link por extenso", cf.linha === "table-row" && cf.cabecalho === "table-row" && cf.opcoes === "Usuário|Administrador" && cf.botoes.startsWith("Bloquear:") && cf.botoes.includes("|Gerar novo link:") && Math.abs(cf.nome.top - cf.acoes.top) < 2);
+cf = await linhaDaConfig("#tabela-colunas-tarefas");
+confere("computador: colunas continuam tabela, com o cabeçalho e sem rótulo na célula", cf.linha === "table-row" && cf.cabecalho === "table-row" && cf.rotulo === "none" && Math.abs(cf.nome.top - cf.acoes.top) < 2);
 
 confere("nenhum erro no console", erros.length === 0); erros.forEach((e) => console.log("   " + e));
 console.log(`RESULTADO: ${ok} ok, ${falhas} falhas`); await b.close(); srv.close();

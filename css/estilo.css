@@ -585,10 +585,13 @@ td .abrir-texto:hover { text-decoration: underline; }
 .marcar:disabled:hover { border-color: var(--contorno); color: transparent; }
 .marcar.feita:disabled:hover { border-color: var(--tinta); color: var(--painel); }
 .cartao.feita .nome { color: var(--suave); text-decoration: line-through; }
-/* Celular: tabelas marcadas com "em-cartoes" (as duas lixeiras) viram lista no modelo do cartão:
+.texto-celular { display: none; }
+/* Celular: tabelas marcadas com "em-cartoes" (as lixeiras e as de Configurações) viram lista no modelo do cartão:
    três linhas. Linha 1: o nome, sozinho, com reticências. Linha 2: o tipo e os dados. Linha 3: os botões e, ao lado, o dado marcado com "c-fim" (se houver).
    A quebra entre a linha 2 e a 3 é o tr::after; a ordem vem de "order". A hora (span.hora) some no celular para caber.
-   No computador continuam tabelas. Os rótulos vêm de data-rotulo, escrito em cada célula. */
+   No computador continuam tabelas. Os rótulos vêm de data-rotulo, escrito em cada célula.
+   "c-cheia" nos botões: ocupam a linha toda, divididos por igual (colunas dos quadros, com quatro botões).
+   Usuários: "c-selo" fica na linha 1, à direita do nome; "c-linha" (o e-mail) ocupa a linha 2 sozinho; "c-campo" (o campo Tipo) vai para a linha 3, antes dos botões. */
 @media (max-width: 820px) {
   table.em-cartoes, table.em-cartoes td { display: block; }
   table.em-cartoes tr.linha-titulos { display: none; }
@@ -610,4 +613,14 @@ td .abrir-texto:hover { text-decoration: underline; }
   table.em-cartoes td.c-acoes .btn { min-height: 44px; padding: 10px 14px; font-size: 14px; }
   table.em-cartoes tr:has(td.apoio)::after { content: none; }
   table.em-cartoes td.apoio { flex: 0 0 100%; }
+  table.em-cartoes tr:has(td.c-selo) td.c-nome { flex: 1 1 0; }
+  table.em-cartoes td.c-selo { flex: none; order: -1; }
+  table.em-cartoes td.c-nome { order: -2; }
+  table.em-cartoes td.c-linha { flex: 0 0 100%; font-size: 13px; color: var(--suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  table.em-cartoes td.c-campo { order: 2; flex: 1 1 0; margin-top: 4px; }
+  table.em-cartoes td.c-campo select { width: 100%; min-width: 0; min-height: 44px; }
+  table.em-cartoes tr:has(td.c-campo) td.c-acoes .btn { padding-inline: 10px; }
+  table.em-cartoes td.c-acoes.c-cheia { flex: 0 0 100%; }
+  table.em-cartoes td.c-cheia .acoes .btn { flex: 1 1 0; min-width: 0; padding-inline: 6px; }
+  table.em-cartoes .texto-celular { display: inline; }
 }
