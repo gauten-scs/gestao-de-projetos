@@ -775,6 +775,76 @@ confere("I7, celular: converter abre a tarefa nova direto no formulário", await
 await fechaJanelas(); await pg.waitForTimeout(150); await fechaJanelas();
 await pg.setViewportSize({ width: 1440, height: 900 });
 
+// Verificações gerais de tela, em texto (entram no lugar das fotos). saude(seletor) olha a tela aberta e devolve o que achou de errado:
+//   escrito:   "null", "undefined" ou "NaN" escrito em qualquer lugar da tela;
+//   coberto:   elemento do seletor sem tamanho, ou com outro elemento por cima do seu centro;
+//   largo:     página mais larga que a tela, ou elemento do seletor passando das bordas;
+//   contraste: texto do seletor com contraste menor que 4,5 para o fundo (3 para letra grande).
+// Em etapa nova de tela: abrir a tela e chamar saudeNosDoisTemas("nome", "seletor dos elementos novos").
+const saude = (sel) => pg.evaluate((sel) => {
+  const r = { escrito: [], coberto: [], largo: [], contraste: [] };
+  r.escrito = document.body.innerText.match(/\b(null|undefined|NaN)\b/g) || [];
+  if (document.documentElement.scrollWidth > innerWidth) r.largo.push("página");
+  const cor = (t) => { const m = /^rgba?\(([\d.]+), ([\d.]+), ([\d.]+)(?:, ([\d.]+))?\)$/.exec(t); return m ? { c: [+m[1], +m[2], +m[3]], a: m[4] === undefined ? 1 : +m[4] } : null; };
+  const luz = (c) => { const [a, b, d] = c.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * a + 0.7152 * b + 0.0722 * d; };
+  const fundo = (e) => { for (let x = e; x; x = x.parentElement) { const f = cor(getComputedStyle(x).backgroundColor); if (f && f.a > 0.99) return f.c; } return [255, 255, 255]; };
+  const nome = (e) => e.tagName.toLowerCase() + (e.className ? "." + String(e.className).replace(/\s+/g, ".") : "") + " \"" + e.textContent.trim().slice(0, 30) + "\"";
+  for (const e of document.querySelectorAll(sel)) {
+    e.scrollIntoView({ block: "center" }); const q = e.getBoundingClientRect();
+    if (q.width < 1 || q.height < 1) { r.coberto.push("sem tamanho: " + nome(e)); continue; }
+    if (q.left < -0.5 || q.right > innerWidth + 0.5) r.largo.push(nome(e));
+    const topo = document.elementFromPoint(q.left + q.width / 2, q.top + q.height / 2);
+    if (!topo || !(e.contains(topo))) r.coberto.push(nome(e));
+    for (const x of [e, ...e.querySelectorAll("*")]) {
+      const comTexto = [...x.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()) || getComputedStyle(x, "::before").content.replace(/^none$|^normal$|"/g, "").trim();
+      if (!comTexto || x.disabled) continue;
+      const st = getComputedStyle(x), c = cor(st.color); if (!c) { r.contraste.push("cor não lida: " + nome(x)); continue; }
+      const a = luz(c.c), b = luz(fundo(x)), razao = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+      const grande = parseFloat(st.fontSize) >= 24 || (parseFloat(st.fontSize) >= 18.66 && +st.fontWeight >= 700);
+      if (razao < (grande ? 3 : 4.5)) r.contraste.push(razao.toFixed(2) + " " + nome(x));
+    }
+  }
+  return r; }, sel);
+const saudeNosDoisTemas = async (rotulo, sel) => {
+  for (const tema of ["claro", "escuro"]) {
+    await pg.evaluate((t) => document.documentElement.setAttribute("data-tema", t), tema); await pg.waitForTimeout(350);
+    const r = await saude(sel);
+    for (const [k, frase] of [["escrito", "nada escrito como null, undefined ou NaN"], ["coberto", "elementos novos visíveis e não cobertos"], ["largo", "nada passa da largura da tela"], ["contraste", "contraste mínimo do texto"]]) {
+      confere(`${rotulo}, tema ${tema}: ${frase}`, r[k].length === 0); r[k].forEach((x) => console.log("   " + x));
+    }
+  }
+  await pg.evaluate(() => document.documentElement.setAttribute("data-tema", "claro"));
+};
+
+// Lixeiras como lista no celular (no computador continuam tabelas)
+await pg.goto("http://localhost:8123/"); await pg.waitForSelector("#app:not([hidden])"); await pg.waitForTimeout(300);
+await pg.click("[data-visao='lixeira']");
+const linhaDaLixeira = (id) => pg.locator(id + " tr:not(.linha-titulos)").first().evaluate((tr) => ({ linha: getComputedStyle(tr).display, cabecalho: getComputedStyle(tr.parentElement.querySelector("tr.linha-titulos")).display,
+  ordem: [...tr.children].map((c) => c.className).join("|"), rotulos: [...tr.querySelectorAll(".c-dado")].map((c) => getComputedStyle(c, "::before").content.replace(/"/g, "").trim()).join("|"),
+  tops: [...tr.children].map((c) => Math.round(c.getBoundingClientRect().top)), botoes: [...tr.querySelectorAll("button")].map((b) => b.textContent + ":" + Math.round(b.getBoundingClientRect().height)).join("|") }));
+let lx = await linhaDaLixeira("#tabela-minha-lixeira");
+confere("computador: a minha lixeira continua tabela, com o cabeçalho e tudo em uma linha", lx.linha === "table-row" && lx.cabecalho === "table-row" && lx.rotulos === "none|none" && Math.max(...lx.tops) - Math.min(...lx.tops) < 2);
+await pg.click("[data-visao='config']"); lx = await linhaDaLixeira("#tabela-lixeira");
+confere("computador: a lixeira geral continua tabela, com o cabeçalho", lx.linha === "table-row" && lx.cabecalho === "table-row" && lx.rotulos === "none|none");
+await pg.setViewportSize({ width: 390, height: 844 }); await pg.goto("http://localhost:8123/"); await pg.waitForSelector("#app:not([hidden])"); await pg.waitForTimeout(300);
+await pg.click("#menu-mais"); await pg.click("#dlg-mais [data-visao='lixeira']"); await pg.waitForTimeout(350);
+lx = await linhaDaLixeira("#tabela-minha-lixeira");
+confere("celular, minha lixeira: sem cabeçalho de tabela, nome com o tipo à direita, depois as datas, depois o botão", lx.cabecalho === "none" && lx.linha === "flex" && lx.ordem === "c-nome|c-tipo|c-dado|c-dado|c-acoes" && Math.abs(lx.tops[0] - lx.tops[1]) < 8 && lx.tops[1] < lx.tops[2] && lx.tops[2] <= lx.tops[3] && lx.tops[3] < lx.tops[4]);
+confere("celular, minha lixeira: as datas levam o rótulo que estava no cabeçalho", lx.rotulos === "Excluído em|Sai da lixeira em");
+confere("celular, minha lixeira: o botão Restaurar tem altura de toque", lx.botoes === "Restaurar:44");
+confere("celular, minha lixeira: nome comprido termina em reticências, em uma linha", await pg.locator("#tabela-minha-lixeira td.c-nome").first().evaluate((n) => { const antes = n.textContent; n.textContent = "Um nome de item excluído comprido o bastante para não caber em uma linha só da lixeira no celular"; const r = n.scrollWidth > n.clientWidth && getComputedStyle(n).textOverflow === "ellipsis" && n.getBoundingClientRect().height < 30; n.textContent = antes; return r; }));
+await saudeNosDoisTemas("celular, minha lixeira", "#tabela-minha-lixeira tr:not(.linha-titulos) td");
+n3 = (await grav()).length; await pg.locator("#tabela-minha-lixeira").getByRole("button", { name: "Restaurar" }).first().click(); await pg.waitForTimeout(200);
+confere("celular, minha lixeira: Restaurar continua chamando restaurar_item", (await grav()).slice(n3).some((x) => x[0] === "rpc" && x[1] === "restaurar_item"));
+await pg.evaluate(() => import("./js/estado.js").then((m) => { m.estado.minhaLixeira = []; })); await pg.evaluate(() => import("./js/lixeira.js").then((m) => m.renderMinhaLixeira()));
+confere("celular, minha lixeira vazia: mostra a frase, dentro da largura", (await txt("#tabela-minha-lixeira")).trim() === "A sua lixeira está vazia." && await pg.locator("#tabela-minha-lixeira td.apoio").evaluate((c) => c.getBoundingClientRect().right <= innerWidth));
+await pg.click("#menu-mais"); await pg.click("#mais-config"); await pg.waitForTimeout(350);
+lx = await linhaDaLixeira("#tabela-lixeira");
+confere("celular, lixeira geral: sem cabeçalho de tabela, nome com o tipo à direita, depois quem e quando, depois os botões", lx.cabecalho === "none" && lx.linha === "flex" && lx.ordem === "c-nome|c-tipo|c-dado|c-dado|c-acoes" && Math.abs(lx.tops[0] - lx.tops[1]) < 8 && lx.tops[1] < lx.tops[2] && lx.tops[2] <= lx.tops[3] && lx.tops[3] < lx.tops[4] && lx.rotulos === "Excluído por|Em");
+confere("celular, lixeira geral: Restaurar e Excluir de vez lado a lado, com altura de toque", lx.botoes === "Restaurar:44|Excluir de vez:44" && await pg.locator("#tabela-lixeira tr:not(.linha-titulos) .acoes").first().evaluate((a) => { const [x, y] = [...a.children].map((b) => b.getBoundingClientRect()); return Math.abs(x.top - y.top) < 2 && y.right <= innerWidth; }));
+await saudeNosDoisTemas("celular, lixeira geral", "#tabela-lixeira tr:not(.linha-titulos) td");
+await pg.setViewportSize({ width: 1440, height: 900 });
+
 confere("nenhum erro no console", erros.length === 0); erros.forEach((e) => console.log("   " + e));
 console.log(`RESULTADO: ${ok} ok, ${falhas} falhas`); await b.close(); srv.close();
 process.exit(falhas ? 1 : 0);

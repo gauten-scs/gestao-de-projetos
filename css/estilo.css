@@ -585,3 +585,22 @@ td .abrir-texto:hover { text-decoration: underline; }
 .marcar:disabled:hover { border-color: var(--contorno); color: transparent; }
 .marcar.feita:disabled:hover { border-color: var(--tinta); color: var(--painel); }
 .cartao.feita .nome { color: var(--suave); text-decoration: line-through; }
+/* Celular: tabelas marcadas com "em-cartoes" (as duas lixeiras) viram lista no modelo do cartão:
+   nome em uma linha com reticências e o tipo à direita, depois os dados com o rótulo, depois os botões da linha.
+   No computador continuam tabelas. Os rótulos vêm de data-rotulo, escrito em cada célula. */
+@media (max-width: 820px) {
+  table.em-cartoes, table.em-cartoes td { display: block; }
+  table.em-cartoes tr.linha-titulos { display: none; }
+  table.em-cartoes tr { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 14px 0; border-bottom: 1px solid var(--fio); }
+  table.em-cartoes tr:nth-child(2) { padding-top: 0; }
+  table.em-cartoes tr:last-child { border-bottom: 0; padding-bottom: 0; }
+  table.em-cartoes td { padding: 0; border: 0; min-width: 0; }
+  table.em-cartoes td.c-nome { flex: 1 1 0; font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  table.em-cartoes td.c-tipo { flex: none; }
+  table.em-cartoes td.c-dado { font-size: 13px; color: var(--suave); }
+  table.em-cartoes td.c-dado::before { content: attr(data-rotulo) " "; }
+  table.em-cartoes td.c-acoes { flex: 0 0 100%; margin-top: 4px; }
+  table.em-cartoes td.c-acoes .acoes { justify-content: flex-start; flex-wrap: wrap; gap: 8px; }
+  table.em-cartoes td.c-acoes .btn { min-height: 44px; padding: 10px 16px; font-size: 14px; }
+  table.em-cartoes td.apoio { flex: 0 0 100%; }
+}

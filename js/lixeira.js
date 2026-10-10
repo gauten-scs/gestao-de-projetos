@@ -6,15 +6,15 @@ import { estado } from "./estado.js";
 
 export function renderMinhaLixeira() {
   const tabela = $("#tabela-minha-lixeira");
-  tabela.replaceChildren(el("tr", {}, ...["Item", "Tipo", "Excluído em", "Sai da lixeira em", ""].map((t) => el("th", { text: t, scope: "col" }))));
+  tabela.replaceChildren(el("tr", { class: "linha-titulos" }, ...["Item", "Tipo", "Excluído em", "Sai da lixeira em", ""].map((t) => el("th", { text: t, scope: "col" }))));
   for (const i of estado.minhaLixeira) {
     const sai = new Date(new Date(i.arquivado_em).getTime() + 30 * 86400000);
     tabela.append(el("tr", {},
-      el("td", { text: i.titulo }),
-      el("td", {}, el("span", { class: "selo", text: i.tipo })),
-      el("td", { text: dataHora(i.arquivado_em) }),
-      el("td", { text: `${dois(sai.getDate())}/${dois(sai.getMonth() + 1)}/${sai.getFullYear()}` }),
-      el("td", {}, el("div", { class: "acoes" },
+      el("td", { class: "c-nome", text: i.titulo }),
+      el("td", { class: "c-tipo" }, el("span", { class: "selo", text: i.tipo })),
+      el("td", { class: "c-dado", "data-rotulo": "Excluído em", text: dataHora(i.arquivado_em) }),
+      el("td", { class: "c-dado", "data-rotulo": "Sai da lixeira em", text: `${dois(sai.getDate())}/${dois(sai.getMonth() + 1)}/${sai.getFullYear()}` }),
+      el("td", { class: "c-acoes" }, el("div", { class: "acoes" },
         el("button", { class: "btn secundario mini", type: "button", text: "Restaurar", onclick: () => restaurar(i) })))));
   }
   if (!estado.minhaLixeira.length) tabela.append(el("tr", {}, el("td", { colSpan: 5, class: "apoio", text: "A sua lixeira está vazia." })));

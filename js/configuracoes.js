@@ -54,14 +54,14 @@ export function renderConfig() {
     ...estado.lixeira.tarefas.map((i) => ({ ...i, tabela: "tarefas", tipo: "Tarefa" })),
     ...estado.lixeira.ideias.map((i) => ({ ...i, tabela: "ideias", tipo: "Ideia" })),
   ].sort((a, b) => (a.arquivado_em < b.arquivado_em ? 1 : -1));
-  lixeira.replaceChildren(el("tr", {}, ...["Item", "Tipo", "Excluído por", "Quando", ""].map((t) => el("th", { text: t, scope: "col" }))));
+  lixeira.replaceChildren(el("tr", { class: "linha-titulos" }, ...["Item", "Tipo", "Excluído por", "Quando", ""].map((t) => el("th", { text: t, scope: "col" }))));
   for (const i of itens) {
     lixeira.append(el("tr", {},
-      el("td", { text: i.titulo }),
-      el("td", {}, el("span", { class: "selo", text: i.tipo })),
-      el("td", { text: nomePerfil(i.arquivado_por) || "usuário removido" }),
-      el("td", { text: dataHora(i.arquivado_em) }),
-      el("td", {}, el("div", { class: "acoes" },
+      el("td", { class: "c-nome", text: i.titulo }),
+      el("td", { class: "c-tipo" }, el("span", { class: "selo", text: i.tipo })),
+      el("td", { class: "c-dado", "data-rotulo": "Excluído por", text: nomePerfil(i.arquivado_por) || "usuário removido" }),
+      el("td", { class: "c-dado", "data-rotulo": "Em", text: dataHora(i.arquivado_em) }),
+      el("td", { class: "c-acoes" }, el("div", { class: "acoes" },
         mini("Restaurar", () => restaurar(i)),
         mini("Excluir de vez", () => excluirDeVez(i))))));
   }
