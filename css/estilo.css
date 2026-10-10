@@ -115,7 +115,9 @@ button, input, select, textarea { font: inherit; color: inherit; }
 /* ---------- Formulários ---------- */
 .formulario { display: flex; flex-direction: column; gap: 16px; }
 .formulario label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 14px; }
-.formulario label.marcar { flex-direction: row; align-items: center; gap: 10px; font-weight: 400; font-size: 15px; }
+/* Frase com caixa de marcar ao lado. Não usar "marcar": esse nome é do círculo de concluir tarefa. */
+.formulario label.com-caixa { flex-direction: row; align-items: center; gap: 10px; font-weight: 400; font-size: 15px; }
+.formulario label.com-caixa input { flex: none; }
 input[type="text"], input[type="email"], input[type="password"], input[type="date"], select, textarea {
   background: var(--painel); color: var(--tinta); font-size: 15px; font-weight: 400;
   border: 1px solid var(--contorno); border-radius: 10px; padding: 10px 12px; width: 100%; min-height: 44px;

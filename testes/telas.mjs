@@ -876,6 +876,22 @@ confere("computador: usuários continuam tabela, com o cabeçalho, Administrador
 cf = await linhaDaConfig("#tabela-colunas-tarefas");
 confere("computador: colunas continuam tabela, com o cabeçalho e sem rótulo na célula", cf.linha === "table-row" && cf.cabecalho === "table-row" && cf.rotulo === "none" && Math.abs(cf.nome.top - cf.acoes.top) < 2);
 
+// Janela da coluna: a frase da caixa de marcar aparece inteira, ao lado da caixa (a frase já usou a classe do círculo de concluir e sumia)
+const caixaDaColuna = () => pg.locator("#dlg-coluna label.com-caixa").evaluate((l) => { const c = l.querySelector("input").getBoundingClientRect(), q = l.getBoundingClientRect(), st = getComputedStyle(l);
+  return { frase: l.innerText.trim(), caixa: Math.round(c.width) + "x" + Math.round(c.height), larga: q.width > 250, dentro: q.right <= innerWidth && q.left >= 0, aoLado: c.left >= q.left && c.right < q.right - 150 && c.top >= q.top - 1 && c.bottom <= q.bottom + 1, redonda: st.borderRadius, cor: st.color, marcada: l.querySelector("input").checked }; });
+for (const [onde, larg, alt] of [["computador", 1440, 900], ["celular", 390, 844]]) {
+  await pg.setViewportSize({ width: larg, height: alt }); await pg.goto("http://localhost:8123/"); await pg.waitForSelector("#app:not([hidden])"); await pg.waitForTimeout(300);
+  if (larg < 800) { await pg.click("#menu-mais"); await pg.click("#mais-config"); } else await pg.click("[data-visao='config']");
+  await pg.waitForTimeout(350); await pg.locator("#tabela-colunas-projetos tr", { hasText: "A fazer" }).getByRole("button", { name: "Editar" }).click(); await pg.waitForTimeout(350);
+  let cx = await caixaDaColuna();
+  confere(`${onde}, Editar coluna: caixa de marcar quadrada com a frase inteira ao lado, dentro da largura`, cx.frase === "Os cartões desta coluna contam como concluídos" && cx.caixa === "18x18" && cx.larga && cx.dentro && cx.aoLado && cx.redonda === "0px" && !/rgba\(0, 0, 0, 0\)|transparent/.test(cx.cor) && !cx.marcada);
+  await pg.locator("#dlg-coluna label.com-caixa").click({ position: { x: 120, y: 8 } }); cx = await caixaDaColuna();
+  confere(`${onde}, Editar coluna: tocar na frase marca a caixa`, cx.marcada);
+  await saudeNosDoisTemas(`${onde}, Editar coluna`, "#dlg-coluna label.com-caixa, #dlg-coluna #c-nome, #dlg-coluna .acoes .btn");
+  await pg.locator("#dlg-coluna [data-fechar]").last().click(); await pg.waitForTimeout(200); if (await pg.locator("#confirma-sim").isVisible()) await pg.click("#confirma-sim");
+}
+await pg.setViewportSize({ width: 1440, height: 900 });
+
 confere("nenhum erro no console", erros.length === 0); erros.forEach((e) => console.log("   " + e));
 console.log(`RESULTADO: ${ok} ok, ${falhas} falhas`); await b.close(); srv.close();
 process.exit(falhas ? 1 : 0);
