@@ -36,6 +36,8 @@ export const ICONES = {
   mais: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
 };
 export function icone(nome) { const s = el("span", { class: "icone" }); s.innerHTML = ICONES[nome]; return s; }
+// A mesma data, com a hora em um span à parte, para as listas do celular poderem esconder a hora
+export function dataComHora(iso) { const [dia, hora] = dataHora(iso).split(" às "); return [dia, el("span", { class: "hora", text: " às " + hora })]; }
 export function dataHora(iso) {
   const d = new Date(iso);
   return `${dois(d.getDate())}/${dois(d.getMonth() + 1)}/${d.getFullYear()} às ${dois(d.getHours())}:${dois(d.getMinutes())}`;

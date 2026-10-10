@@ -1,7 +1,7 @@
 // Configurações (somente admin): usuários, colunas dos quadros, lixeira geral e convites.
 import { sb } from "./supabase.js";
 import { de } from "./ligacoes.js";
-import { $, el, dataHora, aviso, mensagem, traduz, confirmar } from "./util.js";
+import { $, el, dataComHora, aviso, mensagem, traduz, confirmar } from "./util.js";
 import { estado, colunasDe, nomePerfil, avatar } from "./estado.js";
 import { restaurar } from "./lixeira.js";
 
@@ -59,8 +59,8 @@ export function renderConfig() {
     lixeira.append(el("tr", {},
       el("td", { class: "c-nome", text: i.titulo }),
       el("td", { class: "c-tipo" }, el("span", { class: "selo", text: i.tipo })),
-      el("td", { class: "c-dado", "data-rotulo": "Excluído por", text: nomePerfil(i.arquivado_por) || "usuário removido" }),
-      el("td", { class: "c-dado", "data-rotulo": "Em", text: dataHora(i.arquivado_em) }),
+      el("td", { class: "c-dado", "data-rotulo": "Por", text: nomePerfil(i.arquivado_por) || "usuário removido" }),
+      el("td", { class: "c-dado", "data-rotulo": "Em" }, dataComHora(i.arquivado_em)),
       el("td", { class: "c-acoes" }, el("div", { class: "acoes" },
         mini("Restaurar", () => restaurar(i)),
         mini("Excluir de vez", () => excluirDeVez(i))))));

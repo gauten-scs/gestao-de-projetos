@@ -1,7 +1,7 @@
 // Lixeira de cada pessoa (o que ela excluiu nos últimos 30 dias) e a restauração de itens.
 import { sb } from "./supabase.js";
 import { de } from "./ligacoes.js";
-import { $, el, dois, dataHora, aviso, traduz } from "./util.js";
+import { $, el, dois, dataComHora, aviso, traduz } from "./util.js";
 import { estado } from "./estado.js";
 
 export function renderMinhaLixeira() {
@@ -12,8 +12,8 @@ export function renderMinhaLixeira() {
     tabela.append(el("tr", {},
       el("td", { class: "c-nome", text: i.titulo }),
       el("td", { class: "c-tipo" }, el("span", { class: "selo", text: i.tipo })),
-      el("td", { class: "c-dado", "data-rotulo": "Excluído em", text: dataHora(i.arquivado_em) }),
-      el("td", { class: "c-dado", "data-rotulo": "Sai da lixeira em", text: `${dois(sai.getDate())}/${dois(sai.getMonth() + 1)}/${sai.getFullYear()}` }),
+      el("td", { class: "c-dado", "data-rotulo": "Excluído em" }, dataComHora(i.arquivado_em)),
+      el("td", { class: "c-dado c-fim", "data-rotulo": "Sai da lixeira em", text: `${dois(sai.getDate())}/${dois(sai.getMonth() + 1)}/${sai.getFullYear()}` }),
       el("td", { class: "c-acoes" }, el("div", { class: "acoes" },
         el("button", { class: "btn secundario mini", type: "button", text: "Restaurar", onclick: () => restaurar(i) })))));
   }
