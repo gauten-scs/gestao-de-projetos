@@ -915,6 +915,18 @@ await abreTela("tela-login", 1440, 900); const ePC = await medeEntrada("#tela-lo
 confere("computador, entrada: continua com o título grande, a frase de apoio e a assinatura abaixo do logo", ePC.tituloLetra >= 40 && ePC.frase !== "none" && ePC.assAbaixo && ePC.h2 === 38);
 await pg.setViewportSize({ width: 1440, height: 900 });
 
+// Site instalável (etapa 7a): manifesto, ícones e cor da barra do aparelho
+const mf = JSON.parse(fs.readFileSync(path.join(raiz, "manifest.webmanifest"), "utf8"));
+const ladoPng = (f) => { const d = fs.readFileSync(path.join(raiz, f)); return d.readUInt32BE(16) + "x" + d.readUInt32BE(20); };
+const noHead = await pg.evaluate(() => ({ manifesto: document.querySelector('link[rel="manifest"]')?.getAttribute("href"), cor: document.querySelector('meta[name="theme-color"]')?.content, barra: getComputedStyle(document.documentElement).getPropertyValue("--barra").trim() }));
+confere("instalável: a página aponta para o manifesto, e ele é servido", noHead.manifesto === "manifest.webmanifest" && (await pg.evaluate(() => fetch("manifest.webmanifest").then((r) => r.ok))));
+confere("instalável: nome Takt, janela própria e endereço de abertura dentro da pasta do site", mf.name === "Takt" && mf.short_name === "Takt" && mf.display === "standalone" && mf.start_url === "./" && mf.scope === "./" && mf.lang === "pt-BR");
+confere("instalável: ícones de 192 e 512 existem no tamanho declarado", mf.icons.length === 2 && mf.icons.every((i) => i.type === "image/png" && ladoPng(i.src) === i.sizes) && mf.icons.map((i) => i.sizes).join("|") === "192x192|512x512");
+confere("instalável: a cor da barra do aparelho é a da barra do site, no manifesto e na página", noHead.cor === noHead.barra && mf.theme_color === noHead.barra && mf.background_color === noHead.barra);
+await pg.evaluate(() => window.tema.definir("escuro")); await pg.waitForTimeout(100);
+confere("instalável: no tema escuro a barra do site continua com a mesma cor", (await pg.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--barra").trim())) === noHead.cor);
+await pg.evaluate(() => window.tema.definir("seguir"));
+
 confere("nenhum erro no console", erros.length === 0); erros.forEach((e) => console.log("   " + e));
 console.log(`RESULTADO: ${ok} ok, ${falhas} falhas`); await b.close(); srv.close();
 process.exit(falhas ? 1 : 0);

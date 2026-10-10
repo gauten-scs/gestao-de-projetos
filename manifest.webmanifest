@@ -1,0 +1,16 @@
+{
+  "name": "Takt",
+  "short_name": "Takt",
+  "description": "Gestão de projetos e tarefas. Um projeto Gauten Smart.GOV.",
+  "lang": "pt-BR",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#17191e",
+  "theme_color": "#17191e",
+  "icons": [
+    { "src": "img/takt-icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "img/takt-icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
