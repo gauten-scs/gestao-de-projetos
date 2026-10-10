@@ -1,10 +1,41 @@
 // Diagnóstico de tela, para investigar diferenças entre navegadores de celular.
-// Só é carregado quando o endereço termina com #diag. Não lê nem grava dado nenhum do site: mostra medidas da tela.
+// Só é carregado quando o endereço termina com #diag ou pelo link "Diagnóstico" de "Minha conta".
+// Não lê nem grava dado nenhum do site: mostra medidas da tela e a versão dos arquivos guardados no aparelho.
+// O botão "Limpar arquivos guardados" apaga essa cópia (a do sw.js) e recarrega o site do servidor.
 import { VERSAO } from "./versao.js";
+const moldura = document.createElement("div");
+moldura.id = "diagnostico";
+moldura.style.cssText = "margin:12px 16px;padding:12px;border:2px solid #b42a2e;border-radius:10px;background:#fff;color:#1c1e23;font:12px/1.5 ui-monospace,Menlo,monospace";
 const caixa = document.createElement("pre");
-caixa.id = "diagnostico";
-caixa.style.cssText = "margin:12px 16px;padding:12px;border:2px solid #b42a2e;border-radius:10px;background:#fff;color:#1c1e23;font:12px/1.5 ui-monospace,Menlo,monospace;white-space:pre-wrap;overflow-wrap:anywhere;user-select:text;-webkit-user-select:text";
-document.querySelector(".palco").prepend(caixa);
+caixa.style.cssText = "margin:0;font:inherit;white-space:pre-wrap;overflow-wrap:anywhere;user-select:text;-webkit-user-select:text";
+const limpar = document.createElement("button");
+limpar.type = "button"; limpar.id = "limpar-guardados"; limpar.textContent = "Limpar arquivos guardados";
+limpar.style.cssText = "margin-top:10px;min-height:44px;padding:0 16px;border:1px solid #b42a2e;border-radius:10px;background:#fff;color:#9e2327;font:600 15px/1 system-ui,sans-serif;cursor:pointer";
+moldura.append(caixa, limpar);
+document.querySelector(".palco").prepend(moldura);
+
+// Cópia dos arquivos do site guardada pelo service worker: qual versão está no aparelho.
+let guardados = "conferindo";
+async function conferirGuardados() {
+  try {
+    if (!("caches" in window) || !navigator.serviceWorker) { guardados = "não disponível neste navegador"; return; }
+    const versoes = [];
+    for (const nome of await caches.keys()) {
+      if (!nome.startsWith("takt-")) continue;
+      const marca = await (await caches.open(nome)).match("__pronto");
+      versoes.push(marca ? await marca.text() : nome.slice(5) + " (incompleta)");
+    }
+    guardados = (versoes.join(", ") || "nenhum") + (navigator.serviceWorker.controller ? "" : "  (ainda não em uso)");
+  } catch (_) { guardados = "não foi possível conferir"; }
+}
+limpar.addEventListener("click", async () => {
+  limpar.disabled = true; limpar.textContent = "Limpando";
+  try {
+    if ("caches" in window) for (const nome of await caches.keys()) if (nome.startsWith("takt-")) await caches.delete(nome);
+    await (await navigator.serviceWorker?.getRegistration())?.unregister();
+  } catch (_) { /* recarrega mesmo assim */ }
+  location.reload();
+});
 
 // Mede em pixels uma altura escrita em CSS (100vh, 100dvh, área segura etc.)
 function medir(valor) {
@@ -26,6 +57,7 @@ function atualizar() {
     "DIAGNÓSTICO DE TELA (tire uma captura e envie)",
     navigator.userAgent,
     "versão do site      " + VERSAO,
+    "arquivos guardados  " + guardados,
     "",
     `janela (inner)      ${innerWidth} x ${innerHeight}`,
     `documento (client)  ${d.clientWidth} x ${d.clientHeight}`,
@@ -49,4 +81,4 @@ function atualizar() {
 for (const ev of ["scroll", "resize", "orientationchange"]) addEventListener(ev, atualizar, { passive: true });
 window.visualViewport?.addEventListener("resize", atualizar); window.visualViewport?.addEventListener("scroll", atualizar);
 document.querySelector(".palco").addEventListener("scroll", atualizar, { passive: true });
-setInterval(atualizar, 1000); atualizar();
+setInterval(() => { conferirGuardados(); atualizar(); }, 1000); conferirGuardados().then(atualizar); atualizar();

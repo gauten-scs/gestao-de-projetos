@@ -7,9 +7,17 @@ let chromium;
 try { ({ chromium } = await import("playwright")); }
 catch (_) { ({ chromium } = createRequire((process.env.NODE_PATH || ".") + "/")("playwright")); }
 const tipos = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png" };
-const srv = http.createServer((rq, rs) => { const f = path.join(raiz, rq.url.split("?")[0].replace(/\/$/, "/index.html"));
-  fs.readFile(f, (e, d) => { if (e) { rs.writeHead(404); rs.end(); } else { rs.writeHead(200, { "content-type": tipos[path.extname(f)] || "application/octet-stream" }); rs.end(d); } }); }).listen(8123);
-const b = await chromium.launch(); const pg = await b.newPage(); const erros = [];
+// simula: usado só na parte do service worker, no fim. versao: versão que o servidor diz estar publicada; falha: arquivo
+// que deixa de baixar; fora: servidor fora do ar; semRede: index.html já com o Supabase de mentira e sem as fontes de fora.
+const simula = { versao: null, falha: null, fora: false, semRede: false };
+const srv = http.createServer((rq, rs) => { const u = rq.url.split("?")[0], f = path.join(raiz, u.replace(/\/$/, "/index.html"));
+  if ((simula.fora && !u.startsWith("/testes/")) || (simula.falha && u.endsWith(simula.falha))) { rs.writeHead(503); return rs.end(); }
+  fs.readFile(f, (e, d) => { if (e) { rs.writeHead(404); rs.end(); } else { rs.writeHead(200, { "content-type": tipos[path.extname(f)] || "application/octet-stream" });
+    if (simula.versao && u.endsWith("/js/versao.js")) d = `export const VERSAO = "${simula.versao}";`;
+    if (simula.semRede && f.endsWith("index.html")) d = String(d).replace(/<link[^>]+fonts\.g[^>]+>\n?/g, "").replace(/https:\/\/cdn\.jsdelivr\.net\/npm\/@supabase\/supabase-js@2/, "testes/supabase-de-mentira.js");
+    rs.end(d); } }); }).listen(8123);
+// O service worker fica bloqueado nesta página, para o roteiro conferir sempre os arquivos da pasta. Ele tem parte própria, no fim.
+const b = await chromium.launch(); const pg = await b.newPage({ serviceWorkers: "block" }); const erros = [];
 pg.on("pageerror", (e) => erros.push("erro: " + e.message)); pg.on("console", (m) => { if (m.type() === "error" && !/404|Failed to load resource/.test(m.text())) erros.push("console: " + m.text()); });
 await pg.route("**/*", (r) => { const u = r.request().url();
   if (u.includes("supabase-js")) return r.fulfill({ contentType: "text/javascript", body: fs.readFileSync(path.join(aqui, "supabase-de-mentira.js"), "utf8") });
@@ -937,6 +945,50 @@ confere("instalável: a cor da barra do aparelho é a da barra do site, no manif
 await pg.evaluate(() => window.tema.definir("escuro")); await pg.waitForTimeout(100);
 confere("instalável: no tema escuro a barra do site continua com a mesma cor", (await pg.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--barra").trim())) === noHead.cor);
 await pg.evaluate(() => window.tema.definir("seguir"));
+
+// Service worker (etapa 7b): cópia dos arquivos do site guardada no aparelho. Roda em contexto próprio, porque o
+// resto do roteiro bloqueia o service worker para conferir sempre os arquivos da pasta.
+const swTexto = fs.readFileSync(path.join(raiz, "sw.js"), "utf8");
+const naListaDoSw = [...swTexto.match(/const ARQUIVOS = \[([\s\S]*?)\];/)[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+const usados = [...fs.readdirSync(path.join(raiz, "js")).map((f) => "js/" + f), ...fs.readdirSync(path.join(raiz, "css")).map((f) => "css/" + f), "manifest.webmanifest",
+  ...new Set(["index.html", "css/estilo.css", "manifest.webmanifest", ...fs.readdirSync(path.join(raiz, "js")).map((f) => "js/" + f)].flatMap((f) => fs.readFileSync(path.join(raiz, f), "utf8").match(/img\/[a-z0-9.-]+\.png/g) || []))];
+confere("service worker: a lista de arquivos guardados traz tudo o que o site usa, e nada que não exista", usados.every((f) => naListaDoSw.includes(f)) && naListaDoSw.every((f) => f === "./" || fs.existsSync(path.join(raiz, f))));
+const ctxSw = await b.newContext({ viewport: { width: 390, height: 844 } }); const pgSw = await ctxSw.newPage(); const errosSw = [];
+pgSw.on("pageerror", (e) => errosSw.push(e.message));
+// Sem interceptar pedidos neste contexto (com interceptação o navegador desliga o que guarda, e o service worker
+// deixa de entregar a cópia). Por isso o servidor do teste entrega o index.html já com o Supabase de mentira.
+simula.semRede = true;
+const abreSw = async () => { await pgSw.waitForSelector("#app:not([hidden])", { timeout: 8000 }); };
+const copias = () => pgSw.evaluate(async () => { const s = []; for (const n of await caches.keys()) { const c = await caches.open(n); s.push({ nome: n, itens: (await c.keys()).length, pronto: await (await c.match("__pronto"))?.text() ?? null }); } return s; });
+const ateCopia = (nome) => pgSw.waitForFunction(async (nome) => { const k = await caches.keys(); return k.length === 1 && k[0] === nome && !!(await (await caches.open(nome)).match("__pronto")); }, nome, { timeout: 8000 }).then(() => true, () => false);
+await pgSw.goto("http://localhost:8123/"); await abreSw();
+await pgSw.waitForFunction(() => !!navigator.serviceWorker.controller, null, { timeout: 8000 });
+confere("service worker: na primeira abertura guarda a cópia inteira, com o nome da versão", await ateCopia("takt-" + versaoNoArquivo) && (await copias())[0].itens === naListaDoSw.length + 1 && (await copias())[0].pronto === versaoNoArquivo);
+simula.fora = true; await pgSw.reload(); await abreSw();
+confere("service worker: com o servidor fora do ar, a tela abre da cópia guardada", await pgSw.locator("#app").isVisible() && (await pgSw.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--barra").trim())) === "#17191e" && (await pgSw.locator("#quadro-projetos .cartao").count()) > 0 && errosSw.length === 0);
+simula.fora = false;
+// Versão nova publicada, mas um arquivo falha ao baixar: a cópia antiga continua inteira e fica o aviso
+simula.versao = "2099.01.01-1"; simula.falha = "/css/estilo.css";
+const confereVersaoSw = () => pgSw.evaluate(() => import("./js/atualizacao.js").then((m) => m.conferirVersao(true)));
+await Promise.all([pgSw.waitForEvent("load"), confereVersaoSw().catch(() => {})]); await abreSw(); await pgSw.waitForSelector("#aviso-versao", { timeout: 8000 }).catch(() => {});
+confere("service worker: se a versão nova não baixa inteira, a cópia antiga não muda e fica o aviso", (await copias()).length === 1 && (await copias())[0].nome === "takt-" + versaoNoArquivo && (await pgSw.locator("#aviso-versao").count()) === 1);
+// Agora baixa inteira: a cópia é trocada de uma vez e a página recarrega já na versão nova
+simula.falha = null;
+await Promise.all([pgSw.waitForEvent("load"), pgSw.locator("#aviso-versao button").click()]); await abreSw();
+confere("service worker: versão nova baixada inteira troca a cópia, apaga a antiga e a página abre nela, sem aviso", await ateCopia("takt-2099.01.01-1") && (await pgSw.evaluate(() => import("./js/versao.js").then((m) => m.VERSAO))) === "2099.01.01-1" && (await pgSw.locator("#aviso-versao").count()) === 0);
+// Diagnóstico: versão guardada e botão de limpar
+await pgSw.click("#menu-mais"); await pgSw.click("#mais-conta"); await pgSw.click("#abrir-diagnostico"); await pgSw.waitForSelector("#limpar-guardados");
+const linhaGuardados = await pgSw.waitForFunction(() => /arquivos guardados\s+2099\.01\.01-1\n/.test(document.querySelector("#diagnostico").innerText), null, { timeout: 4000 }).then(() => true, () => false);
+const botaoLimpar = await pgSw.locator("#limpar-guardados").evaluate((x) => { const q = x.getBoundingClientRect(), m = document.querySelector("#diagnostico").getBoundingClientRect(); return { texto: x.innerText, alt: q.height, dentro: q.left >= m.left && q.right <= m.right && q.bottom <= m.bottom, cabe: m.right <= innerWidth }; });
+confere("diagnóstico: mostra a versão dos arquivos guardados e o botão Limpar arquivos guardados, com altura para o dedo", linhaGuardados && botaoLimpar.texto === "Limpar arquivos guardados" && botaoLimpar.alt >= 44 && botaoLimpar.dentro && botaoLimpar.cabe);
+await pgSw.click("#abrir-diagnostico").catch(() => {}); await pgSw.click("#menu-mais"); await pgSw.click("#mais-conta"); await pgSw.click("#abrir-diagnostico"); await pgSw.waitForTimeout(150);
+confere("diagnóstico: Fechar diagnóstico esconde a caixa com o botão junto", !(await pgSw.locator("#limpar-guardados").isVisible()) && !(await pgSw.locator("#diagnostico").isVisible()));
+await pgSw.click("#menu-mais"); await pgSw.click("#mais-conta"); await pgSw.click("#abrir-diagnostico"); await pgSw.waitForSelector("#limpar-guardados:visible");
+simula.versao = null;
+await Promise.all([pgSw.waitForEvent("load"), pgSw.click("#limpar-guardados")]); await abreSw();
+confere("diagnóstico: Limpar apaga a cópia, recarrega do servidor e a versão publicada é guardada de novo", (await pgSw.evaluate(() => import("./js/versao.js").then((m) => m.VERSAO))) === versaoNoArquivo && await ateCopia("takt-" + versaoNoArquivo));
+confere("service worker: nenhum erro de página no percurso", errosSw.length === 0); errosSw.forEach((e) => console.log("   " + e));
+await ctxSw.close(); simula.semRede = false;
 
 confere("nenhum erro no console", erros.length === 0); erros.forEach((e) => console.log("   " + e));
 console.log(`RESULTADO: ${ok} ok, ${falhas} falhas`); await b.close(); srv.close();
